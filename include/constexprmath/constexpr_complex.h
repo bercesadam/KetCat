@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include "constexpr_trigon.h"
 
 
 /// @file
@@ -54,6 +55,16 @@ namespace ConstexprMath
         /// @param r  Real part.
         /// @return Complex number r + 0i.
         static constexpr Complex fromReal(FloatType r) noexcept { return { r, 0.0 }; }
+
+		/// @brief Create a complex number from polar coordinates.
+		/// @param magnitude  Magnitude (length) of the complex number.
+		/// @param angle      Angle (argument) in radians.
+		/// @return Complex number with the specified polar representation.
+        static constexpr Complex fromPolar(FloatType magnitude, FloatType angle) noexcept
+        {
+            return { magnitude * ConstexprMath::cos(angle),
+                     magnitude * ConstexprMath::sin(angle) };
+		}
 
         /// @brief Return the imaginary unit +i (0 + 1i).
         /// @return Complex representing i.

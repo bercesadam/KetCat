@@ -99,4 +99,13 @@ namespace ConstexprMath
     {
         return (x < 0.0) ? -x : x;
     };
+
+	/// @brief Compute the factorial of a non-negative integer at compile time.
+	/// @tparam IntType  Integral type for the argument and result.
+	/// @param n         Non-negative integer.
+	template <std::unsigned_integral UIntType>
+    constexpr UIntType factorial(UIntType n) noexcept
+    {
+        return (n <= 1) ? 1 : n * factorial(n - 1);
+	}
 }

@@ -2,7 +2,8 @@
 #include <iostream>
 #include <iomanip>
 
-#include "wavefunction/qbits.h"
+// Aggressively include all relevant headers for ease of use
+#include "wavefunction/qbit_seed.h"
 #include "solvers/quantum_gate_solver.h"
 
 #include "quantum_gates/common_gates.h"

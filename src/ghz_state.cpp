@@ -3,11 +3,11 @@
 
 using namespace KetCat::QCC;
 
+// @brief Sanity check: Create and run a GHZ state circuit on 3 qubits
+//        Expected state: GHZ state (|000⟩ + |111⟩) / √(2)
+
 int main()
 {
-	// Sanity check: Create and run a GHZ state circuit on 3 qubits
-	// Expected state: GHZ state (|000> + |111>)/sqrt(2)
-
 	std::cout << "Greenberger-Horne-Zeilinger (GHZ) State Circuit demo (3 qubits)\n";
 
     constexpr auto GHZStateCircuitTest = QuantumCircuit<3>().withGates(
@@ -16,5 +16,7 @@ int main()
         QuantumGate<2, Gates::CX>().toBits(1, 2));
 
 	KetCat::Visu::VisuProbaTable<8>().update<0, 1, 2>(GHZStateCircuitTest.getStateVector());
+
+    return 0;
 }
 

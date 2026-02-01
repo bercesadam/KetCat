@@ -2,12 +2,16 @@
 #include "core_types.h"
 #include "constexprmath/constexpr_trigon.h"
 
+// Aggressively include all relevant headers for ease of use
 #include "hamiltonian/hamiltonian.h"
 #include "hamiltonian/potential_barrier.h"
+#include "hamiltonian/softculomb_potential.h"
+#include "hamiltonian/harmonic_osc_potential.h"
 
 #include "wavefunction/gaussian_wave_packet.h"
 #include "wavefunction/hydrogen.h"
 #include "wavefunction/eigenstate.h"
+#include "wavefunction/coherent_state_gaussian.h"
 
 #include "solvers/crank_nicolson_solver.h"
 
@@ -22,7 +26,6 @@ namespace KetCat
 	template<dimension_t SpatialDiscretizationStep>
 	struct OneDimensionalParticleBoxConfig
 	{
-		
 		// Number of spatial discretization steps
 		const dimension_t N = SpatialDiscretizationStep;
 		// Dirichlet boundary conditions

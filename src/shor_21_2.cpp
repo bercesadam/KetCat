@@ -5,7 +5,7 @@ using namespace KetCat::QCC;
 
 int main()
 {
-	// Construct Shor's algorithm circuit for N=21, a=2
+	// @brief Construct Shor's algorithm circuit for N=21, a=2
 	// 8 qubits: 3 for phase register, 5 for work register
 	// The circuit performs controlled modular multiplications by
 	// 2, 4, and 16 (mod 21) based on the phase qubits,
@@ -86,5 +86,7 @@ int main()
     // gcd(2^(r/2)-1, 21) = gcd(7, 21) = 7
     // gcd(2^(r/2)+1, 21) = gcd(9, 21) = 3
     KetCat::Visu::VisuProbaTable<256>().update<0, 1, 2>(ShorCircuit.getStateVector());
+
+    return 0;
 }
 

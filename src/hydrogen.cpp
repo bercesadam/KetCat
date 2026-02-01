@@ -7,6 +7,8 @@
 
 using namespace KetCat;
 
+///@brief Demonstration of hydrogen-like atomic orbitals in a 1D particle in a box system.
+
 int main()
 {
 	constexpr OneDimensionalParticleBoxConfig<96> cfg(1.0, 1E-4);
@@ -15,7 +17,7 @@ int main()
 	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<cfg.M>(), std::placeholders::_1, 0.05, cfg.dx);
 
 	// List of hydrogen orbitals to simulate: (StateVector, Name, l)
-	constexpr std::array<std::tuple<StateVector<94>, std::string, unsigned int>, 6> hydrogenOrbitals =
+	std::array<std::tuple<StateVector<94>, std::string, unsigned int>, 6> hydrogenOrbitals =
 	{
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_1s()), "1s", 0),
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_2s()), "2s", 0),
@@ -31,13 +33,15 @@ int main()
 	{
 		std::cout << "Hydrogen orbital: " << std::get<1>(orbital) << "\n";
 
-		auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, SoftCoulombRadialPotential(
-			1.0,
-			2e-2,
-			std::get<2>(orbital),
-			hBar,
-			mass
-		));
+		auto potential = SoftCoulombRadialPotential(
+			1.0,		// Effective nuclear charge Z_eff
+			2e-2,		// Softening parameter a
+			std::get<2>(orbital), // Orbital quantum number ℓ
+			hBar,		// Reduced Planck's constant ℏ
+			mass	    // Reduced mass μ
+		);
+
+		auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, potential);
 
 		auto box = OneDimensionalParticleBox<cfg.N>(
 			cfg,
@@ -48,8 +52,10 @@ int main()
 		Visu::VisuOscilloscope<cfg.M>(
 			Visu::UsePhaseEncoding::NO,
 			Visu::ClearScreen::NO,
-			Visu::ShowComplexParts::NO
-		).update(box.evolve());
+			Visu::ShowComplexParts::NO,
+			Visu::ShowPotential::YES
+		).update(box.evolve(), potential, cfg.dx);
 	}
 
+	return 0;
 }

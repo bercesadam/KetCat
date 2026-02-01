@@ -31,7 +31,7 @@ namespace KetCat
 				psi[i] = cplx_t(value, 0.0);
 			}
 
-			psi.normalize();
+			psi.normalize_with_dx(dx);
 			return psi;
 		}
 	};

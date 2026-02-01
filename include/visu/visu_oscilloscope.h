@@ -9,9 +9,12 @@
 
 #include "wavefunction/state_vector.h"
 #include "constexprmath/constexpr_trigon.h"
+#include "hamiltonian/hamiltonian.h" // for potential_functor concept
+#include "hamiltonian/potential_barrier.h" // for ZeroPotential
 
 #ifdef _WIN32
 #include <windows.h>
+//Funny easter egg in windows.h, so this is needed otherwise it breaks std::max
 #undef max
 #endif
 
@@ -33,6 +36,13 @@ namespace KetCat::Visu
 
 	/// @brief Enum to enable visualization of real and imaginary parts
 	enum class ShowComplexParts
+	{
+		YES,
+		NO
+	};
+
+	/// @brief Enum to specify whether to show potential in visualization
+	enum class ShowPotential
 	{
 		YES,
 		NO
@@ -60,13 +70,6 @@ namespace KetCat::Visu
 	/// @tparam Dim Dimension of the signal
 	/// @param samples Array of tuples: (value, ANSI color)
 	/// @param label Text label printed before the line
-	///
-	/// @details
-	/// The values are visually normalized using:
-	///   |vᵢ| / maxⱼ |vⱼ|
-	///
-	/// This normalization is purely for visualization and has
-	/// no physical meaning.
 	template<dimension_t Dim>
 	inline void renderLine(
 		const std::array<std::tuple<float_t, const char*>, Dim>& samples,
@@ -103,6 +106,26 @@ namespace KetCat::Visu
 		std::cout << "|\n";
 	}
 
+	/// @brief Evaluate a potential functor over discrete spatial points
+	/// @tparam Dim Dimension of the spatial discretization
+	/// @param potential The potential functor to evaluate
+	/// @param dx Spatial discretization step
+	/// @return Array of potential values at discrete points
+	template <dimension_t Dim, typename PotentialFunctor>
+		requires potential_functor<PotentialFunctor, float_t>
+	std::array<float_t, Dim> evalutePotentialFunctor(const PotentialFunctor& potential, const float_t dx)
+	{
+		std::array<float_t, Dim> DiscretePotentials{};
+		for (dimension_t i = 0; i < Dim; ++i)
+		{
+			// Calculate position for the Potential callable: i * Δx
+			const float_t x = i * dx;
+			// Evaluate potential at position x
+			DiscretePotentials[i] = potential(x);
+		}
+		return DiscretePotentials;
+	}
+
 	/// @brief Terminal-based oscilloscope visualization for 1D quantum states
 	///
 	/// @tparam Dim Dimension of the state vector
@@ -115,21 +138,26 @@ namespace KetCat::Visu
 	template<dimension_t Dim>
 	struct VisuOscilloscope
 	{
+		/// Configuration options
 		UsePhaseEncoding m_usePhaseEncoding;
 		ClearScreen m_clearScreen;
 		ShowComplexParts m_showComplex;
+		ShowPotential m_showPotential;
 
 		/// @brief Construct a VisuOscilloscope with specified settings
 		/// @param usePhaseEncoding Enable phase-based coloring of probability density
 		/// @param clearScreen      Clear screen before rendering
 		/// @param showComplex      Enable visualization of real and imaginary parts
+		/// @param showPotential    Enable visualization of potential V(x)
 		VisuOscilloscope(
 			const UsePhaseEncoding usePhaseEncoding,
 			const ClearScreen clearScreen,
-			const ShowComplexParts showComplex)
+			const ShowComplexParts showComplex,
+			const ShowPotential showPotential)
 			: m_usePhaseEncoding(usePhaseEncoding),
 			  m_clearScreen(clearScreen),
-			  m_showComplex(showComplex)
+			  m_showComplex(showComplex),
+			  m_showPotential(showPotential)
 		{
 #ifdef _WIN32
 			// Enable UTF-8 output on Windows console
@@ -142,7 +170,9 @@ namespace KetCat::Visu
 		/// @param usePhaseEncoding Enable phase-based coloring of probability density
 		/// @param cls Clear screen before rendering
 		/// @param showComplex Enable visualization of real and imaginary parts
-		void update(const StateVector<Dim>& s) const
+		template<typename PotentialFunctor>
+			requires potential_functor<PotentialFunctor, float_t>
+		void update(const StateVector<Dim>& s, const PotentialFunctor potential, const float_t dx) const
 		{
 			using namespace std::chrono_literals;
 
@@ -152,7 +182,7 @@ namespace KetCat::Visu
 			}
 
 			// --- Probability density |ψ|² ---
-			std::array<std::tuple<float_t, const char*>, Dim> probLine{};
+			std::array<std::tuple<float_t, const char*>, Dim> ProbLine{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{
@@ -161,34 +191,56 @@ namespace KetCat::Visu
 				const char* color = "\x1B[97m";
 				if (enabled(m_usePhaseEncoding))
 				{
-					const float_t phase = std::atan2(s[i].im, s[i].re);
-					color = phaseToColor(phase);
+					const float_t Phase = std::atan2(s[i].im, s[i].re);
+					color = phaseToColor(Phase);
 				}
 
-				probLine[i] = { p, color };
+				ProbLine[i] = { p, color };
 			}
 
-			renderLine<Dim>(probLine, "Proba: ");
+			renderLine<Dim>(ProbLine, "Proba:     ");
 
 
 			// --- Optional: Real and Imaginary parts ---
 			if (enabled(m_showComplex))
 			{
-				std::array<std::tuple<float_t, const char*>, Dim> reLine{};
-				std::array<std::tuple<float_t, const char*>, Dim> imLine{};
+				std::array<std::tuple<float_t, const char*>, Dim> ReLine{};
+				std::array<std::tuple<float_t, const char*>, Dim> ImLine{};
 
 				for (dimension_t i = 0; i < Dim; ++i)
 				{
-					reLine[i] = { s[i].re, "\x1B[33m" }; // Yellow
-					imLine[i] = { s[i].im, "\x1B[36m" }; // Cyan
+					ReLine[i] = { s[i].re, "\x1B[33m" }; // Yellow
+					ImLine[i] = { s[i].im, "\x1B[36m" }; // Cyan
 				}
 
-				renderLine<Dim>(reLine, "Real:  ");
-				renderLine<Dim>(imLine, "Imag:  ");
+				renderLine<Dim>(ReLine, "Real:      ");
+				renderLine<Dim>(ImLine, "Imag:      ");
+			}
+
+			// --- Optional: Potential V(x) ---
+			if (enabled(m_showPotential))
+			{
+				const auto Potentials = evalutePotentialFunctor<Dim>(potential, dx);
+				std::array<std::tuple<float_t, const char*>, Dim> PotentialLine{};
+				for (dimension_t i = 0; i < Dim; ++i)
+				{
+					// Evaluate potential at position x
+					PotentialLine[i] = { Potentials[i], "\x1B[35m"}; // Magenta
+				}
+
+				renderLine<Dim>(PotentialLine, "Potential: ");
 			}
 
 			// Small delay to allow visualization update
 			std::this_thread::sleep_for(100ms);
+		}
+
+		/// @brief Update the visualization with the current state vector (no potential)
+		/// @param s Current quantum state vector
+		/// @note This overload uses a zero potential by default
+		void update(const StateVector<Dim>& s) const
+		{
+			update(s, ZeroPotential, 0.0);
 		}
 	};
 }

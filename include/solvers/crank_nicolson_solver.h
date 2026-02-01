@@ -14,7 +14,7 @@ namespace KetCat
 	/// state vectors based on the Crank–Nicolson method. The solver advances
 	/// a discretized wavefunction by solving the time-dependent Schrödinger equation
 	///
-	///   iħ ∂ψ(t)/∂t = H ψ(t)
+	///   iℏ ∂ψ(t)/∂t = H ψ(t)
 	///
 	/// where ψ(t) is a state vector in a finite-dimensional Hilbert space and
 	/// H is the Hamiltonian operator of the system.
@@ -27,7 +27,7 @@ namespace KetCat
 	/// Time integration is performed using the Crank–Nicolson scheme, which
 	/// corresponds to an implicit midpoint discretization in time:
 	///
-	///   ( I + i·Δt/(2ħ) · H ) · ψⁿ⁺¹ = ( I - i·Δt/(2ħ) · H ) · ψⁿ
+	///   ( I + i·Δt/(2ℏ) · H ) · ψⁿ⁺¹ = ( I - i·Δt/(2ℏ) · H ) · ψⁿ
 	///
 	/// This scheme is:
 	///  - second-order accurate in time,
@@ -48,8 +48,8 @@ namespace KetCat
 	/// @tparam Dim     Dimension of the Hilbert space.
 	/// @param  hamiltonian  Hamiltonian operator of the system.
 	/// @param  dt           Time step size.
-	/// @param  A            Output matrix A = I + i·dt/(2ħ)·H.
-	/// @param  B            Output matrix B = I - i·dt/(2ħ)·H.
+	/// @param  A            Output matrix A = I + i·dt/(2ℏ)·H.
+	/// @param  B            Output matrix B = I - i·dt/(2ℏ)·H.
 	///
 	/// @details
 	/// This function builds the two matrices required by the Crank–Nicolson
@@ -64,7 +64,7 @@ namespace KetCat
 	{
 		const tridiagonal_matrix_t<Dim>& H = hamiltonian.getMatrix();
 
-		// i * dt / (2ħ)
+		// i * dt / (2ℏ)
 		const cplx_t Factor(0.0, dt / (2.0 * hBar));
 
 		for (dimension_t i = 0; i < Dim; ++i)

@@ -1,12 +1,11 @@
 ﻿#pragma once
 #include "core_types.h"
-#include "softculomb_potential.h"
 
 namespace KetCat
 {
 	// Reduced Planck's constant
-	// Using normalized units where ħ = 1 for simplicity
-	// In real physical units, ħ = 1.054571817e-34 J·s
+	// Using normalized units where ℏ = 1 for simplicity
+	// In real physical units, ℏ = 1.054571817e-34 J·s
 	// but for computational purposes, as the rest of the units
 	// in the simulation is not in SI
 	constexpr float_t hBar = 1.0;
@@ -31,7 +30,7 @@ namespace KetCat
 	/// @details This class constructs the Hamiltonian matrix for a quantum system
 	/// 		based on the provided constants and potential function.
 	///			Realizes the following equation: 
-	/// ///			H = - (ħ² / 2m·Δx²) · (d²/dx²) + V(x)
+	/// ///			H = - (ℏ² / 2m·Δx²) · (d²/dx²) + V(x)
 	template<dimension_t Dim>
 	class Hamiltonian
 	{
@@ -53,7 +52,7 @@ namespace KetCat
 			// Initialize Hamiltonian matrix with zeros
 			m_hamiltonianMatrix = {};
 
-			// α = ħ² / (2m·Δx²)
+			// α = ℏ² / (2m·Δx²)
 			const float_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
 			for (dimension_t i = 0; i < Dim; ++i)
 			{

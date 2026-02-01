@@ -3,11 +3,11 @@
 
 using namespace KetCat::QCC;
 
+//@brief Sanity check: Create and run a Bell Ψ⁺ state circuit on 2 qubits
+//       Expected state: (|00⟩ + |11⟩) / √2
+
 int main()
 {
-	// Sanity check: Create and run a GHZ state circuit on 3 qubits
-	// Expected state: GHZ state (|000> + |111>)/sqrt(2)
-
 	std::cout << "Bell State Circuit demo (2 qubits)\n";
 
     constexpr auto BellStateCircuit = QuantumCircuit<2>().withGates(
@@ -15,5 +15,7 @@ int main()
         QuantumGate<2, Gates::CX>().toBits(0, 1));
 
     KetCat::Visu::VisuProbaTable<4>().update<0, 1>(BellStateCircuit.getStateVector());
+
+    return 0;
 }
 

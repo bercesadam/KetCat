@@ -3,6 +3,8 @@
 
 using namespace KetCat::QCC;
 
+//@brief Fair dice algorithm using 3 qubits
+
 int main()
 {
 	std::cout << "Fair dice from 3 qubits\n";
@@ -50,5 +52,7 @@ int main()
 	);
 
     KetCat::Visu::VisuProbaTable<8>().update<0, 1, 2>(FairDice.getStateVector());
+
+	return 0;
 }
 
