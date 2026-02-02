@@ -71,28 +71,4 @@ namespace KetCat::QCC
             }
         return true;
     }
-
-    /// @brief  Applies a unitary matrix to a state vector via matrix-vector multiplication.
-    template<dimension_t Dim>
-    constexpr state_vector_t<Dim>
-        applyUnitary(const matrix_t<Dim>& U,
-            const state_vector_t<Dim>& v) noexcept
-    {
-        // Result initialized to zero amplitudes
-        state_vector_t<Dim> Result{ cplx_t::zero() };
-
-        // Standard matrix-vector product:
-        // result[i] = sum_j U[i][j] * v[j]
-        for (dimension_t i = 0; i < Dim; ++i)
-        {
-            // Accumulate the i-th output amplitude
-            for (dimension_t j = 0; j < Dim; ++j)
-            {
-                // Multiply the matrix row by the vector and add
-                Result[i] += U[i][j] * v[j];
-            }
-        }
-
-        return Result;
-    }
 }
