@@ -39,8 +39,12 @@ Discrete, gate-based evolution of logical qubits using unitary operators.
 This corresponds to the standard circuit model of quantum computation with zero classically hard-coded gate logic.
 Also provides a library of basic quantum gates and also a few examples (Bell and GHZ state, Shor's algorithm and my fair quantum dice circuit).
 
-<img src="doc/shor.png" width="300" style="text-align:center">
-_Example output of Shor's algorithm factoring 21_
+<figure>
+  <img
+    src="doc/shor.png"
+    alt="Example output of Shor's algorithm factoring 21" />
+  <figcaption>An elephant at sunset</figcaption>
+</figure>
 
 ### Physical Quantum Mechanics Model
 
