@@ -1,9 +1,6 @@
 # Ket Cat - constexpr quantum emulator
 
- <img
-    src="doc/logo.png"
-    alt="The project's name and logo" />
-
+<img src="doc/logo.png" alt="The project logo" width="300" style="text-align:center">
 
 |😾⟩, pronounced as “Ket Cat”, is fully `constexpr` C++ framework for simulating quantum systems: **logical quantum circuits** and **physical quantum mechanics** under a shared mathematical foundation.
 The project was originally named *'|Ψ⟩CC — Quantum Circuits in Compiler'* and began as a quantum circuit simulator: the original goal was to compute the evolution of quantum state vectors in constexpr time using unitary gate operations. Formally, this corresponds to solving the Schrödinger equation in a finite-dimensional Hilbert space using discrete unitary operators:
@@ -51,15 +48,18 @@ Also provides a library of basic quantum gates and also a few examples (Bell and
 
 ### Physical Quantum Mechanics Model
 
-Numerical simulation of wavefunctions evolving under time-dependent Hamiltonians; a numerical PDE solver for the time-dependent Schrödinger equation. Currently it's specialized to 1D cases only, thus the calculation model heavily exploits the tridigonal structure of the discrete Laplacian in 1D. (There are plans to extend the functionality to more than one dimensions.)
+Numerical simulation of wavefunctions evolving under different Hamiltonians, which can be built with an intuitive API (using functors for separate potentials). Time evolution is calculated by a numerical PDE solver for the time-dependent Schrödinger equation. Currently it's specialized to 1D cases only, so the calculation model heavily exploits the tridigonal structure of the discrete Laplacian in 1D. (There are plans to extend the functionality to more than one dimensions.)
 
-<img src="doc/hydrogen.png" width="500" style="text-align:center">
-<i>Wave function plot of the orbitals of a hydrogen atom at specific excited states</i>
+The libraty provides a set of predefined, configurable seed wave functions (presenting quantum physics textbook examples, like eigenstates, Gaussian wave packets, coherent state and Hydrogen orbitals); different potentials (Zero potential well with configurable barriers, Soft Coulomb, Harmonic oscillator); and a 1D Particle-in-a-box system in which you can compile all these into one living quantum playground.
 
-Also provides a library of predefined, configurable seed wave functions (presenting quantum physics textbook examples, like eigenstates, Gaussian wave packets and Hydrogen orbitals); library and API to construct potential fields and potential barriers during Hamilton construction; and a 1D Particle-in-a-box system as a quantum playground. Also features an 1D oscilloscope-like visualization with phase encoding where you can witness a Schrödinger time evolution directly in a terminal, like how quantum tunneling works conceptually in SSD's or the radial nodes of a hydrogen atom’s electron cloud.
+Also features an 1D oscilloscope-like visualization with phase encoding where you can witness a Schrödinger time evolution directly in a terminal, like how quantum tunneling works conceptually in SSD's or the radial nodes of a hydrogen atom’s electron cloud. It can be also configured to visualize the potential in the box and also the real/imaginary components of the wave functions, which can contribute to the understanding of the given system.
 
-<img src="doc/tunnel.png" width="500" style="text-align:center">
-_Visualizing quantum tunnel effect on a gaussian wave packet, with phase colouring_
+<figure>
+  <img
+    src="doc/visu_showcase.png"
+    alt="Example output of Shor's algorithm factoring 21" />
+  <figcaption>Example output of Shor's algorithm factoring 21</figcaption>
+</figure>
 
 ## C++ Design and Type-Level Guarantees
 
@@ -105,12 +105,12 @@ It is not optimized for large-scale systems or production-level numerical worklo
 As with all explicit state-vector simulations, memory and computational complexity scale exponentially with system size. This limits practical simulations to relatively small Hilbert spaces.
 
 **Numerical Precision**
-Physical quantum simulations rely on floating-point arithmetic and discretization. While stable integration schemes are used, numerical error accumulation is unavoidable for long time evolutions or fine spatial grids.
+Physical quantum simulations rely on floating-point arithmetic and discretization. While stable integration schemes are used, numerical error accumulation is unavoidable for long time evolutions or fine spatial grids. Also as the project is conceptwise fully constexpr, most basic functions (trigonometry, exp etc.) is approximated with Taylor polynominals which contributes to possible numerical instability for longer simulations.
 
 **Idealized Quantum Circuits**
 The circuit model assumes ideal unitary operations and does not model noise, decoherence, or hardware-specific effects.
 
-These limitations are deliberate design choices aligned with the project’s educational and exploratory goals.
+These limitations are intentional design choices that align with the project’s educational and exploratory goals. I also view the project as a form of digital art, since real‑world, research‑grade simulators that serve a similar purpose would gain no practical benefit from constexpr evaluation and are typically designed and optimized for high‑performance computing environments.
 
 ## Getting Started
 
