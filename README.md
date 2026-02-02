@@ -93,27 +93,29 @@ Key strengths from a C++ perspective include:
 
 Together, these features make the framework not only a quantum simulation environment, but also a demonstration of advanced **type-driven design**, **metaprogramming**, and **compile-time verification** techniques in modern C++.
 
+
 ## Limitations
 
 While |😾⟩ provides a unified and mathematically consistent framework for quantum simulation, several limitations should be noted:
-
-**Not a High-Performance Simulator**
-The framework prioritizes clarity, correctness, and type safety over raw performance.
-It is not optimized for large-scale systems or production-level numerical workloads.
-
-**Exponential State Growth**
-As with all explicit state-vector simulations, memory and computational complexity scale exponentially with system size. This limits practical simulations to relatively small Hilbert spaces.
-
-**Numerical Precision**
-Physical quantum simulations rely on floating-point arithmetic and discretization. While stable integration schemes are used, numerical error accumulation is unavoidable for long time evolutions or fine spatial grids. Also as the project is conceptwise fully constexpr, most basic functions (trigonometry, exp etc.) is approximated with Taylor polynominals which contributes to possible numerical instability for longer simulations.
-
-**Idealized Quantum Circuits**
-The circuit model assumes ideal unitary operations and does not model noise, decoherence, or hardware-specific effects.
-
-These limitations are intentional design choices that align with the project’s educational and exploratory goals. I also view the project as a form of digital art, since real‑world, research‑grade simulators that serve a similar purpose would gain no practical benefit from constexpr evaluation and are typically designed and optimized for high‑performance computing environments.
+    
+-   **Not a High-Performance Simulator**
+    The framework prioritizes clarity, correctness, and type safety over raw performance.
+    It is not optimized for large-scale systems or production-level numerical workloads.
+    
+-   **Exponential State Growth**
+    As with all explicit state-vector simulations, memory and computational complexity scale exponentially with system size. This limits practical simulations to relatively small Hilbert spaces.
+    
+-   **Numerical Precision**
+    Physical quantum simulations rely on floating-point arithmetic and discretization. While stable integration schemes are used, numerical error accumulation is unavoidable for long time evolutions or fine spatial grids. Also as the project is conceptwise fully constexpr, most basic functions (trigonometry, exp etc.) is approximated with Taylor polynominals which contributes to possible numerical instability for longer simulations.
+    
+-   **Idealized Quantum Circuits**
+    The circuit model assumes ideal unitary operations and does not model noise, decoherence, or hardware-specific effects.
+    
+    These limitations are intentional design choices that align with the project’s educational and exploratory goals. I also view the project as a form of digital art, since real‑world, research‑grade simulators that serve a similar purpose would gain no practical benefit from constexpr evaluation and are typically designed and optimized for high‑performance computing environments.
+    
 
 ## Getting Started
-
+    
 ### Build
 
 ```bash
