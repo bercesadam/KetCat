@@ -11,13 +11,16 @@ namespace KetCat
 	/// auto potentialWell = Potential(0.0, 5.0, -100.0);
 	class PotentialBarrier
 	{
-		float_t m_Start;
-		float_t m_End;
+		// Start position of the barrier
+		float_t m_start;
+		// End position of the barrier
+		float_t m_end;
+		// Constant potential energy value within the barrier
 		float_t m_V0;
 
 	public:
 		constexpr PotentialBarrier() noexcept
-			: m_Start(0.0), m_End(0.0), m_V0(0.0)
+			: m_start(0.0), m_end(0.0), m_V0(0.0)
 		{
 		}
 
@@ -27,7 +30,7 @@ namespace KetCat
 		/// @param end     End position
 		/// @param v0      The constant potential energy
 		constexpr PotentialBarrier(float_t start, float_t end, float_t v0) noexcept
-			: m_Start(start), m_End(end), m_V0(v0)
+			: m_start(start), m_end(end), m_V0(v0)
 		{
 		}
 
@@ -37,7 +40,7 @@ namespace KetCat
 		/// @return Potential energy V(x)
 		constexpr float_t operator()(float_t position) const noexcept
 		{
-			if (position >= m_Start && position <= m_End)
+			if (position >= m_start && position <= m_end)
 			{
 				return m_V0;
 			}

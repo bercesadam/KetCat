@@ -39,24 +39,6 @@ namespace KetCat
 			return Probabilities;
 		}
 
-		/// @brief Normalizes the state vector (useful after initialization 
-		/// with wavefunction functors to keep |ψ|² = 1).
-		constexpr void normalize() noexcept
-		{
-			float_t normSquared = 0.0;
-
-			for (cplx_t& c : m_StateVector)
-			{
-				normSquared += c.normSquared();
-			}
-
-			const float_t norm = ConstexprMath::sqrt(normSquared);
-			for (cplx_t& c : m_StateVector)
-			{
-				c = c / norm;
-			}
-		}
-
 		/// @brief  Normalize a discrete wavefunction on a uniform spatial grid
 		///         so that ∑|ψᵢ|² · Δx = 1.
 		/// 
@@ -79,7 +61,7 @@ namespace KetCat
 		///        norm² ← norm² · Δx,
 		///        ψᵢ ← ψᵢ / √(norm²).
 		/// 
-		constexpr void normalize_with_dx(double dx) noexcept
+		constexpr void normalize(double dx) noexcept
 		{
 			double Norm2 = 0.0;
 

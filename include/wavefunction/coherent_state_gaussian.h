@@ -66,7 +66,7 @@ namespace KetCat
                     : sigmaOverride
 				);
 
-            StateVector<Dim> psi{};
+            StateVector<Dim> Psi{};
 
             for (dimension_t i = 0; i < Dim; ++i)
             {
@@ -74,26 +74,26 @@ namespace KetCat
 
                 /// Gaussian envelope centered at x₀
                 /// exp( - (x - x₀)² / (2 σ²) )
-                const float_t gauss =
+                const float_t Gauss =
                     ConstexprMath::exp<20>(
                         -(x - x0) * (x - x0)
                         / (2.0 * sigma * sigma)
                     );
 
                 /// Plane-wave phase factor argument: p₀ x / ℏ
-                const float_t phase = p0 * x / hBar;
+                const float_t Phase = p0 * x / hBar;
 
                 /// Construct complex wavefunction value:
                 /// ψ(x) = gauss · (cos(phase) + i sin(phase))
-                psi[i] = cplx_t(
-                    gauss * ConstexprMath::cos(phase),
-                    gauss * ConstexprMath::sin(phase)
+                Psi[i] = cplx_t(
+                    Gauss * ConstexprMath::cos(Phase),
+                    Gauss * ConstexprMath::sin(Phase)
                 );
             }
 
-            psi.normalize_with_dx(dx);
+            Psi.normalize(dx);
 
-            return psi;
+            return Psi;
         }
     };
 }

@@ -16,7 +16,7 @@ namespace KetCat
 		constexpr StateVector<Dim>
 			operator()(unsigned int n, float_t dx, float_t L) const noexcept
 		{
-			StateVector<Dim> psi{};
+			StateVector<Dim> Psi{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{
@@ -24,15 +24,15 @@ namespace KetCat
 				const float_t x = (i + 1) * dx;
 
 				// Sin for the shape of the eigenstate
-				const float_t value = ConstexprMath::sin(
+				const float_t Value = ConstexprMath::sin(
 					n * ConstexprMath::Pi * x / L
 				);
 
-				psi[i] = cplx_t(value, 0.0);
+				Psi[i] = cplx_t(Value, 0.0);
 			}
 
-			psi.normalize_with_dx(dx);
-			return psi;
+			Psi.normalize(dx);
+			return Psi;
 		}
 	};
 }

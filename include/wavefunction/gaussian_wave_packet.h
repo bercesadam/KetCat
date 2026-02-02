@@ -15,7 +15,7 @@ namespace KetCat
 	{
 		constexpr StateVector<Dim> operator()(float_t x0, float_t k0, float_t sigma, float_t dx) const noexcept
 		{
-			StateVector<Dim> psi = {};
+			StateVector<Dim> Psi = {};
 
 			for (dimension_t n = 0; n < Dim; ++n)
 			{
@@ -24,19 +24,19 @@ namespace KetCat
 
 				// Gaussian envelope calculation 
 				// exp(-((x - x0)^2) / (4 * sigma^2))
-				const float_t exponent = -((x - x0) * (x - x0)) / (4.0 * sigma * sigma);
-				const float_t envelope = ConstexprMath::exp<20>(exponent);
+				const float_t Exponent = -((x - x0) * (x - x0)) / (4.0 * sigma * sigma);
+				const float_t Envelope = ConstexprMath::exp<20>(Exponent);
 
 				// Plane wave component calculation: cos(k0 * x) + i * sin(k0 * x)
-				const float_t realPart = ConstexprMath::cos(k0 * x);
-				const float_t imagPart = ConstexprMath::sin(k0 * x);
+				const float_t RealPart = ConstexprMath::cos(k0 * x);
+				const float_t ImagPart = ConstexprMath::sin(k0 * x);
 
 				// Combine envelope and plane wave to form the complex amplitude
-				psi[n] = cplx_t(envelope * realPart, envelope * imagPart);
+				Psi[n] = cplx_t(Envelope * RealPart, Envelope * ImagPart);
 			}
 
-			//psi.normalize();
-			return psi;
+			Psi.normalize(dx);
+			return Psi;
 		}
 	};
 }

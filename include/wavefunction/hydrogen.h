@@ -99,7 +99,7 @@ namespace KetCat
 			const unsigned int n = q.n();
 			const unsigned int l = q.l();
 
-			StateVector<Dim> u{ cplx_t::zero() };
+			StateVector<Dim> Psi{ cplx_t::zero() };
 
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
 			for (dimension_t i = 1; i < Dim; ++i)
@@ -107,29 +107,31 @@ namespace KetCat
 				const double r = i * dx;
 				const double x = 2.0 * r / (n * a_eff);
 
+				// Behavior near r=0 (the nucleus)
 				// r^(ℓ+1)
-				double rpow = 1.0;
-				for (unsigned k = 0; k < l + 1; ++k) rpow *= r;
+				double rPow = 1.0;
+				for (unsigned k = 0; k < l + 1; ++k)
+				{
+					rPow *= r;
+				}
 
+				// Exponential tail
 				// exp(−r / (n·a_eff))
-				const double expo = ConstexprMath::exp<30>(-r / (n * a_eff));
+				const double Exponential = ConstexprMath::exp<30>(-r / (n * a_eff));
 
 				// Associated Laguerre: L_{n−ℓ−1}^(2ℓ+1)(x)
 				const unsigned p = n - l - 1;
 				const unsigned alpha = 2 * l + 1;
-				const double lag = laguerre(p, alpha, x);
+				const double Laguerre = laguerre(p, alpha, x);
 
-				const double val = rpow * expo * lag;
-				u[i] = cplx_t::fromReal(val);
+				const double Value = rPow * Exponential * Laguerre;
+				Psi[i] = cplx_t::fromReal(Value);
 			}
 
 			// Enforce discrete radial normalization: Σ |u|² · Δr = 1
-			u.normalize_with_dx(dx);
+			Psi.normalize(dx);
 
-			// Dirichlet at the outer endpoint
-			//u[Dim - 1] = cplx_t::zero();
-
-			return u;
+			return Psi;
 		}
 	};
 }

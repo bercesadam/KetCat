@@ -11,11 +11,16 @@ namespace KetCat
 	/// angular momentum states.
 	class SoftCoulombRadialPotential
 	{
-		double m_Zeff;     // Effective nuclear charge Z_eff
-		double m_a;        // Softening parameter a > 0
-		unsigned m_l;      // Orbital quantum number ℓ ≥ 0
-		double m_hbar;     // ℏ
-		double m_mu;       // Reduced mass μ
+		// Effective nuclear charge
+		double m_Zeff; 
+		// Softening parameter a > 0
+		double m_a;   
+		// Orbital quantum number ℓ ≥ 0     
+		unsigned m_l;      
+		// Reduced Planck's constant ℏ
+		double m_hbar;     
+		// Reduced mass μ
+		double m_mu;       
 
 	public:
 		/// @brief Constructs a radial soft-Coulomb potential.

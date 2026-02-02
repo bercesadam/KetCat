@@ -44,7 +44,7 @@ int main()
 	while (true)
 	{
 		auto p = box.evolve();
-		p.normalize_with_dx(cfg.dx);
+		p.normalize(cfg.dx);
 		visu.update(p);
 	}
 
