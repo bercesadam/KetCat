@@ -1,6 +1,11 @@
 # Ket Cat - constexpr quantum emulator
 
-<img src="doc/logo.png" alt="The project logo" width="300" style="text-align:center">
+<figure>
+  <img
+    src="doc/logo.png"
+    alt="The project's name and logo" />
+  <figcaption>The project's name and logo</figcaption>
+</figure>
 
 |😾⟩, pronounced as “Ket Cat”, is fully `constexpr` C++ framework for simulating quantum systems: **logical quantum circuits** and **physical quantum mechanics** under a shared mathematical foundation.
 The project was originally named *'|Ψ⟩CC — Quantum Circuits in Compiler'* and began as a quantum circuit simulator: the original goal was to compute the evolution of quantum state vectors in constexpr time using unitary gate operations. Formally, this corresponds to solving the Schrödinger equation in a finite-dimensional Hilbert space using discrete unitary operators:
@@ -43,7 +48,7 @@ Also provides a library of basic quantum gates and also a few examples (Bell and
   <img
     src="doc/shor.png"
     alt="Example output of Shor's algorithm factoring 21" />
-  <figcaption>An elephant at sunset</figcaption>
+  <figcaption>Example output of Shor's algorithm factoring 21</figcaption>
 </figure>
 
 ### Physical Quantum Mechanics Model
