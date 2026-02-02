@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "core_types.h"
-#include "state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat::QCC
 {
@@ -15,12 +15,12 @@ namespace KetCat::QCC
 		/// @brief Generates the computational basis state vector |initialValue⟩.
 		/// @param initialValue  Index of the basis state to generate (0 ≤ initialValue < Dim).
 		/// @return State vector representing the selected basis state.
-		constexpr StateVector<Dim>
+		constexpr StateVector<FiniteHilbertSpace<Dim>>
 			operator()(unsigned int initialValue = 0) const noexcept
 		{
-			StateVector<Dim> psi{};
-			psi[initialValue] = cplx_t::fromReal(1.0);
-			return psi;
+			StateVector<FiniteHilbertSpace<Dim>> Psi{};
+			Psi[initialValue] = cplx_t::fromReal(1.0);
+			return Psi;
 		}
 	};
 }

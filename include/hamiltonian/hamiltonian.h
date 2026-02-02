@@ -62,19 +62,19 @@ namespace KetCat
 				// Superdiagonal: represents kinetic coupling to the next site (i + 1)
 				if (i + 1 < Dim)
 				{
-					m_hamiltonianMatrix[SuperDiagonal][i] = cplx_t::fromReal(-Alpha);
+					m_hamiltonianMatrix[SUPERDIAGONAL][i] = cplx_t::fromReal(-Alpha);
 				}
 
 				// Main diagonal elements: Kinetic + Potential energy
 				// Kinetic part: 2α (from the central term of the second-order finite difference)
 				// Potential part: V(position)
 				// Total: 2α + V(position)
-				m_hamiltonianMatrix[MainDiagonal][i] = cplx_t::fromReal(2.0 * Alpha + potential(Position));
+				m_hamiltonianMatrix[MAINDIAGONAL][i] = cplx_t::fromReal(2.0 * Alpha + potential(Position));
 
 				// Subdiagonal: represents kinetic coupling to the previous site (i - 1)
 				if (i > 0)
 				{
-					m_hamiltonianMatrix[SubDiagonal][i] = cplx_t::fromReal(-Alpha);
+					m_hamiltonianMatrix[SUBDIAGONAL][i] = cplx_t::fromReal(-Alpha);
 				}
 			}
 		}

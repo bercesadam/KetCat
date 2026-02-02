@@ -2,7 +2,7 @@
 
 #include "core_types.h"
 #include "hamiltonian/hamiltonian.h"
-#include "wavefunction/state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
@@ -70,21 +70,21 @@ namespace KetCat
 		for (dimension_t i = 0; i < Dim; ++i)
 		{
 			// Build main diagonal
-			A[MainDiagonal][i] = cplx_t::fromReal(1.0) + Factor * H[MainDiagonal][i];
-			B[MainDiagonal][i] = cplx_t::fromReal(1.0) - Factor * H[MainDiagonal][i];
+			A[MAINDIAGONAL][i] = cplx_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
+			B[MAINDIAGONAL][i] = cplx_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
 			//  Build lower diagonal
 			if (i > 0)
 			{
-				A[SubDiagonal][i] = Factor * H[SubDiagonal][i];
-				B[SubDiagonal][i] = -Factor * H[SubDiagonal][i];
+				A[SUBDIAGONAL][i] = Factor * H[SUBDIAGONAL][i];
+				B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
 			}
 
 			//  Build upper diagonal
 			if (i + 1 < Dim)
 			{
-				A[SuperDiagonal][i] = Factor * H[SuperDiagonal][i];
-				B[SuperDiagonal][i] = -Factor * H[SuperDiagonal][i];
+				A[SUPERDIAGONAL][i] = Factor * H[SUPERDIAGONAL][i];
+				B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
 			}
 		}
 	}
@@ -101,26 +101,27 @@ namespace KetCat
 	/// exploiting the tridiagonal structure of the matrix. It is primarily
 	/// used to construct the right-hand side of the Crank–Nicolson system.
 	template<dimension_t Dim>
-	static constexpr StateVector<Dim>
-		multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M, const StateVector<Dim>& x) noexcept
+	static constexpr StateVector<InfiniteHilbertSpace<Dim>>
+		multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
+			const StateVector<InfiniteHilbertSpace<Dim>>& x) noexcept
 	{
-		StateVector<Dim> Result{ cplx_t::zero() };
+		StateVector<InfiniteHilbertSpace<Dim>> Result{ cplx_t::zero() };
 
 		for (dimension_t i = 0; i < Dim; ++i)
 		{
 			// Main diagonal contribution
-			Result[i] += M[MainDiagonal][i] * x[i];
+			Result[i] += M[MAINDIAGONAL][i] * x[i];
 
 			// Lower diagonal contribution
 			if (i > 0)
 			{
-				Result[i] += M[SubDiagonal][i] * x[i - 1];
+				Result[i] += M[SUBDIAGONAL][i] * x[i - 1];
 			}
 
 			// Upper diagonal contribution
 			if (i + 1 < Dim)
 			{
-				Result[i] += M[SuperDiagonal][i] * x[i + 1];
+				Result[i] += M[SUPERDIAGONAL][i] * x[i + 1];
 			}
 		}
 
@@ -141,29 +142,30 @@ namespace KetCat
 	///
 	/// The matrix is passed by value and modified internally.
 	template<dimension_t Dim>
-	constexpr StateVector<Dim> solveTridiagonal(tridiagonal_matrix_t<Dim> M, StateVector<Dim> psi) noexcept
+	constexpr StateVector<InfiniteHilbertSpace<Dim>> solveTridiagonal(
+		tridiagonal_matrix_t<Dim> M, StateVector<InfiniteHilbertSpace<Dim>> psi) noexcept
 	{
 		// --- FORWARD ELIMINATION ---
 		for (dimension_t i = 1; i < Dim; ++i)
 		{
 			// Elimination multiplier
-			const cplx_t w = M[SubDiagonal][i] / M[MainDiagonal][i - 1];
+			const cplx_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
 
 			// Update main diagonal
-			M[MainDiagonal][i] = M[MainDiagonal][i] - w * M[SuperDiagonal][i - 1];
+			M[MAINDIAGONAL][i] = M[MAINDIAGONAL][i] - w * M[SUPERDIAGONAL][i - 1];
 
 			// Update right-hand side
 			psi[i] = psi[i] - w * psi[i - 1];
 		}
 
 		// --- BACK SUBSTITUTION ---
-		StateVector<Dim> Result{};
+		StateVector<InfiniteHilbertSpace<Dim>> Result{};
 
-		Result[Dim - 1] = psi[Dim - 1] / M[MainDiagonal][Dim - 1];
+		Result[Dim - 1] = psi[Dim - 1] / M[MAINDIAGONAL][Dim - 1];
 
 		for (dimension_t i = Dim - 1; i-- > 0;)
 		{
-			Result[i] = (psi[i] - M[SubDiagonal][i] * Result[i + 1]) / M[MainDiagonal][i];
+			Result[i] = (psi[i] - M[SUBDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
 		}
 
 		return Result;
@@ -207,8 +209,8 @@ namespace KetCat
 		/// @details
 		/// The function computes the right-hand side B · ψⁿ and then solves
 		/// the linear system A · ψⁿ⁺¹ = RHS, resulting in unitary time evolution.
-		constexpr StateVector<Dim>
-			operator()(const StateVector<Dim>& psi) const noexcept
+		constexpr StateVector<InfiniteHilbertSpace<Dim>>
+			operator()(const StateVector<InfiniteHilbertSpace<Dim>>& psi) const noexcept
 		{
 			// RHS = B · ψⁿ
 			auto rhs = multiplyTrigiagonal(m_B, psi);

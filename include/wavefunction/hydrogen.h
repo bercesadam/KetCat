@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "core_types.h"
-#include "state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
@@ -93,13 +93,13 @@ namespace KetCat
 		/// @param x0  Position of the atomic center
 		///
 		/// @return Normalized quantum state vector representing the orbital
-		constexpr StateVector<Dim>
+		constexpr StateVector<InfiniteHilbertSpace<Dim>>
 			operator()(QuantumNumber q, double a_eff, double dx) const noexcept
 		{
 			const unsigned int n = q.n();
 			const unsigned int l = q.l();
 
-			StateVector<Dim> Psi{ cplx_t::zero() };
+			StateVector<InfiniteHilbertSpace<Dim>> Psi{ cplx_t::zero() };
 
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
 			for (dimension_t i = 1; i < Dim; ++i)

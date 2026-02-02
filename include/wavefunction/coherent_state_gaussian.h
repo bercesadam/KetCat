@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "core_types.h"
-#include "state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
@@ -47,7 +47,7 @@ namespace KetCat
 		/// @param sigmaOverride Optional override for the Gaussian width σ (default = -1.0, which uses the standard σ, which is √(ℏ / (2 m ω)))
         ///
         /// @return Normalized discrete coherent state |ψ⟩
-        constexpr StateVector<Dim> operator()(
+        constexpr StateVector<InfiniteHilbertSpace<Dim>> operator()(
             float_t hBar,
             float_t x0,        
             float_t p0,       
@@ -66,7 +66,7 @@ namespace KetCat
                     : sigmaOverride
 				);
 
-            StateVector<Dim> Psi{};
+            StateVector<InfiniteHilbertSpace<Dim>> Psi{};
 
             for (dimension_t i = 0; i < Dim; ++i)
             {

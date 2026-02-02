@@ -10,7 +10,7 @@
 #include <functional>
 
 #include "oscilloscope_config.h"
-#include "wavefunction/state_vector.h"
+#include "hilbert_space/state_vector.h"
 #include "constexprmath/constexpr_trigon.h"
 #include "hamiltonian/hamiltonian.h" // for potential_functor concept
 #include "hamiltonian/potential_barrier.h" // for ZeroPotential
@@ -158,7 +158,8 @@ namespace KetCat::Visu
 		
 		/// @brief Update the visualization with the current state vector
 		/// @param s Current state vector
-		void update(const StateVector<Dim>& s) const
+		template<KetCat::hilbert_space_t Space>
+		void update(const StateVector<Space>& s) const
 		{
 			using namespace std::chrono_literals;
 

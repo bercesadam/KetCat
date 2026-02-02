@@ -1,15 +1,21 @@
 ﻿#pragma once
-#include "core_types.h"
+#include "hilbert.h"
 
 namespace KetCat
 {
 	/// @brief Represents a quantum state vector in a Hilbert space of given dimension.
-	/// @tparam HilbertDim  Dimension of the Hilbert space (number of basis states).
-	template <dimension_t HilbertDim>
+	/// @tparam Dim  Dimension of the Hilbert space (number of basis states).
+	template <hilbert_space_t Space>
 	struct StateVector
 	{
+		/// Type alias for the Hilbert space type
+		using HilbertSpaceType = Space;
+
+		/// Size of the vector for convenience
+		static constexpr dimension_t Dim = Space::Dim;
+
 		/// Underlying state vector array
-		state_vector_t<HilbertDim> m_StateVector;
+		state_vector_t<Dim> m_StateVector;
 
 	public:
 		/// @brief Indexing operator
@@ -27,11 +33,11 @@ namespace KetCat
 		}
 
 		/// @brief Get the probabilities of measuring the selected basis states.
-		constexpr probability_vector_t<HilbertDim> getProbabilities() const noexcept
+		constexpr probability_vector_t<Dim> getProbabilities() const noexcept
 		{
-			probability_vector_t<HilbertDim> Probabilities;
+			probability_vector_t<Dim> Probabilities;
 
-			for (int i = 0; i < HilbertDim; ++i)
+			for (int i = 0; i < Dim; ++i)
 			{
 				Probabilities[i] = m_StateVector[i].normSquared();
 			}
@@ -88,15 +94,15 @@ namespace KetCat
 		}
 
 		/// @brief Multiply this state vector by a matrix.
-		/// @param mat  The matrix to multiply with (HilbertDim x HilbertDim).
+		/// @param mat  The matrix to multiply with (Dim x Dim).
 		/// @return The resulting state vector.
-		constexpr StateVector<HilbertDim> matMul(const matrix_t<HilbertDim>& mat) const noexcept
+		constexpr StateVector<HilbertSpaceType> matMul(const matrix_t<Dim>& mat) const noexcept
 		{
-			StateVector<HilbertDim> Result;
-			for (dimension_t i = 0; i < HilbertDim; ++i)
+			StateVector<HilbertSpaceType> Result;
+			for (dimension_t i = 0; i < Dim; ++i)
 			{
 				cplx_t Sum = cplx_t::zero();
-				for (dimension_t j = 0; j < HilbertDim; ++j)
+				for (dimension_t j = 0; j < Dim; ++j)
 				{
 					Sum = Sum + mat[i][j] * m_StateVector[j];
 				}

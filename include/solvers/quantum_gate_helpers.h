@@ -31,24 +31,6 @@ namespace KetCat::QCC
     template<typename T>
     inline constexpr bool is_gate_matrix_v = is_gate_matrix<T>::value;
 
-    /// @brief  Type trait to check if a type is a 1-qubit gate matrix
-    template<typename T, typename = void>
-    struct is_1_qbit_gate_matrix : std::false_type {};
-
-    // Specialization when T is a gate matrix
-    template<typename T>
-    struct is_1_qbit_gate_matrix<
-        T,
-        std::enable_if_t<is_gate_matrix_v<T>>
-    >
-    {
-        static constexpr bool value = (is_gate_matrix<T>::dim == 2);
-    };
-
-    /// C++17 style '_v' helper
-    template<typename T>
-    inline constexpr bool is_1_qbit_gate_matrix_v = is_1_qbit_gate_matrix<T>::value;
-
     /// @brief  Checks whether a provided square complex matrix is unitary.
     /// @tparam Dim     Dimension of the square matrix (2^k).
     /// @param mat      The matrix to check.

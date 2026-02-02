@@ -1,6 +1,6 @@
 #pragma once
 #include "core_types.h"
-#include "state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
@@ -13,10 +13,10 @@ namespace KetCat
 	template<dimension_t Dim>
 	struct EigenState
 	{
-		constexpr StateVector<Dim>
+		constexpr StateVector<InfiniteHilbertSpace<Dim>>
 			operator()(unsigned int n, float_t dx, float_t L) const noexcept
 		{
-			StateVector<Dim> Psi{};
+			StateVector<InfiniteHilbertSpace<Dim>> Psi{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{

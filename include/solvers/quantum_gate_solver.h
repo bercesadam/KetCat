@@ -1,7 +1,7 @@
 #pragma once
 #include "core_types.h"
 #include "quantum_gate_helpers.h"
-#include "wavefunction/state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 
 namespace KetCat::QCC
@@ -90,12 +90,12 @@ namespace KetCat::QCC
 		 * redundant processing.
 		 */
 		template<dimension_t StateCount>
-		constexpr StateVector<StateCount>
-			operator()(StateVector<StateCount> state) const
+		constexpr StateVector<FiniteHilbertSpace<StateCount>>
+			operator()(StateVector<FiniteHilbertSpace<StateCount>> state) const
 		{
-			constexpr dimension_t Dim = ConstexprMath::pow2(QBitCount);
+			constexpr dimension_t AffectedSubspaceDim = ConstexprMath::pow2(QBitCount);
 
-			StateVector<StateCount> Result = state;
+			StateVector<FiniteHilbertSpace<StateCount>> Result = state;
 
 			// ------------------------------------------------------------
 			// Precompute masks for affected qubits
@@ -126,9 +126,9 @@ namespace KetCat::QCC
 				// Gather local (2^k) amplitudes
 				// --------------------------------------------------------
 
-				state_vector_t<Dim> LocalIndices{};
+				StateVector<FiniteHilbertSpace<AffectedSubspaceDim>> LocalIndices{};
 
-				for (dimension_t i = 0; i < Dim; ++i)
+				for (dimension_t i = 0; i < AffectedSubspaceDim; ++i)
 				{
 					dimension_t GlobalIndex = base;
 
@@ -149,14 +149,13 @@ namespace KetCat::QCC
 				// Apply k-qubit unitary in the local subspace
 				// --------------------------------------------------------
 
-				const state_vector_t<Dim> LocalOut =
-					applyUnitary(GateMatrix, LocalIndices);
+				const StateVector<FiniteHilbertSpace<AffectedSubspaceDim>> LocalOut = LocalIndices.matMul(GateMatrix);
 
 				// --------------------------------------------------------
 				// Scatter results back to the full statevector
 				// --------------------------------------------------------
 
-				for (dimension_t i = 0; i < Dim; ++i)
+				for (dimension_t i = 0; i < AffectedSubspaceDim; ++i)
 				{
 					dimension_t GlobalIndex = base;
 
@@ -189,15 +188,6 @@ namespace KetCat::QCC
 	struct QuantumGate
 	{
 		/**
-		 * @brief     Construct a gate from its unitary matrix.
-		 * @param U   The gate matrix (must be 2^QBitCount × 2^QBitCount and unitary).
-		 *//*
-		constexpr explicit QuantumGate(
-			const matrix_t<ConstexprMath::pow2(QBitCount), ConstexprMath::pow2(QBitCount)>& U)
-			: gateMatrix(U) {
-		}*/
-
-		/**
 		 * @brief     Bind this gate to a list of qubit indices and return an operation.
 		 *
 		 * @tparam QBits  Variadic list of indices convertible to `dimension_t`. The
@@ -212,26 +202,7 @@ namespace KetCat::QCC
 		constexpr QuantumGateOp<QBitCount> toBits(QBits... qbits) const
 		{
 			static_assert(sizeof...(qbits) == QBitCount);
-			//static_assert(is_valid_square_matrix(GateMatrix), "The provided matrix is not a valid square matrix.");
-		   // static_assert(is_unitary(GateMatrix), "The provided matrix is not unitary.");
 			return QuantumGateOp<QBitCount>(GateMatrix, qbit_list_t<QBitCount>{ static_cast<dimension_t>(qbits)... });
-		}
-	};
-
-
-	/// @brief     Factory for creating `QuantumGateOp` objects from a 1-qubit gate matrix.
-	/// @tparam QBitCount  Number of qubits the gate matrix acts on.
-	template<dimension_t QBitCount, auto GateMatrix>
-		requires (is_1_qbit_gate_matrix_v<std::remove_cvref_t<decltype(GateMatrix)>>&& is_unitary<GateMatrix>())
-	struct ParallelSingleQubitGate
-	{
-		//TODO
-		template<std::convertible_to<dimension_t>... QBits>
-		constexpr auto toBits(QBits... qbits) const
-		{
-			static_assert(sizeof...(qbits) == QBitCount);
-
-			return;
 		}
 	};
 }

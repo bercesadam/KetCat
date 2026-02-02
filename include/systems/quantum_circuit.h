@@ -30,7 +30,8 @@ namespace KetCat::QCC
     {
         // Try invoking the gate with a sample 1-qubit state vector; the returned type
         // must be a state_vector_t<1>. This models the "callable that maps state->state".
-        { g(StateVector<1>{}) } -> std::same_as<StateVector<1>>;
+        { g(StateVector<FiniteHilbertSpace<1>>{}) }
+            -> std::same_as<StateVector<FiniteHilbertSpace<1>>>;
     };
 
     /// @brief Executor that schedules and runs a series of gate-like callables at compile-time (where possible).
@@ -44,7 +45,7 @@ namespace KetCat::QCC
         static constexpr dimension_t BasisStateCount = ConstexprMath::pow2(QBitCount);
 
         /// @brief The internal global state vector (amplitudes for 2^QBitCount basis states).
-        StateVector<BasisStateCount> m_stateVector;
+        StateVector<FiniteHilbertSpace<BasisStateCount>> m_stateVector;
 
 
         /// @brief Construct executor and immediately execute provided gates.
@@ -66,11 +67,9 @@ namespace KetCat::QCC
         /// @tparam Rest  Remaining gate types.
         /// @param gate   Gate callable to apply.
         /// @param rest   Remaining gate callables.
-        template<typename Gate, typename... Rest>
+        template<QuantumGateLike Gate, QuantumGateLike... Rest>
         constexpr void executeCircuit(const Gate& gate, const Rest&... rest)
         {
-            static_assert(QuantumGateLike<Gate>);
-
             // Apply the gate to the current state vector (gate returns a new vector)
             m_stateVector = gate(m_stateVector);
 
@@ -81,11 +80,11 @@ namespace KetCat::QCC
         /// @brief Base case for recursion: no gates left to apply.
         constexpr void executeCircuit() {}
 
-		/// @brief Get the final state vector after executing all gates.
-        constexpr const StateVector<BasisStateCount>& getStateVector() const noexcept
+        /// @brief Get the final state vector after executing all gates.
+        constexpr const StateVector<FiniteHilbertSpace<BasisStateCount>>& getStateVector() const noexcept
         {
             return m_stateVector;
-		}
+        }
     };
 
     /// @brief Facade class to create executors bound to a fixed qubit count.

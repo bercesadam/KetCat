@@ -53,19 +53,19 @@ namespace KetCat
 	class OneDimensionalParticleBox
 	{
 		//@brief Dimension of the state vector excluding boundary points
-		static constexpr dimension_t StateVectorDim = SpatialDiscretizationStep - 2;
+		static constexpr dimension_t StateVectorSize = SpatialDiscretizationStep - 2;
 
 		//@brief Configuration of the particle in a box system
 		OneDimensionalParticleBoxConfig<SpatialDiscretizationStep> m_config;
 
 		//@brief Hamiltonian operator of the system
-		Hamiltonian<StateVectorDim> m_hamiltonian;
+		Hamiltonian<StateVectorSize> m_hamiltonian;
 
 		//@brief State vector of the system containing only the inner points (Dirichlet BCs)
-		StateVector<StateVectorDim> m_psi;
+		StateVector<InfiniteHilbertSpace<StateVectorSize>> m_psi;
 
 		//@brief Crank-Nicolson solver for time evolution
-		CrankNicolsonSolver<StateVectorDim> m_timeEvolutionSolver;
+		CrankNicolsonSolver<StateVectorSize> m_timeEvolutionSolver;
 
 	public:
 		/// @brief Constructs a one-dimensional particle in a box system.
@@ -74,14 +74,14 @@ namespace KetCat
 		/// @param stateVector   Initial state vector of the system.
 		constexpr OneDimensionalParticleBox(
 			const OneDimensionalParticleBoxConfig<SpatialDiscretizationStep>& config,
-			const Hamiltonian<StateVectorDim>& hamiltonian, const StateVector<StateVectorDim>& stateVector) noexcept
+			const Hamiltonian<StateVectorSize>& hamiltonian, const StateVector<InfiniteHilbertSpace<StateVectorSize>>& stateVector) noexcept
 			: m_config(config), m_hamiltonian(hamiltonian), m_psi(stateVector),
 			m_timeEvolutionSolver(hamiltonian, config.dt)
 		{
 		}
 
 		/// @brief Evolves the system by one time step using the Crank-Nicolson method.
-		constexpr StateVector<StateVectorDim> evolve() noexcept
+		constexpr StateVector<InfiniteHilbertSpace<StateVectorSize>> evolve() noexcept
 		{
 			m_psi = m_timeEvolutionSolver(m_psi);
 			return m_psi;

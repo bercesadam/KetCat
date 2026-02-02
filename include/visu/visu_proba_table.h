@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "wavefunction/state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 
 namespace KetCat::Visu
@@ -14,7 +14,7 @@ namespace KetCat::Visu
 		/// @brief Print the measurement probabilities for the selected qubits.
 		/// @tparam SelectedQBits  Indices of the qubits to include in the probability table. 
         template<dimension_t... SelectedQBits>
-        void update(const StateVector<Dim> s) const
+        void update(const StateVector<FiniteHilbertSpace<Dim>> s) const
         {
             constexpr dimension_t NumSelected = sizeof...(SelectedQBits);
             constexpr qbit_list_t<NumSelected> SelectedQubits =

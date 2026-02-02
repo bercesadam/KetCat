@@ -52,8 +52,8 @@ namespace KetCat
 
 	/// @brief Named constant indices for tridiagonal_matrix_t
 	/// for convenience and intuitive usage.
-	constexpr dimension_t SuperDiagonal = 0;
-	constexpr dimension_t MainDiagonal = 1;
-	constexpr dimension_t SubDiagonal = 2;
+	constexpr dimension_t SUPERDIAGONAL = 0;
+	constexpr dimension_t MAINDIAGONAL = 1;
+	constexpr dimension_t SUBDIAGONAL = 2;
 
 }

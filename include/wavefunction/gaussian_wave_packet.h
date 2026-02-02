@@ -1,6 +1,6 @@
 #pragma once
 #include "core_types.h"
-#include "state_vector.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
@@ -13,9 +13,10 @@ namespace KetCat
 	template<dimension_t Dim>
 	struct FreeParticleGaussianWavePacket
 	{
-		constexpr StateVector<Dim> operator()(float_t x0, float_t k0, float_t sigma, float_t dx) const noexcept
+		constexpr StateVector<InfiniteHilbertSpace<Dim>>
+			operator()(float_t x0, float_t k0, float_t sigma, float_t dx) const noexcept
 		{
-			StateVector<Dim> Psi = {};
+			StateVector<InfiniteHilbertSpace<Dim>> Psi = {};
 
 			for (dimension_t n = 0; n < Dim; ++n)
 			{
