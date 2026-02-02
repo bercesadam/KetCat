@@ -58,7 +58,7 @@ Also features an 1D oscilloscope-like visualization with phase encoding where yo
   <img
     src="doc/visu_showcase.png"
     alt="Example output of Shor's algorithm factoring 21" />
-  <figcaption>Example output of Shor's algorithm factoring 21</figcaption>
+  <figcaption>Showcasing outputs of the supplied examples</figcaption>
 </figure>
 
 ## C++ Design and Type-Level Guarantees
