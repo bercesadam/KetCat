@@ -39,11 +39,13 @@ int main()
 		Visu::ShowPotential::YES
 	);
 
+	visu.setPotential(potentialBarrier, cfg.dx);
+
 	while (true)
 	{
 		auto p = box.evolve();
 		p.normalize_with_dx(cfg.dx);
-		visu.update(p, potentialBarrier, cfg.dx);
+		visu.update(p);
 	}
 
 	return 0;

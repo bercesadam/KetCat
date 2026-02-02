@@ -49,12 +49,14 @@ int main()
 			std::get<0>(orbital)
 		);
 		
-		Visu::VisuOscilloscope<cfg.M>(
+		auto visu = Visu::VisuOscilloscope<cfg.M>(
 			Visu::UsePhaseEncoding::NO,
 			Visu::ClearScreen::NO,
 			Visu::ShowComplexParts::NO,
 			Visu::ShowPotential::YES
-		).update(box.evolve(), potential, cfg.dx);
+		);
+		visu.setPotential(potential, cfg.dx);
+		visu.update(box.evolve());
 	}
 
 	return 0;

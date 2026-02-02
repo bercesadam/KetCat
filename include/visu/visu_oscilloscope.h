@@ -6,7 +6,10 @@
 #include <tuple>
 #include <algorithm>
 #include <cmath>
+#include <optional>
+#include <functional>
 
+#include "oscilloscope_config.h"
 #include "wavefunction/state_vector.h"
 #include "constexprmath/constexpr_trigon.h"
 #include "hamiltonian/hamiltonian.h" // for potential_functor concept
@@ -20,41 +23,6 @@
 
 namespace KetCat::Visu
 {
-	/// @brief Enum to specify whether to use phase encoding in visualization
-	enum class UsePhaseEncoding
-	{
-		YES,
-		NO
-	};
-
-	/// @brief Enum to specify whether to clear the screen before updating visualization
-	enum class ClearScreen
-	{
-		YES,
-		NO
-	};
-
-	/// @brief Enum to enable visualization of real and imaginary parts
-	enum class ShowComplexParts
-	{
-		YES,
-		NO
-	};
-
-	/// @brief Enum to specify whether to show potential in visualization
-	enum class ShowPotential
-	{
-		YES,
-		NO
-	};
-
-	/// @brief Check if an enum flag is enabled
-	template<typename EnumType>
-	constexpr inline bool enabled(EnumType e, EnumType yes = EnumType::YES) noexcept
-	{
-		return e == yes;
-	}
-
 	/// @brief Map phase angle arg(ψ) to ANSI color code
 	inline const char* phaseToColor(float_t phase)
 	{
@@ -144,6 +112,29 @@ namespace KetCat::Visu
 		ShowComplexParts m_showComplex;
 		ShowPotential m_showPotential;
 
+		/// Optional parameters for potential visualization
+		std::optional<float_t> m_dx;
+		std::optional<std::function<float_t(float_t)>> m_potential;
+		
+		/// @brief Set the potential functor and spatial step for visualization
+		/// @tparam PotentialFunctor Type of the potential functor
+		/// @param potential The potential functor to visualize
+		/// @param dx Spatial discretization step
+		template <typename PotentialFunctor>
+				requires potential_functor<PotentialFunctor, float_t>
+		void setPotential(const PotentialFunctor& potential, float_t dx)
+		{
+			m_potential = potential;
+			m_dx = dx;
+		}
+
+		/// @brief Clear the stored potential functor and spatial step
+		void clearPotential()
+		{
+			m_potential.reset();
+			m_dx.reset();
+		}
+
 		/// @brief Construct a VisuOscilloscope with specified settings
 		/// @param usePhaseEncoding Enable phase-based coloring of probability density
 		/// @param clearScreen      Clear screen before rendering
@@ -166,13 +157,8 @@ namespace KetCat::Visu
 		}
 		
 		/// @brief Update the visualization with the current state vector
-		/// @param s Current quantum state vector
-		/// @param usePhaseEncoding Enable phase-based coloring of probability density
-		/// @param cls Clear screen before rendering
-		/// @param showComplex Enable visualization of real and imaginary parts
-		template<typename PotentialFunctor>
-			requires potential_functor<PotentialFunctor, float_t>
-		void update(const StateVector<Dim>& s, const PotentialFunctor potential, const float_t dx) const
+		/// @param s Current state vector
+		void update(const StateVector<Dim>& s) const
 		{
 			using namespace std::chrono_literals;
 
@@ -220,7 +206,12 @@ namespace KetCat::Visu
 			// --- Optional: Potential V(x) ---
 			if (enabled(m_showPotential))
 			{
-				const auto Potentials = evalutePotentialFunctor<Dim>(potential, dx);
+				if (!m_potential || !m_dx)
+				{
+                	std::cout<< "Warning! Ocilloscope is configured with ShowPotential=YES but potential/dx were never provided!" << std::endl;
+                }
+
+				const auto Potentials = evalutePotentialFunctor<Dim>(*m_potential, *m_dx);
 				std::array<std::tuple<float_t, const char*>, Dim> PotentialLine{};
 				for (dimension_t i = 0; i < Dim; ++i)
 				{
@@ -233,14 +224,6 @@ namespace KetCat::Visu
 
 			// Small delay to allow visualization update
 			std::this_thread::sleep_for(100ms);
-		}
-
-		/// @brief Update the visualization with the current state vector (no potential)
-		/// @param s Current quantum state vector
-		/// @note This overload uses a zero potential by default
-		void update(const StateVector<Dim>& s) const
-		{
-			update(s, ZeroPotential, 0.0);
 		}
 	};
 }
