@@ -48,25 +48,46 @@ namespace KetCat::Visu
                 ReducedProbabilities[ReducedIdx] += p;
             }
 
-            // Print header
-            std::cout << "| Binary | Decimal | Probability (%) |\n";
-            std::cout << "|--------|---------|----------------|\n";
+            
+            // ---- Column widths ----
+            constexpr int BIN_WIDTH = NumSelected + 2; // padding inside cell
+            constexpr int DEC_WIDTH = 8;
+            constexpr int PROB_WIDTH = 14;
 
-            // Print reduced probabilities
+            auto line = []()
+            {
+                std::cout
+                    << "+" << std::string(BIN_WIDTH, '-')
+                    << "+" << std::string(DEC_WIDTH, '-')
+                    << "+" << std::string(PROB_WIDTH, '-')
+                    << "+\n";
+            };
+
+            // Print header
+            line();
+            std::cout << "| " << std::left << std::setw(BIN_WIDTH - 1) << "Bin"
+                    << "| " << std::left << std::setw(DEC_WIDTH - 1) << "Dec"
+                    << "| " << std::left << std::setw(PROB_WIDTH - 1) << "Proba (%)"
+                    << "|\n";
+            line();
+
+            // Print rows
             for (dimension_t i = 0; i < ReducedDim; ++i)
             {
-                // Binary string
-                std::cout << "|";
+                std::string bin;
                 for (dimension_t b = NumSelected; b-- > 0;)
-                    std::cout << ((i & (1ULL << b)) ? '1' : '0');
-                std::cout << "|";
+                    bin += (i & (1ULL << b)) ? '1' : '0';
 
-                // Decimal
-                std::cout << " " << i << " |";
-
-                // Probability
-                std::cout << " " << (ReducedProbabilities[i] * 100.0) << " % |\n";
+                std::cout << "| " << std::setw(BIN_WIDTH - 1) << std::right << bin
+                        << "| " << std::setw(DEC_WIDTH - 1) << std::right << i
+                        << "| " << std::setw(PROB_WIDTH - 1) << std::right
+                        << std::fixed << std::setprecision(2)
+                        << (ReducedProbabilities[i] * 100.0)
+                        << " |\n";
             }
+
+            line();
+
         }
 	};
 } // namespace KetCat::Visu
