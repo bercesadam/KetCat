@@ -131,5 +131,32 @@ namespace KetCat
 
 			return Result;
 		}
+
+		/// @brief Compute the inner product ⟨ψ|φ⟩ between this and another state vector.
+		/// @param other  The other state vector |φ⟩.
+		/// @param dx     Grid spacing for proper normalization.
+		/// @return The inner product ⟨ψ|φ⟩ as a complex number.
+		constexpr cplx_t innerProduct(const StateVector<HilbertSpaceType>& other, double dx) const noexcept
+		{
+			cplx_t Result{ cplx_t::zero() };
+
+			for (dimension_t i = 0; i < StateVector::Dim; ++i)
+			{
+				// ⟨ψ|φ⟩ = Σ ψᵢ* · φᵢ
+				Result += m_StateVector[i].conj() * other.m_StateVector[i];
+			}
+
+			return Result * dx;
+		}
+
+		/// @brief Compute the probability of measuring the system in the state represented by another state vector.
+		/// @param overlap  The other state vector |φ⟩.
+		/// @param dx       Grid spacing for proper normalization.
+		/// @return The probability as a float.
+		constexpr float_t probabilityOf(const StateVector<HilbertSpaceType> overlap, double dx) const noexcept
+		{
+			const cplx_t amplitude = innerProduct(overlap, dx);
+			return amplitude.normSquared();
+		}
 	};
 }
