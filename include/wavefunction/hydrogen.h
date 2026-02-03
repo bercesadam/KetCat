@@ -55,7 +55,10 @@ namespace KetCat
 	/// @return Value of the associated Laguerre polynomial L_p^(α)(x).
 	static constexpr double laguerre(unsigned p, unsigned alpha, double x) noexcept
 	{
-		if (p == 0) return 1.0;
+		if (p == 0)
+		{
+			return 1.0;
+		}
 
 		double Lkm1 = 1.0;                   // L_0^(α)(x)
 		double Lk = 1.0 + alpha - x;       // L_1^(α)(x)
@@ -68,6 +71,7 @@ namespace KetCat
 			Lkm1 = Lk;
 			Lk = Lk1;
 		}
+		
 		return Lk;
 	}
 
