@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "core_types.h"
 #include "hilbert_space/state_vector.h"
 
@@ -24,11 +24,11 @@ namespace KetCat
 				const float_t x = (n + 1) * dx;
 
 				// Gaussian envelope calculation 
-				// exp(-((x - x0)^2) / (4 * sigma^2))
+				// exp(-((x - x₀)²) / (4 * σ²))
 				const float_t Exponent = -((x - x0) * (x - x0)) / (4.0 * sigma * sigma);
 				const float_t Envelope = ConstexprMath::exp<20>(Exponent);
 
-				// Plane wave component calculation: cos(k0 * x) + i * sin(k0 * x)
+				// Plane wave component calculation: cos(k₀ * x) + i * sin(k₀ * x)
 				const float_t RealPart = ConstexprMath::cos(k0 * x);
 				const float_t ImagPart = ConstexprMath::sin(k0 * x);
 

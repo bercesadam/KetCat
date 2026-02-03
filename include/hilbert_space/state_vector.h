@@ -123,6 +123,7 @@ namespace KetCat
 
 			for (dimension_t i = 0; i < StateVector::Dim; ++i)
 			{
+				// |Ψ⟩ = α |ψ₀⟩ + β |ψ₁⟩
 				Result[i] = alpha * m_StateVector[i] + beta * other.m_StateVector[i];
 			}
 

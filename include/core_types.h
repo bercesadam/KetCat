@@ -7,13 +7,7 @@ namespace KetCat
 {
 	/// @file
 	/// @brief Core type aliases used across the project: sizes, complex number type, vectors and matrices.
-	///
-	/// @details
-	/// - `dimension_t` and `index_t` are the unsigned integral types used for sizes and indices.
-	/// - `cplx_t` is the project's constexpr-capable complex type.
-	/// - `state_vector_t<N>` is a std::array of `cplx_t` with N elements representing amplitudes.
-	/// - `matrix_t<R,C>` is a 2D std::array representing a matrix of complex amplitudes.
-	/// - `qbit_list_t<QBitCount>` is a fixed-size array of qubit indices used to specify affected qubits.
+
 	using dimension_t = std::size_t;
 	using index_t = std::size_t;
 
