@@ -3,7 +3,10 @@
 
 using namespace KetCat::QCC;
 
-//@brief Fair dice algorithm using 3 qubits
+///@brief Fair dice algorithm using 3 qubits
+///       Demonstrating how rotations on the Bloch sphere can be eningeered
+///       to achieve a desired probability distribution and also demonstrates
+///       that quantum gates are always reversible (uncomputing)
 
 int main()
 {
@@ -28,7 +31,7 @@ int main()
 		// This makes |1> the "common" branch
 		QuantumGate<1, Gates::X>().toBits(2),
 
-		// Rotate qubit 1 into a |0>/<1> superposition
+		// Rotate qubit 1 into a |0>/|1> superposition
 		// Used as a workspace qubit to split probability mass
 		QuantumGate<1, RyPi4>().toBits(1),
 
@@ -40,6 +43,10 @@ int main()
 		QuantumGate<1, RyMinusPi4>().toBits(1),
 
 		// Remove entanglement between qubits 2 and 1
+		// In this current program this has no real effects
+		// but in real quantum computers and simulators
+		// this would be crucial to make the measurements the these
+	 	// two bits independent again
 		QuantumGate<2, Gates::CX>().toBits(2, 1),
 
 		// Flip qubit 1 to align the probability structure
