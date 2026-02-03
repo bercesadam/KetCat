@@ -110,5 +110,25 @@ namespace KetCat
 			}
 			return Result;
 		}
+
+		/// @brief Create a superposition of two state vectors with given coefficients.
+		/// @param other  The other state vector to superpose with.
+		/// @param alpha  Complex amplitude for this state vector.
+		/// @param beta   Complex amplitude for the other state vector.
+		/// @param dx     Grid spacing for normalization.
+		constexpr StateVector<HilbertSpaceType> superpose(const StateVector<HilbertSpaceType>& other,
+			cplx_t alpha, cplx_t beta, double dx) const noexcept
+		{
+			StateVector Result;
+
+			for (dimension_t i = 0; i < StateVector::Dim; ++i)
+			{
+				Result[i] = alpha * m_StateVector[i] + beta * other.m_StateVector[i];
+			}
+
+			Result.normalize(dx);
+
+			return Result;
+		}
 	};
 }
