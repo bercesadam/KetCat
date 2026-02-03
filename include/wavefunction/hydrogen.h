@@ -8,6 +8,8 @@ namespace KetCat
 	/// - n : Principal quantum number (n >= 1), controls energy and radial extent
 	/// - l : Orbital angular momentum quantum number (0 <= l <= n-1),
 	///       controls angular structure and parity
+	///	This is introduced to disallow using non-existing configurations in 
+	/// atomic simulations and also as a convenience layer.
 	class QuantumNumber
 	{
 		/// Principal quantum number
