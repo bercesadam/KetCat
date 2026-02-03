@@ -6,13 +6,13 @@ using namespace KetCat;
 ///@brief A classical quantum physics textbook example: a Gaussian wave packet in an infinite potential well
 /// with a barrier in the middle (can be configured or removed to see free propagation).
 /// This example demonstrates quantum tunneling through the potential barrier, which is generally the way
-/// FGMOS components in SSDs work in practice (electrons tunneling through oxide barriers).
+/// FGMOS components in non-volatile memories like SSDs work in practice (electrons tunneling through oxide barriers).
 
 int main()
 {
 	constexpr OneDimensionalParticleBoxConfig<96> cfg(1.0, 1E-4);
 
-    constexpr KetCat::float_t x0 = 0.01;
+    constexpr KetCat::float_t x0 = 0.01; 
 	constexpr KetCat::float_t sigma = 0.1;
 	constexpr KetCat::float_t k0 = ConstexprMath::Pi * 10;
 
