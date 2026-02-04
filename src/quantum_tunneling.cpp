@@ -6,7 +6,7 @@ using namespace KetCat;
 ///@brief A classical quantum physics textbook example: a Gaussian wave packet in an infinite potential well
 /// with a barrier in the middle (can be configured or removed to see free propagation).
 /// This example demonstrates quantum tunneling through the potential barrier, which is generally the way
-/// FGMOS components in non-volatile memories like SSDs work in practice (electrons tunneling through oxide barriers).
+/// components of flash memories work in practice (electrons tunneling through oxide barriers).
 
 int main()
 {

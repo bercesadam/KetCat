@@ -52,7 +52,7 @@ Numerical simulation of wavefunctions evolving under different Hamiltonians, whi
 
 The library provides a set of predefined, configurable seed wave functions (presenting quantum physics textbook examples, like eigenstates, Gaussian wave packets, coherent state and Hydrogen orbitals); different potentials (Zero potential well with configurable barriers, Soft Coulomb, Harmonic oscillator); and a 1D Particle-in-a-box system in which you can compile all these into one living quantum playground.
 
-Also features an 1D oscilloscope-like visualization with phase encoding where you can witness a Schrödinger time evolution directly in a terminal, like how quantum tunneling works conceptually in the components of NVMs like SSDs or the radial nodes of a hydrogen atom’s electron cloud. It can be also configured to visualize the potential in the box and also the real/imaginary components of the wave functions, which can contribute to the understanding of the given system.
+Also features an 1D oscilloscope-like visualization with phase encoding where you can witness a Schrödinger time evolution directly in a terminal, like how quantum tunneling works conceptually in the components of flash memories or the radial nodes of a hydrogen atom’s electron cloud. It can be also configured to visualize the potential in the box and also the real/imaginary components of the wave functions, which can contribute to the understanding of the given system.
 
 <figure>
   <img
