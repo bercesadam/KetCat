@@ -104,7 +104,7 @@ namespace KetCat::Visu
 	///  - Optional imaginary part Im(ψ) (cyan)
 	///  - Probability density |ψ|² (optionally phase-colored)
 	template<dimension_t Dim>
-	struct VisuOscilloscope
+	class VisuOscilloscope
 	{
 		/// Configuration options
 		UsePhaseEncoding m_usePhaseEncoding;
@@ -116,6 +116,7 @@ namespace KetCat::Visu
 		std::optional<float_t> m_dx;
 		std::optional<std::function<float_t(float_t)>> m_potential;
 		
+	public:
 		/// @brief Set the potential functor and spatial step for visualization
 		/// @tparam PotentialFunctor Type of the potential functor
 		/// @param potential The potential functor to visualize
