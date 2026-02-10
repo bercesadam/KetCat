@@ -94,11 +94,12 @@ namespace ConstexprMath
 
     /// @brief Compute absolute value of a number
     /// @param x The input value 
-    template <std::floating_point FloatType>
-    constexpr FloatType abs(FloatType x)
+    template <typename NumericType>
+        requires std::is_arithmetic_v<NumericType>
+    constexpr NumericType abs(NumericType x)
     {
-        return (x < 0.0) ? -x : x;
-    };
+        return (x < NumericType{}) ? -x : x;
+    }
 
 	/// @brief Compute the factorial of a non-negative integer at compile time.
 	/// @tparam IntType  Integral type for the argument and result.
