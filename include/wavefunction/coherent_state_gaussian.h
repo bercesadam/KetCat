@@ -48,19 +48,19 @@ namespace KetCat
         ///
         /// @return Normalized discrete coherent state |ψ⟩
         constexpr StateVector<InfiniteHilbertSpace<Dim>> operator()(
-            float_t hBar,
-            float_t x0,        
-            float_t p0,       
-            float_t dx,
-            float_t m, 
-            float_t omega,
-			float_t sigmaOverride = -1.0
+            real_t hBar,
+            real_t x0,        
+            real_t p0,       
+            real_t dx,
+            real_t m, 
+            real_t omega,
+			real_t sigmaOverride = -1.0
         ) const noexcept
         {
             /// Width of the ground-state Gaussian:
             /// σ = √(ℏ / (2 m ω))
 			/// In case of an override, use that value instead.
-            const float_t sigma =
+            const real_t sigma =
                 (sigmaOverride == -1.0 ?
                     ConstexprMath::sqrt(hBar / (2.0 * m * omega))
                     : sigmaOverride
@@ -70,18 +70,18 @@ namespace KetCat
 
             for (dimension_t i = 0; i < Dim; ++i)
             {
-                const float_t x = (i + 1) * dx;
+                const real_t x = (i + 1) * dx;
 
                 /// Gaussian envelope centered at x₀
                 /// exp( - (x - x₀)² / (2 σ²) )
-                const float_t Gauss =
+                const real_t Gauss =
                     ConstexprMath::exp<20>(
                         -(x - x0) * (x - x0)
                         / (2.0 * sigma * sigma)
                     );
 
                 /// Plane-wave phase factor argument: p₀ x / ℏ
-                const float_t Phase = p0 * x / hBar;
+                const real_t Phase = p0 * x / hBar;
 
                 /// Construct complex wavefunction value:
                 /// ψ(x) = gauss · (cos(phase) + i sin(phase))

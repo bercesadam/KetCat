@@ -21,15 +21,17 @@ namespace ConstexprMath
     /**
      * @brief Simple constexpr complex number for numeric computations.
      *
-     * @tparam T  Floating-point type to store real and imaginary parts (e.g. float_t).
+     * @tparam T  Floating-point type to store real and imaginary parts (e.g. real_t).
      *
      * The type exposes public data members `re` and `im` and lightweight
      * arithmetic operators implemented in a constexpr-friendly way. It is
      * intentionally minimal (no exceptions, no heap allocations).
      */
-    template <std::floating_point FloatType>
+    template <std::floating_point _FloatType>
     struct Complex
     {
+        using FloatType = _FloatType;
+
         /// @brief The real part of the complex number.
         FloatType re = 0.0;
         /// @brief The imaginary part of the complex number.

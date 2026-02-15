@@ -27,7 +27,7 @@ int main()
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_3d()), "3d", 2)
 	};
 
-	constexpr KetCat::float_t mass = 1.0;
+	constexpr KetCat::real_t mass = 1.0;
 
 	for (const auto& orbital : hydrogenOrbitals)
 	{

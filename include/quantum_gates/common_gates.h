@@ -15,8 +15,8 @@
 namespace KetCat::QCC::Gates
 {
     /// @brief Mathematical constants used for gate definitions
-    constexpr float_t sqrt2 = 1.41421356237309505;
-    constexpr float_t inv_sqrt2 = 1.0 / sqrt2;
+    constexpr real_t sqrt2 = 1.41421356237309505;
+    constexpr real_t inv_sqrt2 = 1.0 / sqrt2;
 
     /**
         * @brief Produce an identity matrix for `QBitCount` qubits (2^QBitCount � 2^QBitCount).
@@ -112,9 +112,9 @@ namespace KetCat::QCC::Gates
 	// @brief Rotation around the Y axis by angle theta
 	//        R_y(θ) = cos(θ/2) I - i sin(θ/2) Y
 	// @param theta  Rotation angle in radians
-	constexpr KetCat::matrix_t<2> RotationY(float_t theta) noexcept
+	constexpr KetCat::matrix_t<2> RotationY(real_t theta) noexcept
     {
-        const float_t halfTheta = theta / 2.0;
+        const real_t halfTheta = theta / 2.0;
         return KetCat::matrix_t<2>{ {
             { cplx_t(ConstexprMath::cos(halfTheta), 0.0),
                 cplx_t(-ConstexprMath::sin(halfTheta), 0.0) },

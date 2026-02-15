@@ -14,17 +14,17 @@ namespace KetCat
 	struct EigenState
 	{
 		constexpr StateVector<InfiniteHilbertSpace<Dim>>
-			operator()(unsigned int n, float_t dx, float_t L) const noexcept
+			operator()(unsigned int n, real_t dx, real_t L) const noexcept
 		{
 			StateVector<InfiniteHilbertSpace<Dim>> Psi{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{
 				// Position (between Dirichlet boundaries)
-				const float_t x = (i + 1) * dx;
+				const real_t x = (i + 1) * dx;
 
 				// Sin for the shape of the eigenstate
-				const float_t Value = ConstexprMath::sin(
+				const real_t Value = ConstexprMath::sin(
 					n * ConstexprMath::Pi * x / L
 				);
 

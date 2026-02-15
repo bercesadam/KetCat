@@ -1,53 +1,11 @@
 ﻿#pragma once
 #include "core_types.h"
 #include "hilbert_space/state_vector.h"
+#include "quantum_number.h"
+
 
 namespace KetCat
 {
-	/// @brief Represents a pair of quantum numbers (n, l) using the spectroscopic notation:
-	/// - n : Principal quantum number (n >= 1), controls energy and radial extent
-	/// - l : Orbital angular momentum quantum number (0 <= l <= n-1),
-	///       controls angular structure and parity
-	///	This is introduced to disallow using non-existing configurations in 
-	/// atomic simulations and also as a convenience layer.
-	class QuantumNumber
-	{
-		/// Principal quantum number
-		unsigned int m_n;
-		/// Orbital angular momentum quantum number
-		unsigned int m_l;
-
-		/// @brief Private constructor enforcing valid factory usage.
-		/// @param n Principal quantum number
-		/// @param l Orbital angular momentum quantum number
-		constexpr QuantumNumber(unsigned int n, unsigned int l)
-			: m_n(n), m_l(l)
-		{
-		}
-
-	public:
-		/// @brief Returns the principal quantum number.
-		constexpr unsigned int n() { return m_n; }
-
-		/// @brief Returns the orbital angular momentum quantum number.
-		constexpr unsigned int l() { return m_l; }
-
-		/// @name Hydrogen orbital presets
-		/// @{
-		static constexpr QuantumNumber _1s() { return QuantumNumber{ 1, 0 }; }
-		static constexpr QuantumNumber _2s() { return QuantumNumber{ 2, 0 }; }
-		static constexpr QuantumNumber _2p() { return QuantumNumber{ 2, 1 }; }
-		static constexpr QuantumNumber _3s() { return QuantumNumber{ 3, 0 }; }
-		static constexpr QuantumNumber _3p() { return QuantumNumber{ 3, 1 }; }
-		static constexpr QuantumNumber _3d() { return QuantumNumber{ 3, 2 }; }
-		static constexpr QuantumNumber _4s() { return QuantumNumber{ 4, 0 }; }
-		static constexpr QuantumNumber _4p() { return QuantumNumber{ 4, 1 }; }
-		static constexpr QuantumNumber _4d() { return QuantumNumber{ 4, 2 }; }
-		static constexpr QuantumNumber _4f() { return QuantumNumber{ 4, 3 }; }
-		/// @}
-	};
-
-
 	/// @brief Helper function which computes the associated Laguerre polynomial L_p^(α)(x).
 	/// @param p     Degree of the polynomial (non-negative integer).
 	/// @param alpha Parameter of the polynomial (non-negative integer).
@@ -60,8 +18,8 @@ namespace KetCat
 			return 1.0;
 		}
 
-		double Lkm1 = 1.0;                   // L_0^(α)(x)
-		double Lk = 1.0 + alpha - x;       // L_1^(α)(x)
+		double Lkm1 = 1.0;           // L_0^(α)(x)
+		double Lk = 1.0 + alpha - x; // L_1^(α)(x)
 
 		for (unsigned k = 1; k < p; ++k)
 		{

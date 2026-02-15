@@ -2,18 +2,21 @@
 #include <array>
 #include "constexprmath/constexpr_complex.h"
 #include "constexprmath/constexpr_core_functions.h"
+#include "constexprmath/constexpr_exp.h"
 
 namespace KetCat
 {
 	/// @file
 	/// @brief Core type aliases used across the project: sizes, complex number type, vectors and matrices.
 
-	using dimension_t = std::size_t;
-	using index_t = std::size_t;
+	/// @brief Alias for dimension and index types
+	using dimension_t = unsigned long;
+	
+	/// @brief Alias for floating-point type, enabling easy switching of precision if needed.
+	using real_t = double;
 
-	using float_t = double;
-
-	using cplx_t = ConstexprMath::Complex<float_t>;
+	/// @brief Alias for complex numbers using the custom constexpr Complex type.
+	using cplx_t = ConstexprMath::Complex<real_t>;
 
 	/// @brief State vector with compile-time fixed size (array of complex amplitudes).
 	template<dimension_t StateCount>
@@ -21,11 +24,11 @@ namespace KetCat
 
 	/// @brief Probability vector with compile-time fixed size (array of doubles).
 	template<dimension_t StateCount>
-	using probability_vector_t = std::array<float_t, StateCount>;
+	using probability_vector_t = std::array<real_t, StateCount>;
 
 	/// @brief Fixed-size list of qubit indices.
 	/// @tparam QBitCount  Number of qubits in the list.
-	template<index_t QBitCount>
+	template<dimension_t QBitCount>
 	using qbit_list_t = std::array<dimension_t, QBitCount>;
 
 	/// @brief Square matrix type 
@@ -49,5 +52,4 @@ namespace KetCat
 	constexpr dimension_t SUPERDIAGONAL = 0;
 	constexpr dimension_t MAINDIAGONAL = 1;
 	constexpr dimension_t SUBDIAGONAL = 2;
-
 }

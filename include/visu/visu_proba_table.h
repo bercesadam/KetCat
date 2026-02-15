@@ -35,7 +35,7 @@ namespace KetCat::Visu
             // Sum probabilities over all other qubits
             for (dimension_t i = 0; i < Dim; ++i)
             {
-                float_t p = probabilities[i];
+                real_t p = probabilities[i];
 
                 dimension_t ReducedIdx = 0;
                 for (dimension_t b = 0; b < NumSelected; ++b)

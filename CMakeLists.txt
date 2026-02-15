@@ -3,29 +3,57 @@ project(MultiExeProject LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Collect all cpp files recursively from src/
+# ----------------------------
+# Dependencies (vcpkg-friendly)
+# ----------------------------
+find_package(SDL2 CONFIG REQUIRED)
+find_package(SDL2_ttf CONFIG REQUIRED)
+find_package(SDL2_image CONFIG REQUIRED)
+
+# ----------------------------
+# Collect all cpp files
+# ----------------------------
 file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
-# For each .cpp, create a standalone executable
+# ----------------------------
+# Compiler-specific settings
+# ----------------------------
+if (MSVC)
+    add_compile_options(/W4 /permissive-)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic -g)
+endif()
+
+# ----------------------------
+# Create one executable per .cpp
+# ----------------------------
 foreach(SRC_FILE ${ALL_SOURCES})
 
-    # Get filename without extension
-    get_filename_component(EXE_NAME ${SRC_FILE} NAME_WE)
+    file(RELATIVE_PATH REL_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${SRC_FILE}
+    )
 
-    # Make sure subfolder names don’t collide
-    file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src ${SRC_FILE})
-    string(REPLACE "/" "_" REL_PATH ${REL_PATH})
-    string(REPLACE ".cpp" "" REL_PATH ${REL_PATH})
-    set(EXE_NAME ${REL_PATH})
+    string(REPLACE "/" "_" EXE_NAME ${REL_PATH})
+    string(REPLACE ".cpp" "" EXE_NAME ${EXE_NAME})
 
     add_executable(${EXE_NAME} ${SRC_FILE})
 
     target_include_directories(${EXE_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(${EXE_NAME}
+        PRIVATE
+        SDL2::SDL2main
+        SDL2::SDL2
+        SDL2_ttf::SDL2_ttf
+        SDL2_image::SDL2_image
     )
 
 endforeach()

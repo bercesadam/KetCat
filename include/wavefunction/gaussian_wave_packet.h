@@ -14,23 +14,23 @@ namespace KetCat
 	struct FreeParticleGaussianWavePacket
 	{
 		constexpr StateVector<InfiniteHilbertSpace<Dim>>
-			operator()(float_t x0, float_t k0, float_t sigma, float_t dx) const noexcept
+			operator()(real_t x0, real_t k0, real_t sigma, real_t dx) const noexcept
 		{
 			StateVector<InfiniteHilbertSpace<Dim>> Psi = {};
 
 			for (dimension_t n = 0; n < Dim; ++n)
 			{
 				// Position corresponding to index n
-				const float_t x = (n + 1) * dx;
+				const real_t x = (n + 1) * dx;
 
 				// Gaussian envelope calculation 
 				// exp(-((x - x₀)²) / (4 * σ²))
-				const float_t Exponent = -((x - x0) * (x - x0)) / (4.0 * sigma * sigma);
-				const float_t Envelope = ConstexprMath::exp<20>(Exponent);
+				const real_t Exponent = -((x - x0) * (x - x0)) / (4.0 * sigma * sigma);
+				const real_t Envelope = ConstexprMath::exp<20>(Exponent);
 
 				// Plane wave component calculation: cos(k₀ * x) + i * sin(k₀ * x)
-				const float_t RealPart = ConstexprMath::cos(k0 * x);
-				const float_t ImagPart = ConstexprMath::sin(k0 * x);
+				const real_t RealPart = ConstexprMath::cos(k0 * x);
+				const real_t ImagPart = ConstexprMath::sin(k0 * x);
 
 				// Combine envelope and plane wave to form the complex amplitude
 				Psi[n] = cplx_t(Envelope * RealPart, Envelope * ImagPart);

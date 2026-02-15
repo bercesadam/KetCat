@@ -12,9 +12,9 @@ int main()
 {
 	constexpr OneDimensionalParticleBoxConfig<96> cfg(1.0, 1E-4);
 
-    constexpr KetCat::float_t x0 = 0.01; 
-	constexpr KetCat::float_t sigma = 0.1;
-	constexpr KetCat::float_t k0 = ConstexprMath::Pi * 10;
+    constexpr KetCat::real_t x0 = 0.01; 
+	constexpr KetCat::real_t sigma = 0.1;
+	constexpr KetCat::real_t k0 = ConstexprMath::Pi * 10;
 
 	constexpr auto gaussianPacKetCat = FreeParticleGaussianWavePacket<cfg.M>()(x0, k0, sigma, cfg.dx);
 
@@ -23,7 +23,7 @@ int main()
 		3000
 	};
 
-	constexpr KetCat::float_t mass = 1.0;
+	constexpr KetCat::real_t mass = 1.0;
 	constexpr auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, potentialBarrier);
 
 	OneDimensionalParticleBox<cfg.N> box(

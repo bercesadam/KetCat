@@ -32,16 +32,16 @@ namespace KetCat
 		const dimension_t M = N - 2;
 
 		// Box length in meters
-		float_t L;
+		real_t L;
 		// Time step in seconds
-		float_t dt;
+		real_t dt;
 		// Spatial discretization step in meters
-		float_t dx;
+		real_t dx;
 
 		/// @brief Constructs a configuration for a one-dimensional particle in a box system.
 		/// @param boxLength    Length of the box.
 		/// @param timeStep     Time step size for evolution.
-		constexpr OneDimensionalParticleBoxConfig(float_t boxLength, float_t timeStep)
+		constexpr OneDimensionalParticleBoxConfig(real_t boxLength, real_t timeStep)
 			: L(boxLength), dt(timeStep), dx(boxLength / (SpatialDiscretizationStep - 1))
 		{
 		}

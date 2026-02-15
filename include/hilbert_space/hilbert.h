@@ -21,6 +21,8 @@ namespace KetCat
 	{
 		// Dimension of the Hilbert space
 		static constexpr dimension_t Dim = Dimension;
+
+		
 	};
 	
 	///@brief Struct representing an infinite-dimensional Hilbert space
@@ -36,5 +38,6 @@ namespace KetCat
 	concept hilbert_space_t =
 		requires {
 			{ T::Dim } -> std::convertible_to<dimension_t>;
+			
 	};
 }

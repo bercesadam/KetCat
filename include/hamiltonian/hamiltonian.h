@@ -8,7 +8,7 @@ namespace KetCat
 	// In real physical units, ℏ = 1.054571817e-34 J·s
 	// but for computational purposes, as the rest of the units
 	// in the simulation is not in SI
-	constexpr float_t hBar = 1.0;
+	constexpr real_t hBar = 1.0;
 
 
 	/// @brief Concept to ensure that the PotentialFunctor is a callable
@@ -46,18 +46,18 @@ namespace KetCat
 		// @param dx Spatial discretization step 
 		// Design limitation: currently only one potential can be used to construct the Hamiltonian
 		template<typename PotentialFunctor>
-			requires potential_functor<PotentialFunctor, float_t>
-		constexpr Hamiltonian(const float_t m, const float_t dx, const PotentialFunctor& potential) noexcept
+			requires potential_functor<PotentialFunctor, real_t>
+		constexpr Hamiltonian(const real_t m, const real_t dx, const PotentialFunctor& potential) noexcept
 		{
 			// Initialize Hamiltonian matrix with zeros
 			m_hamiltonianMatrix = {};
 
 			// α = ℏ² / (2m·Δx²)
-			const float_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
+			const real_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
 			for (dimension_t i = 0; i < Dim; ++i)
 			{
 				// Calculating position for the Potential callable: i * Δx					
-				float_t Position = i * dx;
+				real_t Position = i * dx;
 
 				// Superdiagonal: represents kinetic coupling to the next site (i + 1)
 				if (i + 1 < Dim)

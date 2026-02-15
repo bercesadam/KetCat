@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <cstdint>
+#include "constexpr_core_functions.h"
 
 
 /// @file
@@ -114,5 +115,52 @@ namespace ConstexprMath
         case 3: return sinPoly(xr);
         }
         return 0.0; // unreachable
+    }
+
+    // Range-reduced arctangent series (|z| <= 1)
+    constexpr double atanPoly(double z) noexcept
+    {
+        double z2 = z * z;
+        double term = z;
+        double result = z;
+
+        term *= -z2 / 3.0; result += term;        // -z^3/3
+        term *= -z2 * 3.0 / 5.0; result += term;  // +z^5/5
+        term *= -z2 * 5.0 / 7.0; result += term;  // -z^7/7
+        term *= -z2 * 7.0 / 9.0; result += term;  // +z^9/9
+        return result;
+    }
+
+    // Full atan with range reduction for |z| > 1
+    constexpr double atan(double z) noexcept
+    {
+        if (z > 1.0)
+            return Pi / 2.0 - atanPoly(1.0 / z);
+        if (z < -1.0)
+            return -Pi / 2.0 - atanPoly(1.0 / z);
+        return atanPoly(z);
+    }
+
+    // Constexpr atan2 handling all quadrants
+    constexpr double atan2(double y, double x) noexcept
+    {
+        if (x > 0.0) return atan(y / x);
+        if (x < 0.0)
+        {
+            if (y >= 0.0) return atan(y / x) + Pi;
+            else return atan(y / x) - Pi;
+        }
+        // x == 0
+        if (y > 0.0) return Pi / 2.0;
+        if (y < 0.0) return -Pi / 2.0;
+        return 0.0; // undefined, return 0
+    }
+
+    constexpr double acos(double x) noexcept
+    {
+        // Clamp x to [-1,1] to avoid sqrt of negative due to rounding
+        if (x <= -1.0) return Pi;
+        if (x >= 1.0) return 0.0;
+        return atan2(sqrt(1.0 - x * x), x);
     }
 }

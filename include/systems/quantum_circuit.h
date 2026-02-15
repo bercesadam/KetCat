@@ -15,7 +15,7 @@ namespace KetCat::QCC
     /// @brief Small executor and convenience API for composing and running quantum gates.
 
 	/// @brief Forward declaration of QuantumCircuit for friend declaration.
-    template<index_t QBitCount>
+    template<dimension_t QBitCount>
     class QuantumCircuit;
 
     /// @brief Concept for types that behave like a gate: they are callable with a state vector.
@@ -88,7 +88,7 @@ namespace KetCat::QCC
     };
 
     /// @brief Facade class to create executors bound to a fixed qubit count.
-    template<index_t QBitCount>
+    template<dimension_t QBitCount>
     class QuantumCircuit
     {
     public:

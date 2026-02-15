@@ -8,16 +8,17 @@ namespace KetCat
 	template <hilbert_space_t Space>
 	struct StateVector
 	{
+		/// Size of the vector for convenience
+		static constexpr dimension_t Size = Space::Dim;
+
+
 		/// Type alias for the Hilbert space type
 		using HilbertSpaceType = Space;
 
-		/// Size of the vector for convenience
-		static constexpr dimension_t Dim = Space::Dim;
-
 		/// Underlying state vector array
-		state_vector_t<Dim> m_StateVector;
+		state_vector_t<Size> m_StateVector;
 
-	public:
+
 		/// @brief Indexing operator
 		/// @return Reference to a complex number at the given state index
 		constexpr cplx_t& operator[](dimension_t index) noexcept
@@ -33,11 +34,11 @@ namespace KetCat
 		}
 
 		/// @brief Get the probabilities of measuring the selected basis states.
-		constexpr probability_vector_t<Dim> getProbabilities() const noexcept
+		constexpr probability_vector_t<Size> getProbabilities() const noexcept
 		{
-			probability_vector_t<Dim> Probabilities;
+			probability_vector_t<Size> Probabilities;
 
-			for (int i = 0; i < Dim; ++i)
+			for (int i = 0; i < Size; ++i)
 			{
 				Probabilities[i] = m_StateVector[i].normSquared();
 			}
@@ -67,9 +68,9 @@ namespace KetCat
 		///        norm² ← norm² · Δx,
 		///        ψᵢ ← ψᵢ / √(norm²).
 		/// 
-		constexpr void normalize(double dx) noexcept
+		constexpr void normalize(real_t dx) noexcept
 		{
-			double Norm2 = 0.0;
+			real_t Norm2 = 0.0;
 
 			// Accumulate Σ |ψᵢ|²  
 			for (const cplx_t& c : m_StateVector)
@@ -83,26 +84,45 @@ namespace KetCat
 			// Guard against division by zero
 			if (Norm2 > 0.0)
 			{
-				const double Inv = 1.0 / ConstexprMath::sqrt(Norm2);
+				const real_t Inv = 1.0 / ConstexprMath::sqrt(Norm2);
 
 				// Rescale all amplitudes so that Σ |ψᵢ|² · Δx = 1
 				for (cplx_t& c : m_StateVector)
 				{
 					c = c * Inv;
+				
 				}
 			}
 		}
 
+		constexpr void normalize2D(real_t dx) noexcept
+		{
+			real_t Norm2 = 0.0;
+
+			for (const cplx_t& c : m_StateVector)
+				Norm2 += c.normSquared();
+
+			// Diszkrét 2D integrál: Σ |ψ|² · dx²
+			Norm2 *= Space::dx * dx;
+
+			if (Norm2 > 0.0)
+			{
+				const real_t Inv = 1.0 / ConstexprMath::sqrt(Norm2);
+				for (cplx_t& c : m_StateVector)
+					c = c * Inv;
+			}
+		}
+
 		/// @brief Multiply this state vector by a matrix.
-		/// @param mat  The matrix to multiply with (Dim x Dim).
+		/// @param mat  The matrix to multiply with (Size x Size).
 		/// @return The resulting state vector.
-		constexpr StateVector<HilbertSpaceType> matMul(const matrix_t<Dim>& mat) const noexcept
+		constexpr StateVector<HilbertSpaceType> matMul(const matrix_t<Size>& mat) const noexcept
 		{
 			StateVector<HilbertSpaceType> Result;
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (dimension_t i = 0; i < Size; ++i)
 			{
 				cplx_t Sum = cplx_t::zero();
-				for (dimension_t j = 0; j < Dim; ++j)
+				for (dimension_t j = 0; j < Size; ++j)
 				{
 					Sum = Sum + mat[i][j] * m_StateVector[j];
 				}
@@ -117,17 +137,17 @@ namespace KetCat
 		/// @param beta   Complex amplitude for the other state vector.
 		/// @param dx     Grid spacing for normalization.
 		constexpr StateVector<HilbertSpaceType> superpose(const StateVector<HilbertSpaceType>& other,
-			cplx_t alpha, cplx_t beta, double dx) const noexcept
+			cplx_t alpha, cplx_t beta) const noexcept
 		{
 			StateVector Result;
 
-			for (dimension_t i = 0; i < StateVector::Dim; ++i)
+			for (dimension_t i = 0; i < StateVector::Size; ++i)
 			{
 				// |Ψ⟩ = α |ψ₀⟩ + β |ψ₁⟩
 				Result[i] = alpha * m_StateVector[i] + beta * other.m_StateVector[i];
 			}
 
-			Result.normalize(dx);
+			//Result.normalize(dx);
 
 			return Result;
 		}
@@ -140,7 +160,7 @@ namespace KetCat
 		{
 			cplx_t Result{ cplx_t::zero() };
 
-			for (dimension_t i = 0; i < StateVector::Dim; ++i)
+			for (dimension_t i = 0; i < StateVector::Size; ++i)
 			{
 				// ⟨ψ|φ⟩ = Σ ψᵢ* · φᵢ
 				Result += m_StateVector[i].conj() * other.m_StateVector[i];
@@ -153,7 +173,7 @@ namespace KetCat
 		/// @param overlap  The other state vector |φ⟩.
 		/// @param dx       Grid spacing for proper normalization.
 		/// @return The probability as a float.
-		constexpr float_t probabilityOf(const StateVector<HilbertSpaceType> overlap, double dx) const noexcept
+		constexpr real_t probabilityOf(const StateVector<HilbertSpaceType> overlap, double dx) const noexcept
 		{
 			const cplx_t amplitude = innerProduct(overlap, dx);
 			return amplitude.normSquared();

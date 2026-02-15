@@ -12,7 +12,7 @@ int main()
 {
 	constexpr OneDimensionalParticleBoxConfig<96> cfg(3.0, 5E-4);
 
-	constexpr KetCat::float_t center = cfg.L / 2.0;
+	constexpr KetCat::real_t center = cfg.L / 2.0;
 
 	constexpr auto psi0 =
 		CoherentStateGaussian<cfg.M>()(
@@ -31,7 +31,7 @@ int main()
 		center  // x₀
 	);
 
-	constexpr KetCat::float_t mass = 1.0;
+	constexpr KetCat::real_t mass = 1.0;
 	constexpr auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, potential);
 
 	OneDimensionalParticleBox<cfg.N> box(

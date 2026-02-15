@@ -24,7 +24,7 @@
 namespace KetCat::Visu
 {
 	/// @brief Map phase angle arg(ψ) to ANSI color code
-	inline const char* phaseToColor(float_t phase)
+	inline const char* phaseToColor(real_t phase)
 	{
 		if (phase < -ConstexprMath::Pi * 0.5) return "\x1B[34m";  // dark blue
 		if (phase < -ConstexprMath::Pi * 0.25) return "\x1B[94m"; // light blue
@@ -40,7 +40,7 @@ namespace KetCat::Visu
 	/// @param label Text label printed before the line
 	template<dimension_t Dim>
 	inline void renderLine(
-		const std::array<std::tuple<float_t, const char*>, Dim>& samples,
+		const std::array<std::tuple<real_t, const char*>, Dim>& samples,
 		const char* label)
 	{
 		static const char* bars[] = {
@@ -50,7 +50,7 @@ namespace KetCat::Visu
 		};
 
 		// Find maximum absolute value for normalization
-		float_t maxVal = 0.0f;
+		real_t maxVal = 0.0f;
 		for (const auto& s : samples)
 		{
 			maxVal = std::max(maxVal, std::abs(std::get<0>(s)));
@@ -63,10 +63,10 @@ namespace KetCat::Visu
 		std::cout << label << " |";
 		for (dimension_t i = 0; i < Dim; ++i)
 		{
-			const float_t value = std::get<0>(samples[i]);
+			const real_t value = std::get<0>(samples[i]);
 			const char* color = std::get<1>(samples[i]);
 
-			const float_t norm = std::abs(value) / maxVal;
+			const real_t norm = std::abs(value) / maxVal;
 			const std::size_t idx = static_cast<std::size_t>(norm * 7);
 
 			std::cout << color << bars[idx] << "\x1B[0m";
@@ -80,14 +80,14 @@ namespace KetCat::Visu
 	/// @param dx Spatial discretization step
 	/// @return Array of potential values at discrete points
 	template <dimension_t Dim, typename PotentialFunctor>
-		requires potential_functor<PotentialFunctor, float_t>
-	std::array<float_t, Dim> evalutePotentialFunctor(const PotentialFunctor& potential, const float_t dx)
+		requires potential_functor<PotentialFunctor, real_t>
+	std::array<real_t, Dim> evalutePotentialFunctor(const PotentialFunctor& potential, const real_t dx)
 	{
-		std::array<float_t, Dim> DiscretePotentials{};
+		std::array<real_t, Dim> DiscretePotentials{};
 		for (dimension_t i = 0; i < Dim; ++i)
 		{
 			// Calculate position for the Potential callable: i * Δx
-			const float_t x = i * dx;
+			const real_t x = i * dx;
 			// Evaluate potential at position x
 			DiscretePotentials[i] = potential(x);
 		}
@@ -113,8 +113,8 @@ namespace KetCat::Visu
 		ShowPotential m_showPotential;
 
 		/// Optional parameters for potential visualization
-		std::optional<float_t> m_dx;
-		std::optional<std::function<float_t(float_t)>> m_potential;
+		std::optional<real_t> m_dx;
+		std::optional<std::function<real_t(real_t)>> m_potential;
 		
 	public:
 		/// @brief Set the potential functor and spatial step for visualization
@@ -122,8 +122,8 @@ namespace KetCat::Visu
 		/// @param potential The potential functor to visualize
 		/// @param dx Spatial discretization step
 		template <typename PotentialFunctor>
-				requires potential_functor<PotentialFunctor, float_t>
-		void setPotential(const PotentialFunctor& potential, float_t dx)
+				requires potential_functor<PotentialFunctor, real_t>
+		void setPotential(const PotentialFunctor& potential, real_t dx)
 		{
 			m_potential = potential;
 			m_dx = dx;
@@ -170,16 +170,16 @@ namespace KetCat::Visu
 			}
 
 			// --- Probability density |ψ|² ---
-			std::array<std::tuple<float_t, const char*>, Dim> ProbLine{};
+			std::array<std::tuple<real_t, const char*>, Dim> ProbLine{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{
-				const float_t p = s[i].normSquared();
+				const real_t p = s[i].normSquared();
 
 				const char* color = "\x1B[97m";
 				if (enabled(m_usePhaseEncoding))
 				{
-					const float_t Phase = std::atan2(s[i].im, s[i].re);
+					const real_t Phase = std::atan2(s[i].im, s[i].re);
 					color = phaseToColor(Phase);
 				}
 
@@ -192,8 +192,8 @@ namespace KetCat::Visu
 			// --- Optional: Real and Imaginary parts ---
 			if (enabled(m_showComplex))
 			{
-				std::array<std::tuple<float_t, const char*>, Dim> ReLine{};
-				std::array<std::tuple<float_t, const char*>, Dim> ImLine{};
+				std::array<std::tuple<real_t, const char*>, Dim> ReLine{};
+				std::array<std::tuple<real_t, const char*>, Dim> ImLine{};
 
 				for (dimension_t i = 0; i < Dim; ++i)
 				{
@@ -214,7 +214,7 @@ namespace KetCat::Visu
                 }
 
 				const auto Potentials = evalutePotentialFunctor<Dim>(*m_potential, *m_dx);
-				std::array<std::tuple<float_t, const char*>, Dim> PotentialLine{};
+				std::array<std::tuple<real_t, const char*>, Dim> PotentialLine{};
 				for (dimension_t i = 0; i < Dim; ++i)
 				{
 					// Evaluate potential at position x

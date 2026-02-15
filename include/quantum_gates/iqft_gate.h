@@ -19,7 +19,7 @@ namespace KetCat::QCC::Gates
         make_IQFT_matrix() noexcept
     {
         constexpr dimension_t Dim = ConstexprMath::pow2(QBitCount);
-        constexpr float_t InvSqrtDim = 1.0 / ConstexprMath::sqrt(static_cast<float_t>(Dim));
+        constexpr real_t InvSqrtDim = 1.0 / ConstexprMath::sqrt(static_cast<real_t>(Dim));
 
         matrix_t<Dim> IQFTMatrix{};
 
@@ -28,14 +28,14 @@ namespace KetCat::QCC::Gates
             for (dimension_t k = 0; k < Dim; ++k)
             {
                 // angle = 2π * j * k / N
-                const float_t Angle =
-                    2.0 * ConstexprMath::Pi * static_cast<float_t>(j * k)
-                    / static_cast<float_t>(Dim);
+                const real_t Angle =
+                    2.0 * ConstexprMath::Pi * static_cast<real_t>(j * k)
+                    / static_cast<real_t>(Dim);
 
                 // For inverse QFT use the negative exponent:
                 // exp(-i * angle) = cos(angle) - i * sin(angle)
-                const float_t re = ConstexprMath::cos(Angle);
-                const float_t im = -ConstexprMath::sin(Angle);
+                const real_t re = ConstexprMath::cos(Angle);
+                const real_t im = -ConstexprMath::sin(Angle);
 
                 IQFTMatrix[j][k] = cplx_t(
                     InvSqrtDim * re,

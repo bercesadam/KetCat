@@ -59,7 +59,7 @@ namespace KetCat
 	/// If the Hamiltonian matrix is tridiagonal, both A and B remain
 	/// tridiagonal, enabling efficient O(N) time stepping.
 	template<dimension_t Dim>
-	static constexpr void buildCrankNicolsonMatrices(const Hamiltonian<Dim>& hamiltonian, float_t dt,
+	static constexpr void buildCrankNicolsonMatrices(const Hamiltonian<Dim>& hamiltonian, real_t dt,
 		tridiagonal_matrix_t<Dim>& A, tridiagonal_matrix_t<Dim>& B) noexcept
 	{
 		const tridiagonal_matrix_t<Dim>& H = hamiltonian.getMatrix();
@@ -197,7 +197,7 @@ namespace KetCat
 		/// @details
 		/// The constructor precomputes the Crank–Nicolson matrices A and B,
 		/// which are reused for each time step.
-		constexpr CrankNicolsonSolver(const Hamiltonian<Dim>& hamiltonian, float_t dt) noexcept
+		constexpr CrankNicolsonSolver(const Hamiltonian<Dim>& hamiltonian, real_t dt) noexcept
 		{
 			buildCrankNicolsonMatrices(hamiltonian, dt, m_A, m_B);
 		}
