@@ -34,11 +34,17 @@ namespace KetCat
             }
         }
 
-        if (L == M) return Pmm;
+        if (L == M)
+        {
+            return Pmm;
+        }
 
         // Compute P_{M+1}^M(x)
         real_t Pm1m = X * (2 * M + 1) * Pmm;
-        if (L == M + 1) return Pm1m;
+        if (L == M + 1)
+        {
+            return Pm1m;
+        }
 
         // Recurrence for higher l:
         //  Pₗᵐ = ((2l−1)x P_{l−1}ᵐ − (l+m−1)P_{l−2}ᵐ ) / (l−m)
@@ -47,9 +53,8 @@ namespace KetCat
 
         for (int LL = M + 2; LL <= L; ++LL)
         {
-            real_t Next =
-                ((2 * LL - 1) * X * Curr - (LL + M - 1) * Prev)
-                / (LL - M);
+            real_t Next = ((2 * LL - 1) * X * Curr -
+                           (LL + M - 1) * Prev) / (LL - M);
 
             Prev = Curr;
             Curr = Next;
@@ -151,7 +156,10 @@ namespace KetCat
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
                         dimension_t IR = static_cast<dimension_t>(R / Dx);
-                        if (IR >= Dim) IR = Dim - 1;
+                        if (IR >= Dim)
+                        {
+                            IR = Dim - 1;
+                        }
 
                         real_t U = RadialArray[IR].re;
                         real_t RadialPart = U / R;

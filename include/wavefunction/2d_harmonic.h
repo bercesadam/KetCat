@@ -14,8 +14,14 @@ namespace KetCat
     /// Stable and constexpr‑friendly for moderate n.
     constexpr real_t hermite(dimension_t n, real_t x) noexcept
     {
-        if (n == 0) return 1.0;
-        if (n == 1) return 2.0 * x;
+        if (n == 0)
+        {
+            return 1.0;
+        }
+        if (n == 1)
+        {
+            return 2.0 * x;
+        }
 
         real_t H0 = 1.0;
         real_t H1 = 2.0 * x;
