@@ -17,50 +17,46 @@
 
 namespace KetCat::Visu
 {
-
-    /**
-     * @brief SDL-based visualizer for 2D hydrogen wavefunctions.
-     *
-     * Displays four panels:
-     *  - Probability density |ψ|²
-     *  - Imaginary part Im(ψ)
-     *  - Phase arg(ψ)
-     *  - Real part Re(ψ)
-     *
-     * Each panel is rendered with its own colormap and color bar.
-     *
-     * @tparam Space A Hilbert space type providing:
-     *         - static constexpr int Steps
-     *         - static int getIndex(int x, int y)
-     */
+    /// @brief SDL‑based visualizer for 2D hydrogen wavefunctions.
+    /// @details
+    /// Displays four panels:
+    ///  • Probability density |ψ|²  
+    ///  • Imaginary part Im(ψ)  
+    ///  • Phase arg(ψ)  
+    ///  • Real part Re(ψ)  
+    ///
+    /// Each panel uses its own colormap and color bar.
+    ///
+    /// @tparam Space  
+    /// Must provide:  
+    ///  • static constexpr int Steps  
+    ///  • static int getIndex(int x, int y)
     template<typename Space>
     class WavefunctionViewer
     {
         static constexpr int Grid = Space::Steps;
 
-        /// Window width
+        /// @brief Window width in pixels
         unsigned int m_width;
-        /// Window height
+
+        /// @brief Window height in pixels
         unsigned int m_height;
 
-        /// Frame counter for the PNG saver feature
+        /// @brief Frame counter used for automatic PNG saving
         unsigned int m_frameCounter;
 
-        /// SDL window and renderer handles
+        /// @brief SDL window and renderer handles
         SDL_Window* m_window{};
         SDL_Renderer* m_renderer{};
 
-        /// Fonts for text rendering
+        /// @brief Fonts for text rendering
         TTF_Font* m_font{};
         TTF_Font* m_smallFont{};
 
     public:
-
-        /**
-         * @brief Construct the visualization window.
-         * @param width Window width in pixels.
-         * @param height Window height in pixels.
-         */
+        /// @brief Construct the visualization window.
+        /// @param width  Window width in pixels.
+        /// @param height Window height in pixels.
         WavefunctionViewer(int width, int height)
             : m_width(width), m_height(height), m_frameCounter(0)
         {
@@ -83,9 +79,7 @@ namespace KetCat::Visu
                 m_window, -1, SDL_RENDERER_ACCELERATED);
         }
 
-        /**
-         * @brief Destructor. Releases SDL, TTF and window resources.
-         */
+        /// @brief Destructor: releases SDL, TTF and window resources.
         ~WavefunctionViewer()
         {
             TTF_CloseFont(m_font);
@@ -97,21 +91,20 @@ namespace KetCat::Visu
             SDL_Quit();
         }
 
-        /**
-         * @brief Render all wavefunction panels and overlay information.
-         *
-         * @tparam StateVectorType A state vector type providing:
-         *         - operator[](int)
-         *         - .re, .im, .normSquared()
-         *
-         * @param psi   The current wavefunction ψ.
-         * @param alpha Complex coefficient of state |ψ₀⟩.
-         * @param beta  Complex coefficient of state |ψ₁⟩.
-         */
+        /// @brief Render all wavefunction panels and overlay information.
+        ///
+        /// @tparam StateVectorType  
+        /// Must provide:  
+        ///  • operator[](int)  
+        ///  • members .re, .im, .normSquared()
+        ///
+        /// @param psi   The wavefunction ψ.
+        /// @param alpha Complex coefficient of state |ψ₀⟩.
+        /// @param beta  Complex coefficient of state |ψ₁⟩.
         template<typename StateVectorType>
         void render(const StateVectorType& psi,
-            cplx_t alpha,
-            cplx_t beta)
+                    cplx_t alpha,
+                    cplx_t beta)
         {
             SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
             SDL_RenderClear(m_renderer);
@@ -127,27 +120,26 @@ namespace KetCat::Visu
             int dX = margin;
             int dY = margin;
             drawDensity(psi, dX, dY, boxW, boxH);
-            drawColorBar(dX + boxW + 5, dY, 15, boxH,
+            drawColorBar(
+                dX + boxW + 5, dY, 15, boxH,
                 inferno,
-                { {1.0, "max"},
-                  {0.5, "0.5"},
-                  {0.0, "0"} });
+                { {1.0, "max"}, {0.5, "0.5"}, {0.0, "0"} });
 
-            // --- Imaginary part (top-right)
+            // --- Imag part Im(ψ) (top-right)
             int iX = margin * 2 + boxW + barSpace;
             int iY = margin;
             drawImag(psi, iX, iY, boxW, boxH);
-            drawColorBar(iX + boxW + 5, iY, 15, boxH,
+            drawColorBar(
+                iX + boxW + 5, iY, 15, boxH,
                 flare,
-                { {1.0, "+max"},
-                  {0.5, "0"},
-                  {0.0, "-max"} });
+                { {1.0, "+max"}, {0.5, "0"}, {0.0, "-max"} });
 
             // --- Phase arg(ψ) (bottom-left)
             int pX = margin;
             int pY = margin * 2 + boxH;
             drawPhase(psi, pX, pY, boxW, boxH);
-            drawColorBar(pX + boxW + 5, pY, 15, boxH,
+            drawColorBar(
+                pX + boxW + 5, pY, 15, boxH,
                 viridis,
                 { {1.0,  "π"},
                   {0.75, "π/2"},
@@ -155,15 +147,14 @@ namespace KetCat::Visu
                   {0.25, "-π/2"},
                   {0.0,  "-π"} });
 
-            // --- Real part (bottom-right)
+            // --- Real part Re(ψ) (bottom-right)
             int rX = margin * 2 + boxW + barSpace;
             int rY = margin * 2 + boxH;
             drawReal(psi, rX, rY, boxW, boxH);
-            drawColorBar(rX + boxW + 5, rY, 15, boxH,
+            drawColorBar(
+                rX + boxW + 5, rY, 15, boxH,
                 mako,
-                { {1.0, "+max"},
-                  {0.5, "0"},
-                  {0.0, "-max"} });
+                { {1.0, "+max"}, {0.5, "0"}, {0.0, "-max"} });
 
             drawLabels(margin, boxW, boxH, barSpace);
 
@@ -172,15 +163,15 @@ namespace KetCat::Visu
 
             std::ostringstream proba;
             proba << std::setprecision(2)
-                << "Population: |⟨4d₁|ψ⟩|² = "
-                << p1 * 100.0 << "%, "
-                << "|⟨3p₁|ψ⟩|² = "
-                << p0 * 100.0 << "%";
+                  << "Population: |⟨4d₁|ψ⟩|² = "
+                  << p1 * 100.0 << "%, "
+                  << "|⟨3p₁|ψ⟩|² = "
+                  << p0 * 100.0 << "%";
 
             drawText(proba.str(),
-                1, 1,
-                SDL_Color{ 255,255,255,255 },
-                m_font);
+                     1, 1,
+                     SDL_Color{255,255,255,255},
+                     m_font);
 
             SDL_RenderPresent(m_renderer);
 
@@ -189,25 +180,15 @@ namespace KetCat::Visu
         }
 
     private:
-
-        /**
-         * @brief Draw UTF-8 encoded text using SDL_ttf.
-         * @param text  UTF-8 string.
-         * @param x     Screen x position.
-         * @param y     Screen y position.
-         * @param color Text color.
-         * @param font  Font pointer.
-         */
+        /// @brief Draw UTF‑8 text using SDL_ttf.
         void drawText(const std::string& text,
-            int x,
-            int y,
-            SDL_Color color,
-            TTF_Font* font)
+                      int x,
+                      int y,
+                      SDL_Color color,
+                      TTF_Font* font)
         {
             SDL_Surface* surf =
-                TTF_RenderUTF8_Blended(font,
-                    text.c_str(),
-                    color);
+                TTF_RenderUTF8_Blended(font, text.c_str(), color);
 
             SDL_Texture* tex =
                 SDL_CreateTextureFromSurface(m_renderer, surf);
@@ -219,61 +200,58 @@ namespace KetCat::Visu
             SDL_DestroyTexture(tex);
         }
 
-        /**
-         * @brief Draw panel labels below each visualization box.
-         */
+        /// @brief Draw panel labels below each visualization box.
         void drawLabels(int margin,
-            int boxW,
-            int boxH,
-            int barSpace)
+                        int boxW,
+                        int boxH,
+                        int barSpace)
         {
-            SDL_Color white{ 255,255,255,255 };
+            SDL_Color white{255,255,255,255};
             int col2X = margin * 2 + boxW + barSpace;
 
             drawText("|ψ|²",
-                margin,
-                margin + boxH + 5,
-                white,
-                m_font);
+                     margin,
+                     margin + boxH + 5,
+                     white,
+                     m_font);
 
             drawText("Im(ψ)",
-                col2X,
-                margin + boxH + 5,
-                white,
-                m_font);
+                     col2X,
+                     margin + boxH + 5,
+                     white,
+                     m_font);
 
             drawText("arg(ψ)",
-                margin,
-                margin * 2 + boxH + boxH + 5,
-                white,
-                m_font);
+                     margin,
+                     margin * 2 + boxH + boxH + 5,
+                     white,
+                     m_font);
 
             drawText("Re(ψ)",
-                col2X,
-                margin * 2 + boxH + boxH + 5,
-                white,
-                m_font);
+                     col2X,
+                     margin * 2 + boxH + boxH + 5,
+                     white,
+                     m_font);
         }
 
-        /// @brief Draw a single pixel.
+        /// @brief Draw one pixel.
         void setPixel(int x, int y, RGB c)
         {
             SDL_SetRenderDrawColor(m_renderer,
-                c.r, c.g, c.b, 255);
+                                   c.r, c.g, c.b, 255);
             SDL_RenderDrawPoint(m_renderer, x, y);
         }
 
         /// @brief Draw probability density |ψ|².
         template<typename StateVectorType>
         void drawDensity(const StateVectorType& psi,
-            int ox, int oy,
-            int w, int h)
+                         int ox, int oy,
+                         int w, int h)
         {
             double maxVal = 0.0;
 
             for (int i = 0; i < Grid * Grid; ++i)
-                maxVal = std::max(maxVal,
-                    psi[i].normSquared());
+                maxVal = std::max(maxVal, psi[i].normSquared());
 
             for (int y = 0; y < h; ++y)
             {
@@ -283,8 +261,7 @@ namespace KetCat::Visu
                     int gy = y * Grid / h;
                     int idx = Space::getIndex(gx, gy);
 
-                    double v =
-                        psi[idx].normSquared() / maxVal;
+                    double v = psi[idx].normSquared() / maxVal;
 
                     RGB c = inferno(std::tanh(3.0 * v));
                     setPixel(ox + x, oy + y, c);
@@ -295,14 +272,13 @@ namespace KetCat::Visu
         /// @brief Draw real part Re(ψ).
         template<typename StateVectorType>
         void drawReal(const StateVectorType& psi,
-            int ox, int oy,
-            int w, int h)
+                      int ox, int oy,
+                      int w, int h)
         {
             double maxAbs = 0.0;
 
             for (int i = 0; i < Grid * Grid; ++i)
-                maxAbs = std::max(maxAbs,
-                    std::abs(psi[i].re));
+                maxAbs = std::max(maxAbs, std::abs(psi[i].re));
 
             for (int y = 0; y < h; ++y)
             {
@@ -312,11 +288,9 @@ namespace KetCat::Visu
                     int gy = y * Grid / h;
                     int idx = Space::getIndex(gx, gy);
 
-                    double v =
-                        psi[idx].re / (maxAbs + 1e-12);
+                    double v = psi[idx].re / (maxAbs + 1e-12);
 
-                    double val =
-                        0.5 + 0.5 * std::tanh(2.5 * v);
+                    double val = 0.5 + 0.5 * std::tanh(2.5 * v);
 
                     RGB c = mako(val);
                     setPixel(ox + x, oy + y, c);
@@ -327,14 +301,13 @@ namespace KetCat::Visu
         /// @brief Draw imaginary part Im(ψ).
         template<typename StateVectorType>
         void drawImag(const StateVectorType& psi,
-            int ox, int oy,
-            int w, int h)
+                      int ox, int oy,
+                      int w, int h)
         {
             double maxAbs = 0.0;
 
             for (int i = 0; i < Grid * Grid; ++i)
-                maxAbs = std::max(maxAbs,
-                    std::abs(psi[i].im));
+                maxAbs = std::max(maxAbs, std::abs(psi[i].im));
 
             for (int y = 0; y < h; ++y)
             {
@@ -344,11 +317,9 @@ namespace KetCat::Visu
                     int gy = y * Grid / h;
                     int idx = Space::getIndex(gx, gy);
 
-                    double v =
-                        psi[idx].im / (maxAbs + 1e-12);
+                    double v = psi[idx].im / (maxAbs + 1e-12);
 
-                    double val =
-                        0.5 + 0.5 * std::tanh(2.5 * v);
+                    double val = 0.5 + 0.5 * std::tanh(2.5 * v);
 
                     RGB c = flare(val);
                     setPixel(ox + x, oy + y, c);
@@ -356,11 +327,11 @@ namespace KetCat::Visu
             }
         }
 
-        /// @brief Draw phase arg(ψ) mapped from [-π, π] to [0,1].
+        /// @brief Draw phase arg(ψ) mapped from [−π, π] to [0, 1].
         template<typename StateVectorType>
         void drawPhase(const StateVectorType& psi,
-            int ox, int oy,
-            int w, int h)
+                       int ox, int oy,
+                       int w, int h)
         {
             for (int y = 0; y < h; ++y)
             {
@@ -371,12 +342,9 @@ namespace KetCat::Visu
                     int idx = Space::getIndex(gx, gy);
 
                     double angle =
-                        std::atan2(psi[idx].im,
-                            psi[idx].re);
+                        std::atan2(psi[idx].im, psi[idx].re);
 
-                    double t =
-                        (angle + M_PI) /
-                        (2.0 * M_PI);
+                    double t = (angle + M_PI) / (2.0 * M_PI);
 
                     RGB c = viridis(t);
                     setPixel(ox + x, oy + y, c);
@@ -384,59 +352,56 @@ namespace KetCat::Visu
             }
         }
 
-        /**
-         * @brief Draw a vertical color bar with labels.
-         * @param ox        X position.
-         * @param oy        Y position.
-         * @param w         Width in pixels.
-         * @param h         Height in pixels.
-         * @param colormap  Function mapping [0,1] → RGB.
-         * @param labels    Vector of (relative position, text).
-         */
+        /// @brief Draw a vertical color bar with labels.
+        /// @param ox        X position.
+        /// @param oy        Y position.
+        /// @param w         Width in pixels.
+        /// @param h         Height in pixels.
+        /// @param colormap  Function mapping [0,1] → RGB.
+        /// @param labels    Vector of (relative position, text).
         void drawColorBar(
             int ox, int oy,
             int w, int h,
             RGB(*colormap)(double),
-            const std::vector<std::pair<double,
-            std::string>>&labels)
+            const std::vector<std::pair<double, std::string>>& labels)
         {
             for (int y = 0; y < h; ++y)
             {
-                double t =
-                    1.0 - (static_cast<double>(y) / h);
-
+                double t = 1.0 - (static_cast<double>(y) / h);
                 RGB c = colormap(t);
 
-                SDL_SetRenderDrawColor(m_renderer,
+                SDL_SetRenderDrawColor(
+                    m_renderer,
                     c.r, c.g, c.b, 255);
 
-                SDL_RenderDrawLine(m_renderer,
-                    ox, oy + y,
+                SDL_RenderDrawLine(
+                    m_renderer,
+                    ox,     oy + y,
                     ox + w, oy + y);
             }
 
-            SDL_SetRenderDrawColor(m_renderer,
-                100, 100, 100, 255);
+            SDL_SetRenderDrawColor(
+                m_renderer, 100,100,100,255);
 
             SDL_Rect border{ ox, oy, w, h };
             SDL_RenderDrawRect(m_renderer, &border);
 
-            SDL_Color white{ 255,255,255,255 };
+            SDL_Color white{255,255,255,255};
 
             for (const auto& label : labels)
             {
                 int labelY =
-                    oy +
-                    static_cast<int>(
+                    oy + static_cast<int>(
                         (1.0 - label.first) * h) - 7;
 
                 drawText(label.second,
-                    ox + w + 8,
-                    labelY,
-                    white,
-                    m_smallFont);
+                         ox + w + 8,
+                         labelY,
+                         white,
+                         m_smallFont);
 
-                SDL_RenderDrawLine(m_renderer,
+                SDL_RenderDrawLine(
+                    m_renderer,
                     ox + w,
                     labelY + 7,
                     ox + w + 4,
@@ -444,7 +409,7 @@ namespace KetCat::Visu
             }
         }
 
-        /// @brief Save current frame as PNG file.
+        /// @brief Save the current frame as a PNG image.
         void save_frame()
         {
             SDL_Surface* surface =
@@ -467,12 +432,11 @@ namespace KetCat::Visu
 
             std::ostringstream filename;
             filename << std::setw(4)
-                << std::setfill('0')
-                << m_frameCounter
-                << ".png";
+                     << std::setfill('0')
+                     << m_frameCounter
+                     << ".png";
 
-            IMG_SavePNG(surface,
-                filename.str().c_str());
+            IMG_SavePNG(surface, filename.str().c_str());
 
             SDL_FreeSurface(surface);
         }

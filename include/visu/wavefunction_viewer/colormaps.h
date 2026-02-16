@@ -2,21 +2,21 @@
 #include <SDL2/SDL.h>
 #include <algorithm>
 
+///@file Color maps for SDl2 visualizations
+
 namespace KetCat::Visu
 {
-    // Basic structure to represent an RGB color
+    /// @brief Basic RGB color representation.
     struct RGB
     {
         uint8_t r, g, b;
     };
 
-    /**
-     * Linearly interpolates between two RGB colors.
-     * @param a The starting color.
-     * @param b The ending color.
-     * @param t The interpolation factor [0.0, 1.0].
-     * @return The interpolated RGB color.
-     */
+    /// @brief Linearly interpolate between two RGB colors.
+    /// @param a Starting color.
+    /// @param b Ending color.
+    /// @param t Interpolation factor in [0.0, 1.0].
+    /// @return The interpolated RGB color.
     inline RGB lerp(RGB a, RGB b, double t)
     {
         return {
@@ -26,9 +26,9 @@ namespace KetCat::Visu
         };
     }
 
-    /**
-     * Inferno colormap: Perceptually uniform black-to-yellow heatmap.
-     */
+    /// @brief Inferno colormap — perceptually uniform black→yellow heatmap.
+    /// @param t Input value in [0, 1].
+    /// @return Corresponding Inferno RGB color.
     inline RGB inferno(double t)
     {
         static const RGB c[] = {
@@ -43,9 +43,9 @@ namespace KetCat::Visu
         return lerp(c[i], c[std::min(i + 1, 7)], x - i);
     }
 
-    /**
-     * Viridis colormap: Popular perceptually uniform green-blue-yellow scale.
-     */
+    /// @brief Viridis colormap — green→blue→yellow perceptually uniform scale.
+    /// @param t Input value in [0, 1].
+    /// @return Corresponding Viridis RGB color.
     inline RGB viridis(double t)
     {
         static const RGB c[] = {
@@ -59,9 +59,9 @@ namespace KetCat::Visu
         return lerp(c[i], c[std::min(i + 1, 4)], x - i);
     }
 
-    /**
-     * Mako colormap: Dark blue to light teal, great for ocean/depth data.
-     */
+    /// @brief Mako colormap — dark blue to light teal.
+    /// @param t Input value in [0, 1].
+    /// @return Corresponding Mako RGB color.
     inline RGB mako(double t)
     {
         static const RGB c[] = {
@@ -75,9 +75,9 @@ namespace KetCat::Visu
         return lerp(c[i], c[std::min(i + 1, 4)], x - i);
     }
 
-    /**
-     * Flare colormap: Warm, glowing red-to-yellow transition.
-     */
+    /// @brief Flare colormap — warm red→orange→yellow gradient.
+    /// @param t Input value in [0, 1].
+    /// @return Corresponding Flare RGB color.
     inline RGB flare(double t)
     {
         static const RGB c[] = {
@@ -91,9 +91,9 @@ namespace KetCat::Visu
         return lerp(c[i], c[std::min(i + 1, 4)], x - i);
     }
 
-    /**
-     * Vistia colormap: High-contrast yellow-orange-red to white scale.
-     */
+    /// @brief Vistia colormap — high‑contrast yellow→orange→red→white.
+    /// @param t Input value in [0, 1].
+    /// @return Corresponding Vistia RGB color.
     inline RGB vistia(double t)
     {
         static const RGB c[] = {

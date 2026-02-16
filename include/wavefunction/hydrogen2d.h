@@ -6,158 +6,184 @@
 
 namespace KetCat
 {
-    real_t legendre(int l, int m, real_t x)
+    /// @brief Associated Legendre polynomial Pₗᵐ(x).
+    /// @details Handles negative m using the standard Condon–Shortley phase:
+    ///          Pₗ⁻ᵐ(x) = (−1)ᵐ ( (l−m)! / (l+m)! ) Pₗᵐ(x)
+    real_t legendre(int L, int M, real_t X)
     {
-        if (m < 0)
+        // Handle negative m using reflection formula:
+        if (M < 0)
         {
-            real_t sign = (m % 2 == 0) ? 1.0 : -1.0;
-            return sign * ConstexprMath::factorial(l - std::abs(m)) /
-                          ConstexprMath::factorial(l + std::abs(m)) * legendre(l, -m, x);
+            real_t Sign = (M % 2 == 0) ? 1.0 : -1.0;
+            return Sign *
+                ConstexprMath::factorial(L - std::abs(M)) /
+                ConstexprMath::factorial(L + std::abs(M)) *
+                legendre(L, -M, X);
         }
 
-        real_t p_mm = 1.0;
-        if (m > 0) {
-            real_t somx2 = ConstexprMath::sqrt((1.0 - x) * (1.0 + x));
-            real_t fact = 1.0;
-            for (int i = 1; i <= m; ++i) { p_mm *= -fact * somx2; fact += 2; }
+        // Compute P_M^M(x)  (diagonal term)
+        real_t Pmm = 1.0;
+        if (M > 0)
+        {
+            real_t Sqrt = ConstexprMath::sqrt((1.0 - X) * (1.0 + X));
+            real_t Factor = 1.0;
+            for (int i = 1; i <= M; ++i)
+            {
+                Pmm *= -Factor * Sqrt;
+                Factor += 2.0;
+            }
         }
 
-        if (l == m)  return p_mm;
+        if (L == M) return Pmm;
 
-        real_t p_m1m = x * (2 * m + 1) * p_mm;
-        if (l == m + 1) return p_m1m;
+        // Compute P_{M+1}^M(x)
+        real_t Pm1m = X * (2 * M + 1) * Pmm;
+        if (L == M + 1) return Pm1m;
 
-        real_t p_lm_prev = p_mm;
-        real_t p_lm = p_m1m;
-        for (int ll = m + 2; ll <= l; ++ll) {
-            real_t p_next = ((2 * ll - 1) * x * p_lm - (ll + m - 1) * p_lm_prev) / (ll - m);
-            p_lm_prev = p_lm;
-            p_lm = p_next;
+        // Recurrence for higher l:
+        //  Pₗᵐ = ((2l−1)x P_{l−1}ᵐ − (l+m−1)P_{l−2}ᵐ ) / (l−m)
+        real_t Prev = Pmm;
+        real_t Curr = Pm1m;
+
+        for (int LL = M + 2; LL <= L; ++LL)
+        {
+            real_t Next =
+                ((2 * LL - 1) * X * Curr - (LL + M - 1) * Prev)
+                / (LL - M);
+
+            Prev = Curr;
+            Curr = Next;
         }
-        return p_lm;
+        return Curr;
     };
 
-    /// Gömbi harmonikus Y_l^m(θ,φ)
-    cplx_t spherical_harmonic(int l, int m, real_t theta, real_t phi)
+    /// @brief Spherical harmonic Yₗᵐ(θ,φ).
+    /// @details Normalized using the standard Nₗᵐ factor:
+    ///          Yₗᵐ = Nₗᵐ Pₗᵐ(cosθ) e^{i m φ}
+    cplx_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
     {
-        real_t norm = std::sqrt((2.0 * l + 1.0) / (4.0 * ConstexprMath::Pi)
-            * ConstexprMath::factorial(l - ConstexprMath::abs(m)) / ConstexprMath::factorial(l + ConstexprMath::abs(m)));
-        real_t x = ConstexprMath::cos(theta);
-        real_t P = legendre(l, ConstexprMath::abs(m), x);
-        cplx_t phase = ConstexprMath::exp<20>(cplx_t(0.0, m * phi));
-        if (m < 0) return phase.conj() * (((m % 2 == 0) ? 1.0 : -1.0) * norm * P);
-        return phase * (norm * P);
+        real_t Norm =
+            std::sqrt((2.0 * L + 1.0) /
+                      (4.0 * ConstexprMath::Pi) *
+                      ConstexprMath::factorial(L - ConstexprMath::abs(M)) /
+                      ConstexprMath::factorial(L + ConstexprMath::abs(M)));
+
+        real_t X = ConstexprMath::cos(Theta);
+        real_t P = legendre(L, ConstexprMath::abs(M), X);
+
+        // Phase factor e^{i m φ}
+        cplx_t Phase = ConstexprMath::exp<20>(cplx_t(0.0, M * Phi));
+
+        if (M < 0)
+        {
+            // Condon–Shortley phase
+            real_t Sign = (M % 2 == 0) ? 1.0 : -1.0;
+            return Phase.conj() * (Sign * Norm * P);
+        }
+
+        return Phase * (Norm * P);
     }
 
 
-    /**
-        * ---------------------------------------------------------------------------
-        * @brief Hydrogen atom 2D slice wavefunction generator
-        * ---------------------------------------------------------------------------
-        *
-        * Generates a planar slice of the full 3D hydrogen wavefunction:
-        *
-        *      Ψₙₗₘ(r,θ,φ) = Rₙₗ(r) · Yₗᵐ(θ,φ)
-        *
-        * where:
-        *
-        *      r  = √(x² + y² + z₀²)
-        *      θ  = arccos(z₀ / r)
-        *      φ  = atan2(y, x)
-        *
-        * and:
-        *
-        *      Rₙₗ(r) = uₙₗ(r) / r
-        *
-        * The radial component uₙₗ(r) is obtained from:
-        *
-        *      HydrogenOrbital<Dim>()(q, a_eff, dx)
-        *
-        * ---------------------------------------------------------------------------
-        * Geometry
-        * ---------------------------------------------------------------------------
-        *
-        * The generated state corresponds to the fixed plane:
-        *
-        *      z = zSlice
-        *
-        * Typically:
-        *
-        *      zSlice = 0   → XY plane
-        *
-        * Produces nice orbital shapes:
-        *
-        *      p-orbitals  →  butterfly
-        *      d-orbitals  →  cloverleaf
-        *      f-orbitals  →  flower patterns
-        */
-
+    // ---------------------------------------------------------------------------
+    // Hydrogen 2D slice generator
+    // ---------------------------------------------------------------------------
+    /// @brief 2D slice of a hydrogenic wavefunction Ψₙₗₘ, fixed at y ≈ 0.
+    /// @details
+    /// We evaluate the full 3D formula
+    ///     Ψₙₗₘ(r,θ,φ) = Rₙₗ(r) · Yₗᵐ(θ,φ)
+    ///
+    /// on a 2D grid (x,z) with y fixed (near 0), giving a planar cross‑section
+    /// of the orbital. Produces nice visual patterns:
+    ///     s orbitals → spherical blobs  
+    ///     p orbitals → dumbbells  
+    ///     d orbitals → clover shapes  
+    ///     f orbitals → flower‑like symmetries  
+    ///
+    /// This is a visually clean way to inspect angular structure of orbitals.
     template<dimension_t Dim, real_t Extent>
     struct Hydrogen2D
     {
         using Space = Hilbert2D<Dim, Extent>;
 
-        /**
-            * @brief Generate 2D hydrogen orbital slice
-            *
-            * @param q         Quantum numbers (n,l,m)
-            * @param zSlice    Fixed z-plane value
-            *
-            * @return StateVector<Space>
-            */
-        StateVector<Space> operator()(QuantumNumber q)
+        /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
+        /// @param QNumbers QuantumNumber object containing (n,l,m).
+        /// @return StateVector<Space> containing Ψ(x,z) values.
+        StateVector<Space> operator()(QuantumNumber QNumbers)
         {
             StateVector<Space> Psi{ cplx_t::zero() };
 
-            const real_t dx = Extent / (Dim - 1);
+            const real_t Dx = Extent / (Dim - 1);
 
             // --------------------------------------------------------
-            // Radial 1D orbital (already normalized in your API)
+            // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
+            // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto radial = HydrogenOrbital<Dim>()(q, 1.0, dx);
+            auto RadialArray = HydrogenOrbital<Dim>()(
+                QNumbers,
+                1.0,   // effective Bohr radius
+                Dx
+            );
 
-            for (dimension_t ix = 0; ix < Dim; ++ix)
+            for (dimension_t IX = 0; IX < Dim; ++IX)
             {
-                for (dimension_t iz = 0; iz < Dim; ++iz)
+                for (dimension_t IZ = 0; IZ < Dim; ++IZ)
                 {
-                    real_t x = (static_cast<real_t>(ix) - Dim / 2) * dx;
-                    real_t z = (static_cast<real_t>(iz) - Dim / 2) * dx;
-                    real_t y = 0.01;
+                    // --------------------------------------------
+                    // Physical grid coordinates (centered)
+                    // --------------------------------------------
+                    real_t XCoord = (static_cast<real_t>(IX) - Dim / 2) * Dx;
+                    real_t ZCoord = (static_cast<real_t>(IZ) - Dim / 2) * Dx;
+                    real_t YCoord = 0.01;   // Slight offset to avoid φ undefined at x=0
 
-                    real_t r = ConstexprMath::sqrt(x * x + y * y + z * z);
+                    // Spherical radius
+                    real_t R = ConstexprMath::sqrt(
+                        XCoord * XCoord +
+                        YCoord * YCoord +
+                        ZCoord * ZCoord
+                    );
 
-                    cplx_t value = cplx_t::zero();
+                    cplx_t PsiValue = cplx_t::zero();
 
-                    if (r > 1e-12)
+                    if (R > 1e-12)
                     {
                         // --------------------------------------------
-                        // Radial lookup
+                        // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
-                        dimension_t ir = static_cast<dimension_t>(r / dx);
-                        if (ir >= Dim)
-                            ir = Dim - 1;
+                        dimension_t IR = static_cast<dimension_t>(R / Dx);
+                        if (IR >= Dim) IR = Dim - 1;
 
-                        real_t u = radial[ir].re;   // magnitude only
-                        real_t R = u / r;
+                        real_t U = RadialArray[IR].re;
+                        real_t RadialPart = U / R;
 
                         // --------------------------------------------
                         // Angular coordinates
+                        // θ = arccos(z/r)
+                        // φ = atan2(y,x)
                         // --------------------------------------------
-                        real_t theta = ConstexprMath::acos(z / r);
-                        real_t phi = ConstexprMath::atan2(y, x);
+                        real_t Theta = ConstexprMath::acos(ZCoord / R);
+                        real_t Phi   = ConstexprMath::atan2(YCoord, XCoord);
 
-                        cplx_t Y = spherical_harmonic(q.l(), q.m(), theta, phi);
+                        // Angular spherical harmonic Yₗᵐ(θ,φ)
+                        cplx_t Ylm = spherical_harmonic(
+                            QNumbers.l(),
+                            QNumbers.m(),
+                            Theta,
+                            Phi
+                        );
 
-                        value = Y * R;
+                        PsiValue = Ylm * RadialPart;
                     }
 
-                    dimension_t index = Space::getIndex(ix, iz);
-                    Psi[index] = value;
+                    // --------------------------------------------
+                    // Store value into 2D Hilbert-space container
+                    // --------------------------------------------
+                    dimension_t LinearIndex = Space::getIndex(IX, IZ);
+                    Psi[LinearIndex] = PsiValue;
                 }
             }
 
             return Psi;
         }
     };
-
 }

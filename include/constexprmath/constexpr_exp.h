@@ -6,6 +6,8 @@ namespace ConstexprMath
 {
     /// @brief Compute the exponential function using Taylor series expansion.
     /// Now generalized to my own Constexpt Complex type as well.
+    /// Moved into a separate file to avoid circular includes (Complex depends on
+    /// trigon, trigon depends on core_functions).
     /// @param x The exponent value.
     /// @param N The number of terms in the Taylor series (default is 20).
     template <unsigned int Terms, typename FloatOrComplex>

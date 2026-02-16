@@ -3,81 +3,67 @@
 #include <limits>
 #include <cmath>
 
-
 /// @file
 /// @brief Small constexpr integer utilities used for dimensions and bit manipulations.
-///
-/**
- * @details
- * This header provides:
- *  - `pow2(n)` : compute 2^n at compile time via bit-shift (returns an unsigned integral).
- *  - `is_power_of_two(x)` : test whether an integer is a (positive) power of two.
- *
- * Both functions are constexpr and noexcept and intended for use in compile-time
- * dimension computations (matrix sizes, state vector lengths) and static assertions.
- */
+/// @details
+/// Provides several small constexpr utilities:
+///   - `pow2(n)`: compute 2^n at compile time using bit shift.
+///   - `isPowerOfTwo(x)`: test whether an integer is an exact power of two.
+///   - `sqrt(x)`: constexpr Newton–Raphson square root.
+///   - `abs(x)`: constexpr absolute value.
+///   - `factorial(n)`: constexpr factorial for unsigned integrals.
+/// Intended for dimension computations, static assertions, and other compile‑time operations.
 
 namespace ConstexprMath
 {
-    /**
-     * @brief Compute 2 raised to the power of `n` at compile time.
-     *
-     * @tparam UIntType  Unsigned integral type used for the exponent and result.
-     * @param n          Exponent (non-negative).
-     * @return 2^n as `UIntType`.
-     */
+    /// @brief Compute 2 raised to the power of `n` at compile time.
+    /// @tparam UIntType Unsigned integral type.
+    /// @param n Exponent (non‑negative).
+    /// @return 2^n as `UIntType`.
     template <std::unsigned_integral UIntType>
     constexpr UIntType pow2(UIntType n) noexcept
     {
-        // Left-shift 1 by n positions: 1 << n == 2^n for unsigned types.
+        // Left-shift 1 by n bits: 1 << n == 2^n for unsigned types.
         return UIntType{ 1 } << n;
     }
 
-    /**
-     * @brief Determine whether a value is an exact power of two.
-     *
-     * @tparam UIntType  Unsigned integral type for the argument.
-     * @param x          Value to test.
-     * @return true if x is a power of two (1, 2, 4, 8, ...); false otherwise.
-     *
-     * @note This uses the classic bit trick: x > 0 && (x & (x - 1)) == 0.
-     *       The operation is constexpr and does not allocate memory.
-     */
+    /// @brief Determine whether a value is an exact power of two.
+    /// @tparam UIntType Unsigned integral type.
+    /// @param x Value to check.
+    /// @return true if x is a power of two (1,2,4,...); false otherwise.
+    /// @note Uses the classic bit trick: x > 0 && (x & (x - 1)) == 0.
     template <std::unsigned_integral UIntType>
     constexpr bool isPowerOfTwo(UIntType x) noexcept
     {
-        // Fast test: powers of two have exactly one bit set.
+        // Powers of two have exactly one bit set.
         return x > 0 && (x & (x - 1)) == 0;
     }
 
-    /**
-     * @brief Compute the square root of a floating-point number at compile time.
-     *
-     * @param x  The input value (must be non-negative).
-     * @return   The square root of x, or NaN if x is negative.
-     *
-     * @note This implementation uses the Newton-Raphson method for computing
-     *       the square root and is constexpr-friendly.
-	 */
+    /// @brief Compute square root at compile time using Newton–Raphson iteration.
+    /// @tparam FloatType Floating‑point type.
+    /// @param x Input value (must be non‑negative).
+    /// @return sqrt(x), or NaN if x is negative.
     template <std::floating_point FloatType>
     constexpr FloatType sqrt(FloatType x)
     {
-        // Handle edge cases
+        // Handle edge cases.
         if (x < 0.0) return std::numeric_limits<FloatType>::quiet_NaN();
         if (x == 0.0 || x == std::numeric_limits<FloatType>::infinity()) return x;
 
-        // Recursive lambda for Newton-Raphson
+        // Recursive Newton–Raphson lambda.
         auto sqrtRec = [](FloatType x, FloatType curr, FloatType prev, auto&& self) -> FloatType
         {
-            return curr == prev ? curr
+            return curr == prev
+                ? curr
                 : self(x, 0.5 * (curr + x / curr), curr, self);
         };
 
         return sqrtRec(x, x, 0.0, sqrtRec);
     }
 
-    /// @brief Compute absolute value of a number
-    /// @param x The input value 
+    /// @brief Compute absolute value of a number.
+    /// @tparam NumericType Arithmetic type.
+    /// @param x Input value.
     template <typename NumericType>
         requires std::is_arithmetic_v<NumericType>
     constexpr NumericType abs(NumericType x)
@@ -85,12 +71,13 @@ namespace ConstexprMath
         return (x < NumericType{}) ? -x : x;
     }
 
-	/// @brief Compute the factorial of a non-negative integer at compile time.
-	/// @tparam IntType  Integral type for the argument and result.
-	/// @param n         Non-negative integer.
-	template <std::unsigned_integral UIntType>
+    /// @brief Compute factorial of a non‑negative integer at compile time.
+    /// @tparam UIntType Unsigned integral type.
+    /// @param n Non‑negative integer.
+    /// @return n! computed recursively at compile time.
+    template <std::unsigned_integral UIntType>
     constexpr UIntType factorial(UIntType n) noexcept
     {
         return (n <= 1) ? 1 : n * factorial(n - 1);
-	}
+    }
 }

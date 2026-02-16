@@ -4,16 +4,12 @@
 
 namespace KetCat::QCC::Gates
 {
-    /**
-     * @brief     Construct the inverse Quantum Fourier Transform (QFT†) dense matrix for QBitCount qubits.
-     *
-     * @tparam QBitCount  Number of qubits (matrix dimension = 2^QBitCount).
-     * @return A unitary matrix implementing the inverse QFT:
-     *         U[j,k] = (1/sqrt(N)) * exp(-2π i j k / N)
-     *
-     * @note This routine is constexpr-friendly and uses the project's constexpr trigonometric
-     *       helpers for compile-time matrix construction.
-     */
+    /// @brief Construct the inverse Quantum Fourier Transform (QFT†) dense matrix for QBitCount qubits.
+    /// @tparam QBitCount Number of qubits (matrix dimension = 2^QBitCount).
+    /// @return A unitary matrix implementing the inverse QFT:
+    ///         U[j,k] = (1/√N) · exp(−2π i j k / N), where N = 2^QBitCount.
+    /// @note Constexpr‑friendly and uses the project’s constexpr trigonometric helpers
+    ///       for compile‑time matrix construction.
     template<dimension_t QBitCount>
     constexpr matrix_t<ConstexprMath::pow2(QBitCount)>
         make_IQFT_matrix() noexcept
@@ -27,13 +23,13 @@ namespace KetCat::QCC::Gates
         {
             for (dimension_t k = 0; k < Dim; ++k)
             {
-                // angle = 2π * j * k / N
+                // angle = 2π · j · k / N
                 const real_t Angle =
                     2.0 * ConstexprMath::Pi * static_cast<real_t>(j * k)
                     / static_cast<real_t>(Dim);
 
-                // For inverse QFT use the negative exponent:
-                // exp(-i * angle) = cos(angle) - i * sin(angle)
+                // Inverse QFT uses negative exponent:
+                // exp(−i · angle) = cos(angle) − i · sin(angle)
                 const real_t re = ConstexprMath::cos(Angle);
                 const real_t im = -ConstexprMath::sin(Angle);
 

@@ -30,7 +30,7 @@ namespace KetCat
 	/// @details This class constructs the Hamiltonian matrix for a quantum system
 	/// 		based on the provided constants and potential function.
 	///			Realizes the following equation: 
-	/// ///			H = - (ℏ² / 2m·Δx²) · (d²/dx²) + V(x)
+	/// 		H = - (ℏ² / 2m·Δx²) · (d²/dx²) + V(x)
 	template<dimension_t Dim>
 	class Hamiltonian
 	{
@@ -42,9 +42,14 @@ namespace KetCat
 			return m_hamiltonianMatrix;
 		}
 
-		// @param m  Spatial discretization step 
-		// @param dx Spatial discretization step 
-		// Design limitation: currently only one potential can be used to construct the Hamiltonian
+		
+		/// @param m   Particle mass.
+		/// @param dx  Spatial discretization step Δx.
+		/// @param potential  Functor representing V(x).
+		/// @details The Hamiltonian is assembled as a tridiagonal matrix where:
+		///          - main diagonal: 2α + V(x)
+		///          - sub/super diagonals: -α
+		///          with α = ℏ² / (2m Δx²).
 		template<typename PotentialFunctor>
 			requires potential_functor<PotentialFunctor, real_t>
 		constexpr Hamiltonian(const real_t m, const real_t dx, const PotentialFunctor& potential) noexcept
