@@ -21,8 +21,8 @@ int main()
 
     // Construct stationary eigenstates:
     // ψ₀(x,y), ψ₁(x,y)
-    auto psi0 = Hydrogen2D<N, ex>()(q0);
-    auto psi1 = Hydrogen2D<N, ex>()(q1);
+    auto Psi0 = Hydrogen2D<N, ex>()(q0);
+    auto Psi1 = Hydrogen2D<N, ex>()(q1);
 
     // Corresponding energy eigenvalues (Hartree units):
     // Eₙ from:  H ψₙ = Eₙ ψₙ
@@ -36,16 +36,19 @@ int main()
     const double dt = 0.5;
 
     // Visualization window
-    WavefunctionViewer<Space> visu(1200, 900);
+    bool Running = true;
+    SDL_Event Event;
+    WavefunctionViewer<Space> Visu(1200, 900);
 
-    int frame = 0;
-    double P = 0.0;     // Occupation probability P(t) = |β|²
-    auto psi = psi0;    // Initial state: pure ψ₀
+    int Frame = 0;
+    double Palpha = 0.0; // Occupation probability P(t) = |α|²
+    double Pbeta = 0.0;  // Occupation probability P(t) = |β|²
+    auto Psi = Psi0;     // Initial state: pure ψ₀
 
-    while (true)
+    while (Running)
     {
-        frame++;
-        double t = frame * dt;   // Physical time
+        Frame++;
+        double t = Frame * dt;   // Physical time
 
         // Time evolution phase factors:
         //
@@ -57,16 +60,15 @@ int main()
         //
         // For energy eigenstates:
         //   ψ(t) = ψ(0) e^{-i E t}
-        cplx_t phase0 = ConstexprMath::exp<20>(cplx_t(0.0, -E0 * t));
-        cplx_t phase1 = ConstexprMath::exp<20>(cplx_t(0.0, -E1 * t));
-
+        cplx_t Phase0 = ConstexprMath::exp<20>(cplx_t(0.0, -E0 * t));
+        cplx_t Phase1 = ConstexprMath::exp<20>(cplx_t(0.0, -E1 * t));
 
         // Rabi mixing angle:
         //
         // θ(t) = Ω t
         //
         // Governs population transfer between states
-        double theta = Omega * t;
+        double Theta = Omega * t;
 
         // Superposition coefficients:
         //
@@ -75,33 +77,45 @@ int main()
         //
         // The factor -i ensures proper phase relation
         // for unitary two-level rotation.
-        cplx_t alpha = phase0 * cplx_t(std::cos(theta / 2.0), 0.0);
-        cplx_t beta = phase1 * cplx_t(0.0, -std::sin(theta / 2.0));
+        cplx_t Alpha = Phase0 * cplx_t(std::cos(Theta / 2.0), 0.0);
+        cplx_t Beta = Phase1 * cplx_t(0.0, -std::sin(Theta / 2.0));
 
         // While transition is not complete:
-        if (P < 0.99)
+        if (Pbeta < 0.99)
         {
             // Construct superposition:
             //
             // ψ = α ψ₀ + β ψ₁
-            psi = psi0.superpose(psi1, alpha, beta);
+            Psi = Psi0.superpose(Psi1, Alpha, Beta);
 
             // Renormalize in discrete 2D space:
             //
             // ∑ |ψ|² dx² = 1
-            psi.normalize2D(Space::dx);
+            Psi.normalize2D(Space::dx);
         }
 
-        // Occupation probability of state ψ₁:
-        //
-        // P(t) = |β(t)|²
-        //
-        // Expected analytic behavior:
-        //   P(t) = sin²(Ω t / 2)
-        P = beta.normSquared();
+        // Calculate occupation probabilities of state ψ₀ and ψ₁:
+        Palpha = Alpha.normSquared();
+        Pbeta = Beta.normSquared();
+
+        // Create custom title for the Visu
+        std::ostringstream ProbaPopulation;
+        ProbaPopulation << std::setprecision(2)
+            << "Population: |⟨4d₁|ψ⟩|² = "
+            << Pbeta * 100.0 << "%, "
+            << "|⟨3p₁|ψ⟩|² = "
+            << Palpha * 100.0 << "%";
 
         // Render density |ψ(x,y,t)|² and state coefficients
-        visu.render(psi, alpha, beta);
+        Visu.render(Psi, ProbaPopulation.str());
+
+        while (SDL_PollEvent(&Event))
+        {
+            if (Event.type == SDL_QUIT)
+            {
+                Running = false;
+            }
+        }
     }
 
     return 0;

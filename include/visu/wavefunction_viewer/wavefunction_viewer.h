@@ -103,8 +103,7 @@ namespace KetCat::Visu
         /// @param beta  Complex coefficient of state |ψ₁⟩.
         template<typename StateVectorType>
         void render(const StateVectorType& psi,
-                    cplx_t alpha,
-                    cplx_t beta)
+                    std::string customTitle)
         {
             SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
             SDL_RenderClear(m_renderer);
@@ -156,20 +155,11 @@ namespace KetCat::Visu
                 mako,
                 { {1.0, "+max"}, {0.5, "0"}, {0.0, "-max"} });
 
+            // Render panel labels
             drawLabels(margin, boxW, boxH, barSpace);
 
-            double p0 = alpha.normSquared();
-            double p1 = beta.normSquared();
-
-            std::ostringstream proba;
-            proba << std::setprecision(2)
-                  << "Population: |⟨4d₁|ψ⟩|² = "
-                  << p1 * 100.0 << "%, "
-                  << "|⟨3p₁|ψ⟩|² = "
-                  << p0 * 100.0 << "%";
-
-            drawText(proba.str(),
-                     1, 1,
+            // Render externally set custom title
+            drawText(customTitle, 1, 1,
                      SDL_Color{255,255,255,255},
                      m_font);
 
