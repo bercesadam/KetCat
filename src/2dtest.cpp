@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include "visu/wavefunction_viewer/wavefunction_viewer.h"
-#include "wavefunction/hydrogen2d.h"
+#include "wavefunction/2d_hydrogen.h"
 #include "wavefunction/2d_harmonic.h"
 
 using namespace KetCat;
