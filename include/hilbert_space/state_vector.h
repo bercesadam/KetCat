@@ -38,7 +38,7 @@ namespace KetCat
 		{
 			probability_vector_t<Size> Probabilities;
 
-			for (int i = 0; i < Size; ++i)
+			for (dimension_t i = 0; i < Size; ++i)
 			{
 				Probabilities[i] = m_StateVector[i].normSquared();
 			}
