@@ -114,8 +114,8 @@ namespace KetCat
         /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
         constexpr StateVector<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
         {
-            constexpr dimension_t Dim = HilbertSpace::Dim;
-            constexpr dimension_t dx = HilbertSpace::dx;
+            constexpr dimension_t Steps = HilbertSpace::Steps;
+            constexpr real_t dx = HilbertSpace::dx;
 
             StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
@@ -123,20 +123,20 @@ namespace KetCat
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace1D<Dim, HilbertSpace::Extent>>{}(
+            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace1D<Steps, HilbertSpace::Extent>>{}(
                 QNumbers,
                 1.0   // effective Bohr radius
             );
 
-            for (dimension_t ix = 0; ix < Dim; ++ix)
+            for (dimension_t ix = 0; ix < Steps; ++ix)
             {
-                for (dimension_t iz = 0; iz < Dim; ++iz)
+                for (dimension_t iz = 0; iz < Steps; ++iz)
                 {
                     // --------------------------------------------
                     // Physical grid coordinates (centered)
                     // --------------------------------------------
-                    real_t XCoord = (static_cast<real_t>(ix) - Dim / 2) * dx;
-                    real_t ZCoord = (static_cast<real_t>(iz) - Dim / 2) * dx;
+                    real_t XCoord = (static_cast<real_t>(ix) - Steps / 2) * dx;
+                    real_t ZCoord = (static_cast<real_t>(iz) - Steps / 2) * dx;
                     real_t YCoord = 0.01;   // Slight offset to avoid φ undefined at x=0
 
                     // Spherical radius
@@ -154,9 +154,9 @@ namespace KetCat
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
                         dimension_t IR = static_cast<dimension_t>(R / dx);
-                        if (IR >= Dim)
+                        if (IR >= Steps)
                         {
-                            IR = Dim - 1;
+                            IR = Steps - 1;
                         }
 
                         real_t U = RadialArray[IR].re;
@@ -185,6 +185,7 @@ namespace KetCat
                 }
             }
 
+            Psi.normalize();
             return Psi;
         }
     };

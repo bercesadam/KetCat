@@ -70,10 +70,12 @@ namespace KetCat
 
 			// Step 1: Accumulate the sum of squared magnitudes |ψ_i|²
 			for (const cplx_t& c : m_StateVector)
+			{
 				Norm2 += c.normSquared();
+			}
 
 			// Step 2: Convert sum into a discrete D-dimensional integral: Σ |ψ_i|² · dx^D
-			constexpr dimension_t D = HilbertSpaceType::SpatialDimensions;  // Spatial dimension
+			constexpr dimension_t D = HilbertSpaceType::SpatialDimensions;
 			real_t dxPowD = 1.0;
 			for (dimension_t d = 0; d < D; ++d)
 				dxPowD *= HilbertSpaceType::dx;

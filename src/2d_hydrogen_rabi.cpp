@@ -1,6 +1,7 @@
 ﻿#include <SDL2/SDL.h>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include "visu/wavefunction_viewer/wavefunction_viewer.h"
 #include "wavefunction/2d_hydrogen.h"
 #include "wavefunction/2d_harmonic.h"
@@ -8,16 +9,17 @@
 using namespace KetCat;
 using namespace KetCat::Visu;
 
-int main() 
+int main(int, char**) 
 {
-    constexpr int N = 200;
+    constexpr int N = 100;
     constexpr real_t ex = 20.0;
     using HilbertSpace = InfiniteHilbertSpace2D<N, ex>;
+    std::cout << HilbertSpace::Dim;
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
-    auto q0 = QuantumNumber::_3p_m1();
-    auto q1 = QuantumNumber::_4d_m0();
+    constexpr auto q0 = QuantumNumber::_3p_m1();
+    constexpr auto q1 = QuantumNumber::_4d_m0();
 
     // Construct stationary eigenstates:
     // ψ₀(x,y), ψ₁(x,y)
@@ -26,8 +28,8 @@ int main()
 
     // Corresponding energy eigenvalues (Hartree units):
     // Eₙ from:  H ψₙ = Eₙ ψₙ
-    const double E0 = q0.hartreeEnergy();
-    const double E1 = q1.hartreeEnergy();
+    const real_t E0 = q0.hartreeEnergy();
+    const real_t E1 = q1.hartreeEnergy();
 
     // Rabi frequency Ω
     const double Omega = 0.02;

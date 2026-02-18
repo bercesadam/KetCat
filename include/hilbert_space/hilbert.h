@@ -43,7 +43,7 @@ namespace KetCat
         static constexpr dimension_t Dim = ConstexprMath::pow(Steps, SpatialDimensions);
 
         /// Grid spacing Δx = Extent / N
-        static constexpr real_t dx = Extent / static_cast<real_t>(Steps);
+        static constexpr real_t dx = static_cast<real_t>(Extent) / static_cast<real_t>(Steps);
 
         /// @brief Compute the linearized 1D index of a multidimensional coordinate
         ///        in a uniformly discretized Hilbert space.

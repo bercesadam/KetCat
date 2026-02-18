@@ -106,4 +106,53 @@ namespace KetCat::Visu
 
         return lerp(c[i], c[std::min(i + 1, 4)], x - i);
     }
+
+    /// @brief Scientific cyclic phase colormap.
+    /// Red → Magenta → Blue → Cyan → Red (cyclic).
+    /// @param phase Phase in [0,1] (cyclic).
+    /// @param amplitude Amplitude in [0,1].
+    inline RGB phase_colors(double phase)
+    {
+        phase = phase - std::floor(phase);       // cyclic wrap
+
+        // Anchor colors
+        const RGB red{ 255,   0,   0 };
+        const RGB magenta{ 255,   0, 255 };
+        const RGB blue{ 0,   0, 255 };
+        const RGB cyan{ 0, 255, 255 };
+
+        RGB color;
+
+        if (phase < 0.25)
+        {
+            color = lerp(red, magenta, phase / 0.25);
+        }
+        else if (phase < 0.50)
+        {
+            color = lerp(magenta, blue, (phase - 0.25) / 0.25);
+        }
+        else if (phase < 0.75)
+        {
+            color = lerp(blue, cyan, (phase - 0.50) / 0.25);
+        }
+        else
+        {
+            color = lerp(cyan, red, (phase - 0.75) / 0.25);
+        }
+
+        // Amplitude as brightness
+        return { color.r, color.g, color.b };
+    }
+
+    inline RGB phase_map(double phase, double amplitude)
+    {
+        amplitude = std::clamp(amplitude, 0.0, 1.0);
+        RGB color = phase_colors(phase);
+        return {
+            static_cast<uint8_t>(color.r * amplitude),
+            static_cast<uint8_t>(color.g * amplitude),
+            static_cast<uint8_t>(color.b * amplitude)
+        };
+    }
+
 }
