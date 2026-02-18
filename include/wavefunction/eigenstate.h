@@ -13,10 +13,10 @@ namespace KetCat
 	template<dimension_t Dim>
 	struct EigenState
 	{
-		constexpr StateVector<InfiniteHilbertSpace<Dim>>
+		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
 			operator()(unsigned int n, real_t dx, real_t L) const noexcept
 		{
-			StateVector<InfiniteHilbertSpace<Dim>> Psi{};
+			StateVector<InfiniteHilbertSpace1D<Dim>> Psi{};
 
 			for (dimension_t i = 0; i < Dim; ++i)
 			{

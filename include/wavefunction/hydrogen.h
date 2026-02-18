@@ -46,7 +46,7 @@ namespace KetCat
 	///   for central potentials; m enters only via the angular factor Y_{ℓm}.
 	///
 	/// @tparam Dim Size of the discrete spatial grid
-	template<dimension_t Dim>
+	template<spatial_hilbert_space_t<1_D> HilbertSpace>
 	struct HydrogenOrbital
 	{
 		/// @brief Generates a hydrogen-like orbital wavefunction.
@@ -57,18 +57,18 @@ namespace KetCat
 		/// @param x0  Position of the atomic center
 		///
 		/// @return Normalized quantum state vector representing the orbital
-		constexpr StateVector<InfiniteHilbertSpace<Dim>>
-			operator()(QuantumNumber q, double a_eff, double dx) const noexcept
+		constexpr StateVector<HilbertSpace>
+			operator()(QuantumNumber q, double a_eff) const noexcept
 		{
 			const unsigned int n = q.n();
 			const unsigned int l = q.l();
 
-			StateVector<InfiniteHilbertSpace<Dim>> Psi{ cplx_t::zero() };
+			StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
-			for (dimension_t i = 1; i < Dim; ++i)
+			for (dimension_t i = 1; i < HilbertSpace::Dim; ++i)
 			{
-				const double r = i * dx;
+				const double r = i * HilbertSpace::dx;
 				const double x = 2.0 * r / (n * a_eff);
 
 				// Behavior near r=0 (the nucleus)
@@ -93,7 +93,7 @@ namespace KetCat
 			}
 
 			// Enforce discrete radial normalization: Σ |u|² · Δr = 1
-			Psi.normalize(dx);
+			Psi.normalize();
 
 			return Psi;
 		}

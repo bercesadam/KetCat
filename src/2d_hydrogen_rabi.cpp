@@ -12,7 +12,7 @@ int main()
 {
     constexpr int N = 200;
     constexpr real_t ex = 20.0;
-    using Space = Hilbert2D<N, ex>;
+    using HilbertSpace = InfiniteHilbertSpace2D<N, ex>;
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
@@ -21,8 +21,8 @@ int main()
 
     // Construct stationary eigenstates:
     // ψ₀(x,y), ψ₁(x,y)
-    auto Psi0 = Hydrogen2D<N, ex>()(q0);
-    auto Psi1 = Hydrogen2D<N, ex>()(q1);
+    auto Psi0 = Hydrogen2D<HilbertSpace>()(q0);
+    auto Psi1 = Hydrogen2D<HilbertSpace>()(q1);
 
     // Corresponding energy eigenvalues (Hartree units):
     // Eₙ from:  H ψₙ = Eₙ ψₙ
@@ -38,7 +38,7 @@ int main()
     // Visualization window
     bool Running = true;
     SDL_Event Event;
-    WavefunctionViewer<Space> Visu(1200, 900);
+    WavefunctionViewer<HilbertSpace> Visu(1200, 900);
 
     int Frame = 0;
     double Palpha = 0.0; // Occupation probability P(t) = |α|²
@@ -91,7 +91,7 @@ int main()
             // Renormalize in discrete 2D space:
             //
             // ∑ |ψ|² dx² = 1
-            Psi.normalize2D(Space::dx);
+            Psi.normalize();
         }
 
         // Calculate occupation probabilities of state ψ₀ and ψ₁:

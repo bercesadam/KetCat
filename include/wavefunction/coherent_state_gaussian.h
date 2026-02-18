@@ -28,7 +28,7 @@ namespace KetCat
      /// and returns a normalized StateVector.
      ///
      /// @tparam Dim  Number of discrete spatial grid points
-    template<dimension_t Dim>
+    template<spatial_hilbert_space_t<1_D> HilbertSpace>
 	struct CoherentStateGaussian
     {
         /// @brief Generate a discretized coherent state wavefunction.
@@ -41,17 +41,15 @@ namespace KetCat
 		/// @param hBar   Reduced Planck constant ℏ
         /// @param x0     Initial position ⟨x⟩ (center of the wave packet)
         /// @param p0     Initial momentum ⟨p⟩
-        /// @param dx     Spatial grid spacing
-        /// @param m      Particle mass (default = 1)
-        /// @param omega  Harmonic oscillator angular frequency (default = 1)
+        /// @param m      Particle mass
+        /// @param omega  Harmonic oscillator angular frequency
 		/// @param sigmaOverride Optional override for the Gaussian width σ (default = -1.0, which uses the standard σ, which is √(ℏ / (2 m ω)))
         ///
         /// @return Normalized discrete coherent state |ψ⟩
-        constexpr StateVector<InfiniteHilbertSpace<Dim>> operator()(
+        constexpr StateVector<HilbertSpace> operator()(
             real_t hBar,
             real_t x0,        
             real_t p0,       
-            real_t dx,
             real_t m, 
             real_t omega,
 			real_t sigmaOverride = -1.0
@@ -66,11 +64,11 @@ namespace KetCat
                     : sigmaOverride
 				);
 
-            StateVector<InfiniteHilbertSpace<Dim>> Psi{};
+            StateVector<HilbertSpace> Psi{};
 
             for (dimension_t i = 0; i < Dim; ++i)
             {
-                const real_t x = (i + 1) * dx;
+                const real_t x = (i + 1) * HilbertSpace::dx;
 
                 /// Gaussian envelope centered at x₀
                 /// exp( - (x - x₀)² / (2 σ²) )
@@ -91,7 +89,7 @@ namespace KetCat
                 );
             }
 
-            Psi.normalize(dx);
+            Psi.normalize();
 
             return Psi;
         }

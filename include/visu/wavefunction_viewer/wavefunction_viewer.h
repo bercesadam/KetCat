@@ -12,7 +12,7 @@
 #include <iomanip>
 
 #include "colormaps.h"
-#include "hilbert_space/hilbert2d.h"
+#include "hilbert_space/hilbert.h"
 #include "hilbert_space/state_vector.h"
 
 namespace KetCat::Visu
@@ -27,14 +27,14 @@ namespace KetCat::Visu
     ///
     /// Each panel uses its own colormap and color bar.
     ///
-    /// @tparam Space  
+    /// @tparam HilbertSpace  
     /// Must provide:  
     ///  • static constexpr int Steps  
     ///  • static int getIndex(int x, int y)
-    template<typename Space>
+    template<typename HilbertSpace>
     class WavefunctionViewer
     {
-        static constexpr int Grid = Space::Steps;
+        static constexpr int Grid = HilbertSpace::Steps;
 
         /// @brief Window width in pixels
         unsigned int m_width;
@@ -249,9 +249,8 @@ namespace KetCat::Visu
                 {
                     int gx = x * Grid / w;
                     int gy = y * Grid / h;
-                    int idx = Space::getIndex(gx, gy);
 
-                    double v = psi[idx].normSquared() / maxVal;
+                    double v = psi[{gx, gy}].normSquared() / maxVal;
 
                     RGB c = inferno(std::tanh(3.0 * v));
                     setPixel(ox + x, oy + y, c);
@@ -276,7 +275,7 @@ namespace KetCat::Visu
                 {
                     int gx = x * Grid / w;
                     int gy = y * Grid / h;
-                    int idx = Space::getIndex(gx, gy);
+                    int idx = HilbertSpace::getIndex(gx, gy);
 
                     double v = psi[idx].re / (maxAbs + 1e-12);
 
@@ -305,7 +304,7 @@ namespace KetCat::Visu
                 {
                     int gx = x * Grid / w;
                     int gy = y * Grid / h;
-                    int idx = Space::getIndex(gx, gy);
+                    int idx = HilbertSpace::getIndex(gx, gy);
 
                     double v = psi[idx].im / (maxAbs + 1e-12);
 
@@ -329,7 +328,7 @@ namespace KetCat::Visu
                 {
                     int gx = x * Grid / w;
                     int gy = y * Grid / h;
-                    int idx = Space::getIndex(gx, gy);
+                    int idx = HilbertSpace::getIndex(gx, gy);
 
                     double angle =
                         std::atan2(psi[idx].im, psi[idx].re);

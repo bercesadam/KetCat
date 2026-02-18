@@ -1,6 +1,6 @@
 #pragma once
 #include "hilbert_space/state_vector.h"
-#include "hilbert_space/hilbert2d.h"
+#include "hilbert_space/hilbert.h"
 
 namespace KetCat
 {
@@ -47,7 +47,7 @@ namespace KetCat
     /// normalized) basis seeds for (nₓ,nᵧ) energy eigenstates of a 2D harmonic well.
     ///
     /// ---
-    /// ### Usage in Trapped‑Ion Qubit Emulation
+    /// Usage in Trapped‑Ion Qubit Emulation
     ///
     /// Although this is a general mathematical 2D harmonic oscillator, its structure
     /// mirrors the motional degrees of freedom of trapped‑ion qubits:
@@ -67,15 +67,15 @@ namespace KetCat
     template<dimension_t Dim, real_t Extent>
     struct Harmonic2D
     {
-        using Space = Hilbert2D<Dim, Extent>;
+        using HilbertSpace = InfiniteHilbertSpace2D<Dim, Extent>;
 
         /// @brief Generate a 2D oscillator seed ψₙₓ,ₙᵧ(x,y).
         /// @param nx Quantum number along x.
         /// @param ny Quantum number along y.
-        /// @return StateVector<Space> containing ψ over the grid.
-        StateVector<Space> operator()(dimension_t nx, dimension_t ny)
+        /// @return StateVector<HilbertSpace> containing ψ over the grid.
+        StateVector<HilbertSpace> operator()(dimension_t nx, dimension_t ny)
         {
-            StateVector<Space> Psi{ cplx_t::zero() };
+            StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
             const real_t dx = Extent / (Dim - 1);
             const real_t Alpha = 1.0;  // scale factor for the seed
@@ -98,7 +98,7 @@ namespace KetCat
 
                     cplx_t value = cplx_t(Hx * Hy * Envelope, 0.0);
 
-                    dimension_t index = Space::getIndex(ix, iy);
+                    dimension_t index = HilbertSpace::getIndex({ ix, iy });
                     Psi[index] = value;
                 }
             }

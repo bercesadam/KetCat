@@ -17,7 +17,7 @@ int main()
 	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<cfg.M>(), std::placeholders::_1, 0.05, cfg.dx);
 
 	// List of hydrogen orbitals to simulate: (StateVector, Name, l)
-	std::array<std::tuple<StateVector<InfiniteHilbertSpace<94>>, std::string, unsigned int>, 6> hydrogenOrbitals =
+	std::array<std::tuple<StateVector<InfiniteHilbertSpace1D<94>>, std::string, unsigned int>, 6> hydrogenOrbitals =
 	{
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_1s()), "1s", 0),
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_2s()), "2s", 0),

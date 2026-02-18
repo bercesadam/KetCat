@@ -18,6 +18,9 @@ namespace KetCat
 	/// @brief Alias for complex numbers using the custom constexpr Complex type.
 	using cplx_t = ConstexprMath::Complex<real_t>;
 
+	template<dimension_t SpatialDimensions>
+	using coordinate_t = std::array<dimension_t, SpatialDimensions>;
+
 	/// @brief State vector with compile-time fixed size (array of complex amplitudes).
 	template<dimension_t StateCount>
 	using state_vector_t = std::array<cplx_t, StateCount>;
@@ -52,4 +55,19 @@ namespace KetCat
 	constexpr dimension_t SUPERDIAGONAL = 0;
 	constexpr dimension_t MAINDIAGONAL = 1;
 	constexpr dimension_t SUBDIAGONAL = 2;
+}
+
+struct DimensionTag {
+	KetCat::dimension_t value;
+	constexpr explicit DimensionTag(KetCat::dimension_t v) : value(v) {}
+
+	constexpr bool operator==(const DimensionTag& other) const noexcept
+	{
+		return value == other.value;
+	}
+};
+
+constexpr DimensionTag operator"" _D(unsigned long long d)
+{
+	return DimensionTag{ static_cast<KetCat::dimension_t>(d) };
 }

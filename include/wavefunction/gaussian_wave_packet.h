@@ -13,10 +13,10 @@ namespace KetCat
 	template<dimension_t Dim>
 	struct FreeParticleGaussianWavePacket
 	{
-		constexpr StateVector<InfiniteHilbertSpace<Dim>>
+		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
 			operator()(real_t x0, real_t k0, real_t sigma, real_t dx) const noexcept
 		{
-			StateVector<InfiniteHilbertSpace<Dim>> Psi = {};
+			StateVector<InfiniteHilbertSpace1D<Dim>> Psi = {};
 
 			for (dimension_t n = 0; n < Dim; ++n)
 			{

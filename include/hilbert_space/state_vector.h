@@ -5,15 +5,15 @@ namespace KetCat
 {
 	/// @brief Represents a quantum state vector in a Hilbert space of given dimension.
 	/// @tparam Dim  Dimension of the Hilbert space (number of basis states).
-	template <hilbert_space_t Space>
+	template <hilbert_space_t HilbertSpace>
 	struct StateVector
 	{
 		/// Size of the vector for convenience
-		static constexpr dimension_t Size = Space::Dim;
+		static constexpr dimension_t Size = HilbertSpace::Dim;
 
 
 		/// Type alias for the Hilbert space type
-		using HilbertSpaceType = Space;
+		using HilbertSpaceType = HilbertSpace;
 
 		/// Underlying state vector array
 		state_vector_t<Size> m_StateVector;
@@ -21,16 +21,28 @@ namespace KetCat
 
 		/// @brief Indexing operator
 		/// @return Reference to a complex number at the given state index
-		constexpr cplx_t& operator[](dimension_t index) noexcept
+		constexpr cplx_t& operator[](HilbertSpace::CoordinateType index) noexcept
 		{
-			return m_StateVector.at(index);
+			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
 
 		/// @brief Indexing operator (const)
 		/// @return Const reference to a complex number at the given state index
-		constexpr const cplx_t& operator[](dimension_t index) const noexcept
+		constexpr const cplx_t& operator[](HilbertSpace::CoordinateType index) const noexcept
 		{
-			return m_StateVector.at(index);
+			return m_StateVector.at(HilbertSpace::getIndex(index));
+		}
+
+		constexpr cplx_t& operator[](dimension_t index) noexcept
+		{
+			return m_StateVector.at(HilbertSpace::getIndex(index));
+		}
+
+		/// @brief Indexing operator (const)
+		/// @return Const reference to a complex number at the given state index
+		constexpr const cplx_t& operator[](HilbertSpace::CoordinateType index) const noexcept
+		{
+			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
 
 		/// @brief Get the probabilities of measuring the selected basis states.
@@ -46,68 +58,34 @@ namespace KetCat
 			return Probabilities;
 		}
 
-		/// @brief  Normalize a discrete wavefunction on a uniform spatial grid
-		///         so that ∑|ψᵢ|² · Δx = 1.
-		/// 
-		/// @tparam Dim     Dimension (number of grid points).
-		/// 
-		/// @param  psi     State vector representing ψ(x) or u(r) sampled on a 1D grid.
-		/// @param  dx      Grid spacing Δx (or Δr for radial problems).
-		/// 
-		/// @details Continuous quantum wavefunctions must satisfy the normalization condition:
-		///        ∫|ψ(x)|² dx = 1.
-		/// 
-		/// On a uniform discretized grid xᵢ = i·Δx, this integral becomes the Riemann sum:
-		///        ∑|ψᵢ|² · Δx ≈ 1.
-		/// 
-		/// Therefore the correct discrete normalization requires multiplying the sum of
-		/// squared magnitudes by Δx before taking the square root.
-		/// 
-		/// This routine computes:
-		///        norm² = ∑ |ψᵢ|²,
-		///        norm² ← norm² · Δx,
-		///        ψᵢ ← ψᵢ / √(norm²).
-		/// 
-		constexpr void normalize(real_t dx) noexcept
+		/// @brief Normalize the discrete wavefunction in any spatial dimension D
+		///        so that the discrete integral over the grid equals 1:
+		///        
+		///        Continuous normalization: ∫ |ψ(x)|² d^D x = 1
+		///        Discrete approximation on a uniform grid:
+		///           Σ_i |ψ_i|² · (dx)^D ≈ 1
+		constexpr void normalize() noexcept
 		{
 			real_t Norm2 = 0.0;
 
-			// Accumulate Σ |ψᵢ|²  
+			// Step 1: Accumulate the sum of squared magnitudes |ψ_i|²
 			for (const cplx_t& c : m_StateVector)
-			{
 				Norm2 += c.normSquared();
-			}
 
-			// Convert into discrete integral: Σ |ψᵢ|² · Δx
-			Norm2 *= dx;
+			// Step 2: Convert sum into a discrete D-dimensional integral: Σ |ψ_i|² · dx^D
+			constexpr dimension_t D = HilbertSpaceType::SpatialDimensions;  // Spatial dimension
+			real_t dxPowD = 1.0;
+			for (dimension_t d = 0; d < D; ++d)
+				dxPowD *= HilbertSpaceType::dx;
 
-			// Guard against division by zero
+			Norm2 *= dxPowD;
+
+			// Step 3: Guard against division by zero and rescale
 			if (Norm2 > 0.0)
 			{
 				const real_t Inv = 1.0 / ConstexprMath::sqrt(Norm2);
 
-				// Rescale all amplitudes so that Σ |ψᵢ|² · Δx = 1
-				for (cplx_t& c : m_StateVector)
-				{
-					c = c * Inv;
-				
-				}
-			}
-		}
-
-		constexpr void normalize2D(real_t dx) noexcept
-		{
-			real_t Norm2 = 0.0;
-
-			for (const cplx_t& c : m_StateVector)
-				Norm2 += c.normSquared();
-
-			// Diszkrét 2D integrál: Σ |ψ|² · dx²
-			Norm2 *= Space::dx * dx;
-
-			if (Norm2 > 0.0)
-			{
-				const real_t Inv = 1.0 / ConstexprMath::sqrt(Norm2);
+				// ψ_i ← ψ_i / √(Σ |ψ_i|² · dx^D)
 				for (cplx_t& c : m_StateVector)
 					c = c * Inv;
 			}
