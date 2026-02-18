@@ -35,14 +35,14 @@ namespace KetCat
 
 		constexpr cplx_t& operator[](dimension_t index) noexcept
 		{
-			return m_StateVector.at(HilbertSpace::getIndex(index));
+			return m_StateVector.at(index);
 		}
 
 		/// @brief Indexing operator (const)
 		/// @return Const reference to a complex number at the given state index
-		constexpr const cplx_t& operator[](HilbertSpace::CoordinateType index) const noexcept
+		constexpr const cplx_t& operator[](dimension_t index) const noexcept
 		{
-			return m_StateVector.at(HilbertSpace::getIndex(index));
+			return m_StateVector.at(index);
 		}
 
 		/// @brief Get the probabilities of measuring the selected basis states.

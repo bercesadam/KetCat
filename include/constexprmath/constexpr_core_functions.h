@@ -27,6 +27,30 @@ namespace ConstexprMath
         return UIntType{ 1 } << n;
     }
 
+    
+    // @brief Compute `base` raised to the power of `exp` at compile time using
+    ///        exponentiation by squaring.
+    /// @tparam T Arithmetic type (integer or floating‑point).
+    /// @param base The base value.
+    /// @param exp  Exponent (non‑negative).
+    /// @return base^exp as type `T`.
+    template <std::unsigned_integral UIntType>
+    constexpr UIntType pow(UIntType n, UIntType exponent) noexcept
+    {
+        UIntType Result = 1;
+        while (exponent > 0)
+        {
+            if (exponent & 1)
+            {
+                Result *= n;
+            }
+            n *= n;
+            exponent >>= 1;
+        }
+        return Result;
+    }
+
+
     /// @brief Determine whether a value is an exact power of two.
     /// @tparam UIntType Unsigned integral type.
     /// @param x Value to check.

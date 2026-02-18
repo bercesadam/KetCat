@@ -57,8 +57,10 @@ namespace KetCat
 	constexpr dimension_t SUBDIAGONAL = 2;
 }
 
-struct DimensionTag {
+struct DimensionTag
+{
 	KetCat::dimension_t value;
+
 	constexpr explicit DimensionTag(KetCat::dimension_t v) : value(v) {}
 
 	constexpr bool operator==(const DimensionTag& other) const noexcept

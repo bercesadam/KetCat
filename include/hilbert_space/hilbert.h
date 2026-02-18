@@ -15,68 +15,50 @@
 
 namespace KetCat
 {
+    struct _{};
+
 	///@brief Struct representing a finite-dimensional Hilbert space
 	template<dimension_t Dimension>
 	struct FiniteHilbertSpace
 	{
 		// Dimension of the Hilbert space
 		static constexpr dimension_t Dim = Dimension;
+
+        using CoordinateType = _; 
 	};
 	
 	///@brief Struct representing an infinite-dimensional Hilbert space
     template<DimensionTag _SpatialDimensions, dimension_t _DiscretizationSteps, real_t _SystemExtent>
-    class InfiniteHilbertSpace
+    struct InfiniteHilbertSpace
     {
-    public:
-        /// Define type for coordinate-based indexing for the given spatial dimensions
-        /// If spatial dimensions == 1, use simple dimension_t for convenience
-        using CoordinateType = std::conditional_t<
-            _SpatialDimensions == 1_D,
-            dimension_t,
-            coordinate_t<_SpatialDimensions.value>
-        >;
-
-    private:
-        static constexpr dimension_t getIndexImpl(const CoordinateType& c, dimension_t index = 0) noexcept {
-            if (index == SpatialDimensions - 1)
-            {
-                return c[index];
-            }
-            else
-            {
-                return c[index] + _DiscretizationSteps * getIndex(c, ++index);
-            }
-        }
-
-        static constexpr dimension_t calculateContainerSize() noexcept
-        {
-            dimension_t Size = _SpatialDimensions.value;
-            for (dimension_t i = 0; i < Size - 1; ++i)
-            {
-                Size *= _DiscretizationSteps;
-            }
-            return Size;
-        }
-
-    public:
         /// Expose template parameters
         static constexpr dimension_t SpatialDimensions = _SpatialDimensions.value;
         static constexpr dimension_t Steps = _DiscretizationSteps;
         static constexpr real_t Extent = _SystemExtent;
 
+        /// Define type for coordinate-based indexing
+        using CoordinateType = coordinate_t<_SpatialDimensions.value>; 
+
         /// Size of eg. the state vectors
-        static constexpr dimension_t Dim = calculateContainerSize();
+        static constexpr dimension_t Dim = ConstexprMath::pow(Steps, SpatialDimensions);
 
         /// Grid spacing Δx = Extent / N
-        static constexpr real_t dx = _SystemExtent / static_cast<real_t>(Steps);
+        static constexpr real_t dx = Extent / static_cast<real_t>(Steps);
 
-        static constexpr dimension_t getIndex(const CoordinateType& c) noexcept
-        {
-            if (SpatialDimensions == 1)
-            {
-                return c;
+        /// @brief Compute the linearized 1D index of a multidimensional coordinate
+        ///        in a uniformly discretized Hilbert space.
+        /// @param c Coordinate in `SpatialDimensions`‑dimensional space.
+        /// @return Flattened index corresponding to `c`, assuming row‑major ordering
+        ///         with `Steps` discretization points per dimensio
+        static constexpr dimension_t getIndex(const CoordinateType& c) noexcept {
+            dimension_t Index = 0;
+            dimension_t Multiplier = 1;
+
+            for (dimension_t i = 0; i < SpatialDimensions; ++i) {
+                Index += c[i] * Multiplier;
+                Multiplier *= Steps;
             }
-            return getIndexImpl(c);
+            return Index;
         }
     };
 
