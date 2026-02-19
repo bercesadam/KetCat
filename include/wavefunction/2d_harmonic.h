@@ -12,7 +12,7 @@ namespace KetCat
     ///   Hₙ(x) = 2x·Hₙ₋₁(x) − 2(n−1)·Hₙ₋₂(x)  for n ≥ 2
     ///
     /// Stable and constexpr‑friendly for moderate n.
-    constexpr real_t hermite(dimension_t n, real_t x) noexcept
+    constexpr real_t hermite(natural_t n, real_t x) noexcept
     {
         if (n == 0)
         {
@@ -27,7 +27,7 @@ namespace KetCat
         real_t H1 = 2.0 * x;
         real_t Hn = 0.0;
 
-        for (dimension_t i = 2; i <= n; ++i)
+        for (natural_t i = 2; i <= n; ++i)
         {
             Hn = 2.0 * x * H1 - 2.0 * (i - 1) * H0;
             H0 = H1;
@@ -64,7 +64,7 @@ namespace KetCat
     ///
     /// By providing ψₙₓ,ₙᵧ(x,y) for arbitrary (nₓ,nᵧ), this class can therefore be used as
     /// a **lightweight, grid‑based approximation** of trapped‑ion motional states.
-    template<dimension_t Dim, real_t Extent>
+    template<natural_t Dim, real_t Extent>
     struct Harmonic2D
     {
         using HilbertSpace = InfiniteHilbertSpace2D<Dim, Extent>;
@@ -73,16 +73,16 @@ namespace KetCat
         /// @param nx Quantum number along x.
         /// @param ny Quantum number along y.
         /// @return StateVector<HilbertSpace> containing ψ over the grid.
-        StateVector<HilbertSpace> operator()(dimension_t nx, dimension_t ny)
+        StateVector<HilbertSpace> operator()(natural_t nx, natural_t ny)
         {
             StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
             const real_t dx = Extent / (Dim - 1);
             const real_t Alpha = 1.0;  // scale factor for the seed
 
-            for (dimension_t ix = 0; ix < Dim; ++ix)
+            for (natural_t ix = 0; ix < Dim; ++ix)
             {
-                for (dimension_t iy = 0; iy < Dim; ++iy)
+                for (natural_t iy = 0; iy < Dim; ++iy)
                 {
                     // Center grid at origin
                     real_t x = (static_cast<real_t>(ix) - Dim / 2) * dx;
@@ -98,7 +98,7 @@ namespace KetCat
 
                     cplx_t value = cplx_t(Hx * Hy * Envelope, 0.0);
 
-                    dimension_t index = HilbertSpace::getIndex({ ix, iy });
+                    natural_t index = HilbertSpace::getIndex({ ix, iy });
                     Psi[index] = value;
                 }
             }

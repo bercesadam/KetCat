@@ -240,15 +240,15 @@ namespace KetCat::Visu
         {
             double maxVal = 0.0;
 
-            for (dimension_t i = 0; i < Grid * Grid; ++i)
+            for (natural_t i = 0; i < Grid * Grid; ++i)
                 maxVal = std::max(maxVal, psi[i].normSquared());
 
-            for (dimension_t y = 0; y < h; ++y)
+            for (natural_t y = 0; y < h; ++y)
             {
-                for (dimension_t x = 0; x < w; ++x)
+                for (natural_t x = 0; x < w; ++x)
                 {
-                    dimension_t gx = x * Grid / w;
-                    dimension_t gy = y * Grid / h;
+                    natural_t gx = x * Grid / w;
+                    natural_t gy = y * Grid / h;
 
                     double v = psi[{gx, gy}].normSquared() / maxVal;
 
@@ -266,15 +266,15 @@ namespace KetCat::Visu
         {
             double maxAbs = 0.0;
 
-            for (dimension_t i = 0; i < Grid * Grid; ++i)
+            for (natural_t i = 0; i < Grid * Grid; ++i)
                 maxAbs = std::max(maxAbs, std::abs(psi[i].re));
 
-            for (dimension_t y = 0; y < h; ++y)
+            for (natural_t y = 0; y < h; ++y)
             {
-                for (dimension_t x = 0; x < w; ++x)
+                for (natural_t x = 0; x < w; ++x)
                 {
-                    dimension_t gx = x * Grid / w;
-                    dimension_t gy = y * Grid / h;
+                    natural_t gx = x * Grid / w;
+                    natural_t gy = y * Grid / h;
                     double v = psi[{gx, gy}].re / (maxAbs + 1e-12);
 
                     double val = 0.5 + 0.5 * std::tanh(2.5 * v);
@@ -293,15 +293,15 @@ namespace KetCat::Visu
         {
             double maxAbs = 0.0;
 
-            for (dimension_t i = 0; i < Grid * Grid; ++i)
+            for (natural_t i = 0; i < Grid * Grid; ++i)
                 maxAbs = std::max(maxAbs, std::abs(psi[i].im));
 
-            for (dimension_t y = 0; y < h; ++y)
+            for (natural_t y = 0; y < h; ++y)
             {
-                for (dimension_t x = 0; x < w; ++x)
+                for (natural_t x = 0; x < w; ++x)
                 {
-                    dimension_t gx = x * Grid / w;
-                    dimension_t gy = y * Grid / h;
+                    natural_t gx = x * Grid / w;
+                    natural_t gy = y * Grid / h;
 
                     double v = psi[{gx, gy}].im / (maxAbs + 1e-12);
 
@@ -321,15 +321,15 @@ namespace KetCat::Visu
         {
             double maxVal = 0.0;
 
-            for (dimension_t i = 0; i < Grid * Grid; ++i)
+            for (natural_t i = 0; i < Grid * Grid; ++i)
                 maxVal = std::max(maxVal, psi[i].normSquared());
 
-            for (dimension_t y = 0; y < h; ++y)
+            for (natural_t y = 0; y < h; ++y)
             {
-                for (dimension_t x = 0; x < w; ++x)
+                for (natural_t x = 0; x < w; ++x)
                 {
-                    dimension_t gx = x * Grid / w;
-                    dimension_t gy = y * Grid / h;
+                    natural_t gx = x * Grid / w;
+                    natural_t gy = y * Grid / h;
 
                     cplx_t a = psi[{gx, gy}];
 

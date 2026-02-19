@@ -66,7 +66,7 @@ namespace KetCat
 
             StateVector<HilbertSpace> Psi{};
 
-            for (dimension_t i = 0; i < Dim; ++i)
+            for (natural_t i = 0; i < Dim; ++i)
             {
                 const real_t x = (i + 1) * HilbertSpace::dx;
 

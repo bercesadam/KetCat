@@ -57,7 +57,7 @@ namespace KetCat
 	class CrankNicolsonSolver
 	{
 		typedef 
-		static constexpr dimension_t Dim = HilbertSpace::Dim;
+		static constexpr natural_t Dim = HilbertSpace::Dim;
 
 		// Precomputed matrices
 		tridiagonal_matrix_t<Dim> m_A;
@@ -116,7 +116,7 @@ namespace KetCat
 			// i * dt / (2ℏ)
 			const cplx_t Factor(0.0, dt / (2.0 * hBar));
 
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < Dim; ++i)
 			{
 				// Build main diagonal
 				A[MAINDIAGONAL][i] = cplx_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
@@ -149,14 +149,14 @@ namespace KetCat
 		/// This routine performs an efficient matrix–vector multiplication
 		/// exploiting the tridiagonal structure of the matrix. It is primarily
 		/// used to construct the right-hand side of the Crank–Nicolson system.
-		template<dimension_t Dim>
+		template<natural_t Dim>
 		static constexpr StateVector<HilbertSpace>
 			multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
 				const StateVector<HilbertSpace>& x) noexcept
 		{
 			StateVector<HilbertSpace> Result{ cplx_t::zero() };
 
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < Dim; ++i)
 			{
 				// Main diagonal contribution
 				Result[i] += M[MAINDIAGONAL][i] * x[i];
@@ -190,12 +190,12 @@ namespace KetCat
 		/// tridiagonal structure of the system.
 		///
 		/// The matrix is passed by value and modified internally.
-		template<dimension_t Dim>
+		template<natural_t Dim>
 		constexpr StateVector<HilbertSpace> solveTridiagonal(
 			tridiagonal_matrix_t<Dim> M, StateVector<HilbertSpace> psi) noexcept
 		{
 			// --- FORWARD ELIMINATION ---
-			for (dimension_t i = 1; i < Dim; ++i)
+			for (natural_t i = 1; i < Dim; ++i)
 			{
 				// Elimination multiplier
 				const cplx_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
@@ -212,7 +212,7 @@ namespace KetCat
 
 			Result[Dim - 1] = psi[Dim - 1] / M[MAINDIAGONAL][Dim - 1];
 
-			for (dimension_t i = Dim - 1; i-- > 0;)
+			for (natural_t i = Dim - 1; i-- > 0;)
 			{
 				Result[i] = (psi[i] - M[SUBDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
 			}

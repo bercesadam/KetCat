@@ -18,29 +18,29 @@ namespace KetCat
     struct _{};
 
 	///@brief Struct representing a finite-dimensional Hilbert space
-	template<dimension_t Dimension>
+	template<natural_t Dimension>
 	struct FiniteHilbertSpace
 	{
 		// Dimension of the Hilbert space
-		static constexpr dimension_t Dim = Dimension;
+		static constexpr natural_t Dim = Dimension;
 
         using CoordinateType = _; 
 	};
 	
 	///@brief Struct representing an infinite-dimensional Hilbert space
-    template<DimensionTag _SpatialDimensions, dimension_t _DiscretizationSteps, real_t _SystemExtent>
+    template<DimensionTag _SpatialDimensions, natural_t _DiscretizationSteps, real_t _SystemExtent>
     struct InfiniteHilbertSpace
     {
         /// Expose template parameters
-        static constexpr dimension_t SpatialDimensions = _SpatialDimensions.value;
-        static constexpr dimension_t Steps = _DiscretizationSteps;
+        static constexpr natural_t SpatialDimensions = _SpatialDimensions.value;
+        static constexpr natural_t Steps = _DiscretizationSteps;
         static constexpr real_t Extent = _SystemExtent;
 
         /// Define type for coordinate-based indexing
         using CoordinateType = coordinate_t<_SpatialDimensions.value>; 
 
         /// Size of eg. the state vectors
-        static constexpr dimension_t Dim = ConstexprMath::pow(Steps, SpatialDimensions);
+        static constexpr natural_t Dim = ConstexprMath::pow(Steps, SpatialDimensions);
 
         /// Grid spacing Δx = Extent / N
         static constexpr real_t dx = static_cast<real_t>(Extent) / static_cast<real_t>(Steps);
@@ -50,11 +50,11 @@ namespace KetCat
         /// @param c Coordinate in `SpatialDimensions`‑dimensional space.
         /// @return Flattened index corresponding to `c`, assuming row‑major ordering
         ///         with `Steps` discretization points per dimensio
-        static constexpr dimension_t getIndex(const CoordinateType& c) noexcept {
-            dimension_t Index = 0;
-            dimension_t Multiplier = 1;
+        static constexpr natural_t getIndex(const CoordinateType& c) noexcept {
+            natural_t Index = 0;
+            natural_t Multiplier = 1;
 
-            for (dimension_t i = 0; i < SpatialDimensions; ++i) {
+            for (natural_t i = 0; i < SpatialDimensions; ++i) {
                 Index += c[i] * Multiplier;
                 Multiplier *= Steps;
             }
@@ -62,23 +62,23 @@ namespace KetCat
         }
     };
 
-    template<dimension_t DiscretizationSteps, real_t SystemExtent>
+    template<natural_t DiscretizationSteps, real_t SystemExtent>
     using InfiniteHilbertSpace1D = InfiniteHilbertSpace<1_D, DiscretizationSteps, SystemExtent>;
 
-    template<dimension_t DiscretizationSteps, real_t SystemExtent>
+    template<natural_t DiscretizationSteps, real_t SystemExtent>
     using InfiniteHilbertSpace2D = InfiniteHilbertSpace<2_D, DiscretizationSteps, SystemExtent>;
 
-	///@brief Concept to check if a type has a static member Dim of type dimension_t
+	///@brief Concept to check if a type has a static member Dim of type natural_t
 	template <typename T>
 	concept hilbert_space_t =
 		requires {
-			{ T::Dim } -> std::convertible_to<dimension_t>;	
+			{ T::Dim } -> std::convertible_to<natural_t>;	
 	};
 
     template <typename T, DimensionTag _SpatialDimensions>
     concept spatial_hilbert_space_t =
         requires {
-            { T::Dim } -> std::convertible_to<dimension_t>;
+            { T::Dim } -> std::convertible_to<natural_t>;
             requires T::SpatialDimensions == _SpatialDimensions.value;
     };
 }

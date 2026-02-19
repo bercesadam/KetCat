@@ -10,7 +10,7 @@ namespace KetCat
 	/// @param k0     Central wave number 
 	/// @param sigma  The standard deviation
 	/// @param dx     Discretisation step
-	template<dimension_t Dim>
+	template<natural_t Dim>
 	struct FreeParticleGaussianWavePacket
 	{
 		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
@@ -18,7 +18,7 @@ namespace KetCat
 		{
 			StateVector<InfiniteHilbertSpace1D<Dim>> Psi = {};
 
-			for (dimension_t n = 0; n < Dim; ++n)
+			for (natural_t n = 0; n < Dim; ++n)
 			{
 				// Position corresponding to index n
 				const real_t x = (n + 1) * dx;

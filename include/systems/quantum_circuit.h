@@ -15,7 +15,7 @@ namespace KetCat::QCC
     /// @brief Small executor and convenience API for composing and running quantum gates.
 
 	/// @brief Forward declaration of QuantumCircuit for friend declaration.
-    template<dimension_t QBitCount>
+    template<natural_t QBitCount>
     class QuantumCircuit;
 
     /// @brief Concept for types that behave like a gate: they are callable with a state vector.
@@ -37,12 +37,12 @@ namespace KetCat::QCC
     /// @brief Executor that schedules and runs a series of gate-like callables at compile-time (where possible).
     /// @tparam QBitCount  Number of qubits in the circuit.
     /// @tparam Gates      Variadic pack of gate-like callables accepted by the executor.
-    template<dimension_t QBitCount, QuantumGateLike... Gates>
+    template<natural_t QBitCount, QuantumGateLike... Gates>
     class QuantumCircuitExecutor
     {
 
         /// @brief Precompute 2^QBitCount for convenience
-        static constexpr dimension_t BasisStateCount = ConstexprMath::pow2(QBitCount);
+        static constexpr natural_t BasisStateCount = ConstexprMath::pow2(QBitCount);
 
         /// @brief The internal global state vector (amplitudes for 2^QBitCount basis states).
         StateVector<FiniteHilbertSpace<BasisStateCount>> m_stateVector;
@@ -88,7 +88,7 @@ namespace KetCat::QCC
     };
 
     /// @brief Facade class to create executors bound to a fixed qubit count.
-    template<dimension_t QBitCount>
+    template<natural_t QBitCount>
     class QuantumCircuit
     {
     public:

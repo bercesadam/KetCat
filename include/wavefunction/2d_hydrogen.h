@@ -114,7 +114,7 @@ namespace KetCat
         /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
         constexpr StateVector<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
         {
-            constexpr dimension_t Steps = HilbertSpace::Steps;
+            constexpr natural_t Steps = HilbertSpace::Steps;
             constexpr real_t dx = HilbertSpace::dx;
 
             StateVector<HilbertSpace> Psi{ cplx_t::zero() };
@@ -128,9 +128,9 @@ namespace KetCat
                 1.0   // effective Bohr radius
             );
 
-            for (dimension_t ix = 0; ix < Steps; ++ix)
+            for (natural_t ix = 0; ix < Steps; ++ix)
             {
-                for (dimension_t iz = 0; iz < Steps; ++iz)
+                for (natural_t iz = 0; iz < Steps; ++iz)
                 {
                     // --------------------------------------------
                     // Physical grid coordinates (centered)
@@ -153,7 +153,7 @@ namespace KetCat
                         // --------------------------------------------
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
-                        dimension_t IR = static_cast<dimension_t>(R / dx);
+                        natural_t IR = static_cast<natural_t>(R / dx);
                         if (IR >= Steps)
                         {
                             IR = Steps - 1;

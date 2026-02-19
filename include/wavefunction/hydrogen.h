@@ -66,7 +66,7 @@ namespace KetCat
 			StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
-			for (dimension_t i = 1; i < HilbertSpace::Dim; ++i)
+			for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
 			{
 				const double r = i * HilbertSpace::dx;
 				const double x = 2.0 * r / (n * a_eff);

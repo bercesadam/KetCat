@@ -9,7 +9,7 @@ namespace KetCat
 	struct StateVector
 	{
 		/// Size of the vector for convenience
-		static constexpr dimension_t Size = HilbertSpace::Dim;
+		static constexpr natural_t Size = HilbertSpace::Dim;
 
 
 		/// Type alias for the Hilbert space type
@@ -33,14 +33,14 @@ namespace KetCat
 			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
 
-		constexpr cplx_t& operator[](dimension_t index) noexcept
+		constexpr cplx_t& operator[](natural_t index) noexcept
 		{
 			return m_StateVector.at(index);
 		}
 
 		/// @brief Indexing operator (const)
 		/// @return Const reference to a complex number at the given state index
-		constexpr const cplx_t& operator[](dimension_t index) const noexcept
+		constexpr const cplx_t& operator[](natural_t index) const noexcept
 		{
 			return m_StateVector.at(index);
 		}
@@ -50,7 +50,7 @@ namespace KetCat
 		{
 			probability_vector_t<Size> Probabilities;
 
-			for (dimension_t i = 0; i < Size; ++i)
+			for (natural_t i = 0; i < Size; ++i)
 			{
 				Probabilities[i] = m_StateVector[i].normSquared();
 			}
@@ -75,9 +75,9 @@ namespace KetCat
 			}
 
 			// Step 2: Convert sum into a discrete D-dimensional integral: Σ |ψ_i|² · dx^D
-			constexpr dimension_t D = HilbertSpaceType::SpatialDimensions;
+			constexpr natural_t D = HilbertSpaceType::SpatialDimensions;
 			real_t dxPowD = 1.0;
-			for (dimension_t d = 0; d < D; ++d)
+			for (natural_t d = 0; d < D; ++d)
 				dxPowD *= HilbertSpaceType::dx;
 
 			Norm2 *= dxPowD;
@@ -99,10 +99,10 @@ namespace KetCat
 		constexpr StateVector<HilbertSpaceType> matMul(const matrix_t<Size>& mat) const noexcept
 		{
 			StateVector<HilbertSpaceType> Result;
-			for (dimension_t i = 0; i < Size; ++i)
+			for (natural_t i = 0; i < Size; ++i)
 			{
 				cplx_t Sum = cplx_t::zero();
-				for (dimension_t j = 0; j < Size; ++j)
+				for (natural_t j = 0; j < Size; ++j)
 				{
 					Sum = Sum + mat[i][j] * m_StateVector[j];
 				}
@@ -121,7 +121,7 @@ namespace KetCat
 		{
 			StateVector Result;
 
-			for (dimension_t i = 0; i < StateVector::Size; ++i)
+			for (natural_t i = 0; i < StateVector::Size; ++i)
 			{
 				// |Ψ⟩ = α |ψ₀⟩ + β |ψ₁⟩
 				Result[i] = alpha * m_StateVector[i] + beta * other.m_StateVector[i];
@@ -140,7 +140,7 @@ namespace KetCat
 		{
 			cplx_t Result{ cplx_t::zero() };
 
-			for (dimension_t i = 0; i < StateVector::Size; ++i)
+			for (natural_t i = 0; i < StateVector::Size; ++i)
 			{
 				// ⟨ψ|φ⟩ = Σ ψᵢ* · φᵢ
 				Result += m_StateVector[i].conj() * other.m_StateVector[i];
