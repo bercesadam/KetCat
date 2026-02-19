@@ -140,7 +140,6 @@ namespace KetCat::Visu
             color = lerp(cyan, red, (phase - 0.75) / 0.25);
         }
 
-        // Amplitude as brightness
         return { color.r, color.g, color.b };
     }
 
@@ -148,6 +147,8 @@ namespace KetCat::Visu
     {
         amplitude = std::clamp(amplitude, 0.0, 1.0);
         RGB color = phase_colors(phase);
+
+        // Amplitude as brightness
         return {
             static_cast<uint8_t>(color.r * amplitude),
             static_cast<uint8_t>(color.g * amplitude),

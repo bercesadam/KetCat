@@ -68,17 +68,28 @@ namespace KetCat
     template<natural_t DiscretizationSteps, real_t SystemExtent>
     using InfiniteHilbertSpace2D = InfiniteHilbertSpace<2_D, DiscretizationSteps, SystemExtent>;
 
-	///@brief Concept to check if a type has a static member Dim of type natural_t
+	///@brief Concept matches any Hilbert space
 	template <typename T>
 	concept hilbert_space_t =
 		requires {
 			{ T::Dim } -> std::convertible_to<natural_t>;	
 	};
 
+    ///@brief Concept matches any spatial (Infinite) Hilbert space
+    template <typename T>
+    concept spatial_hilbert_space_t =
+        requires {
+            { T::SpatialDimensions } -> std::convertible_to<natural_t>;
+            { T::dx } -> std::convertible_to<real_t>;
+    };
+
+    ///@brief Concept matches a spatial (Infinite) Hilbert space
+    ///       of exact spatial dimensions
     template <typename T, DimensionTag _SpatialDimensions>
     concept spatial_hilbert_space_t =
         requires {
             { T::Dim } -> std::convertible_to<natural_t>;
             requires T::SpatialDimensions == _SpatialDimensions.value;
     };
+
 }

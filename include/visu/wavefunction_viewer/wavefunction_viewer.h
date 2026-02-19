@@ -166,7 +166,7 @@ namespace KetCat::Visu
             SDL_RenderPresent(m_renderer);
 
             ++m_frameCounter;
-            save_frame();
+            saveFrame();
         }
 
     private:
@@ -404,7 +404,7 @@ namespace KetCat::Visu
         }
 
         /// @brief Save the current frame as a PNG image.
-        void save_frame()
+        void saveFrame()
         {
             SDL_Surface* surface =
                 SDL_CreateRGBSurfaceWithFormat(
@@ -428,7 +428,7 @@ namespace KetCat::Visu
             filename << std::setw(4)
                      << std::setfill('0')
                      << m_frameCounter
-                     << ".png";
+                     << "_.png";
 
             IMG_SavePNG(surface, filename.str().c_str());
 

@@ -8,90 +8,54 @@ namespace KetCat
 	template <hilbert_space_t HilbertSpace>
 	struct StateVector
 	{
-		/// Size of the vector for convenience
-		static constexpr natural_t Size = HilbertSpace::Dim;
-
-
 		/// Type alias for the Hilbert space type
 		using HilbertSpaceType = HilbertSpace;
+
+		/// Size of the vector for convenience
+		static constexpr natural_t Size = HilbertSpace::Dim;
 
 		/// Underlying state vector array
 		state_vector_t<Size> m_StateVector;
 
+		/// INDEXING ///////////////////////////////////////////////////////////////////////
 
-		/// @brief Indexing operator
+		/// @brief Indexing operator using the coordinate type (array of natural_t's)
+		///        provided by the Hilbert Space type (depending on the spatial dimensions)
+		/// @param Spatial coordinates on the discrete grid
 		/// @return Reference to a complex number at the given state index
 		constexpr cplx_t& operator[](HilbertSpace::CoordinateType index) noexcept
 		{
 			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
 
-		/// @brief Indexing operator (const)
+		/// @brief Const indexing operator using the coordinate type (array of natural_t's)
+		///       provided by the Hilbert Space type (depending on the spatial dimensions)
+		/// @param Spatial coordinates on the discrete grid
 		/// @return Const reference to a complex number at the given state index
 		constexpr const cplx_t& operator[](HilbertSpace::CoordinateType index) const noexcept
 		{
 			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
 
+		/// @brief Indexing operator to access the flattened state vector,
+		///        regardless the spatial dimensions of the underlying Hilbert space.
+		/// @param Index of the discrete grid
+		/// @return Reference to a complex number at the given state index
 		constexpr cplx_t& operator[](natural_t index) noexcept
 		{
 			return m_StateVector.at(index);
 		}
 
-		/// @brief Indexing operator (const)
+		/// @brief Const indexing operator to access the flattened state vector,
+		///        regardless the spatial dimensions of the underlying Hilbert space.
+		/// @param Index of the discrete grid
 		/// @return Const reference to a complex number at the given state index
 		constexpr const cplx_t& operator[](natural_t index) const noexcept
 		{
 			return m_StateVector.at(index);
 		}
 
-		/// @brief Get the probabilities of measuring the selected basis states.
-		constexpr probability_vector_t<Size> getProbabilities() const noexcept
-		{
-			probability_vector_t<Size> Probabilities;
-
-			for (natural_t i = 0; i < Size; ++i)
-			{
-				Probabilities[i] = m_StateVector[i].normSquared();
-			}
-
-			return Probabilities;
-		}
-
-		/// @brief Normalize the discrete wavefunction in any spatial dimension D
-		///        so that the discrete integral over the grid equals 1:
-		///        
-		///        Continuous normalization: ∫ |ψ(x)|² d^D x = 1
-		///        Discrete approximation on a uniform grid:
-		///           Σ_i |ψ_i|² · (dx)^D ≈ 1
-		constexpr void normalize() noexcept
-		{
-			real_t Norm2 = 0.0;
-
-			// Step 1: Accumulate the sum of squared magnitudes |ψ_i|²
-			for (const cplx_t& c : m_StateVector)
-			{
-				Norm2 += c.normSquared();
-			}
-
-			// Step 2: Convert sum into a discrete D-dimensional integral: Σ |ψ_i|² · dx^D
-			constexpr natural_t D = HilbertSpaceType::SpatialDimensions;
-			real_t dxPowD = 1.0;
-			for (natural_t d = 0; d < D; ++d)
-				dxPowD *= HilbertSpaceType::dx;
-
-			Norm2 *= dxPowD;
-
-			// Step 3: Guard against division by zero and rescale
-			if (Norm2 > 0.0)
-			{
-				const real_t Inv = 1.0 / ConstexprMath::sqrt(Norm2);
-
-				// ψ_i ← ψ_i / √(Σ |ψ_i|² · dx^D)
-				for (cplx_t& c : m_StateVector)
-					c = c * Inv;
-			}
-		}
+		/// BASIC LINEAR ALGEBRA ///////////////////////////////////////////////////////////////
 
 		/// @brief Multiply this state vector by a matrix.
 		/// @param mat  The matrix to multiply with (Size x Size).
@@ -111,52 +75,149 @@ namespace KetCat
 			return Result;
 		}
 
+		/// @brief Compute the inner product ⟨ψ|φ⟩.
+		///
+		/// Continuous definition:
+		///     ⟨ψ|φ⟩ = ∫ ψ*(x) φ(x) d^D x
+		///
+		/// Discrete approximation:
+		///     ⟨ψ|φ⟩ ≈ Σ_i ψ_i* φ_i · ΔV
+		///
+		/// where:
+		///     ψ_i*  = complex conjugate of ψ_i
+		///     ΔV    = dx^D
+		///
+		/// @param phi    The state |φ⟩.
+		/// @return       The complex amplitude ⟨ψ|φ⟩.
+		constexpr cplx_t innerProduct(const StateVector<HilbertSpaceType>& phi) const noexcept
+			requires (spatial_hilbert_space_t<HilbertSpaceType>)
+		{
+			cplx_t result = cplx_t::zero();
+
+			for (natural_t i = 0; i < Size; ++i)
+			{
+				// ψ_i* · φ_i
+				result += m_StateVector[i].conj() * other.m_StateVector[i];
+			}
+
+			// Multiply by discrete cell volume ΔV = dx^D
+			return result * discreteVolume();
+		}
+
+		/// PROBABILITY MEASUREMENTS ////////////////////////////////////////////////////////
+
+		/// @brief Compute the probability of projecting onto another state |φ⟩.
+		///
+		/// Born rule:
+		///     P = |⟨ψ|φ⟩|²
+		///
+		/// Using the discrete inner product:
+		///     ⟨ψ|φ⟩ = Σ_i ψ_i* φ_i · ΔV
+		///
+		/// @param phi    The state |φ⟩.
+		/// @return       Probability in range [0, 1].
+		constexpr real_t probabilityOf(const StateVector<HilbertSpaceType>& phi) const noexcept
+			requires (spatial_hilbert_space_t<HilbertSpaceType>)
+		{
+			const cplx_t amplitude = innerProduct(phi);
+			return amplitude.normSquared();
+		}
+
+		/// @brief Get the probabilities of measuring the selected basis states.
+		/// @returns Array of real_t's with the probability of each spatial position
+		constexpr probability_vector_t<Size> getProbabilities() const noexcept
+		{
+			probability_vector_t<Size> Probabilities;
+
+			for (natural_t i = 0; i < Size; ++i)
+			{
+				Probabilities[i] = m_StateVector[i].normSquared();
+			}
+
+			return Probabilities;
+		}
+
+		/// SPATIAL DIMENSION-AGNOSTIC NORMALIZATION ////////////////////////////////////////
+		
+		/// @brief Normalize the state vector so that the total probability equals 1.
+		///
+		/// Continuous normalization condition:
+		///     ∫ |ψ(x)|² d^D x = 1
+		///
+		/// Discrete approximation on a uniform grid:
+		///     Σ_i |ψ_i|² · ΔV = 1
+		///
+		/// where:
+		///     ΔV = dx^D  (cell hypervolume)
+		///
+		/// Procedure:
+		///     1) Compute norm² = Σ_i |ψ_i|² · ΔV
+		///     2) Rescale:
+		///            ψ_i ← ψ_i / √(norm²)
+		///
+		/// After normalization:
+		///     ⟨ψ|ψ⟩ = 1
+		constexpr void normalize() noexcept
+			requires (spatial_hilbert_space_t<HilbertSpaceType>)
+		{
+			// Compute ⟨ψ|ψ⟩ = Σ ψ_i* ψ_i · ΔV
+			const real_t norm2 = innerProduct(*this).real();
+
+			if (norm2 > 0.0)
+			{
+				const real_t invNorm = 1.0 / ConstexprMath::sqrt(norm2);
+
+				for (cplx_t& c : m_StateVector)
+					c = c * invNorm;
+			}
+		}
+
+		/// MANUAL SUPERPOSITION ////////////////////////////////////////////////////////////
+
 		/// @brief Create a superposition of two state vectors with given coefficients.
-		/// @param other  The other state vector to superpose with.
+		/// @param phi    The other state vector to superpose with.
 		/// @param alpha  Complex amplitude for this state vector.
 		/// @param beta   Complex amplitude for the other state vector.
 		/// @param dx     Grid spacing for normalization.
-		constexpr StateVector<HilbertSpaceType> superpose(const StateVector<HilbertSpaceType>& other,
+		constexpr StateVector<HilbertSpaceType> superpose(const StateVector<HilbertSpaceType>& phi,
 			cplx_t alpha, cplx_t beta) const noexcept
+			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
 			StateVector Result;
 
 			for (natural_t i = 0; i < StateVector::Size; ++i)
 			{
 				// |Ψ⟩ = α |ψ₀⟩ + β |ψ₁⟩
-				Result[i] = alpha * m_StateVector[i] + beta * other.m_StateVector[i];
+				Result[i] = alpha * m_StateVector[i] + beta * phi.m_StateVector[i];
 			}
 
-			//Result.normalize(dx);
-
-			return Result;
+			return Result.normalize();
 		}
 
-		/// @brief Compute the inner product ⟨ψ|φ⟩ between this and another state vector.
-		/// @param other  The other state vector |φ⟩.
-		/// @param dx     Grid spacing for proper normalization.
-		/// @return The inner product ⟨ψ|φ⟩ as a complex number.
-		constexpr cplx_t innerProduct(const StateVector<HilbertSpaceType>& other, double dx) const noexcept
+	private:
+	   /// @brief Returns the discrete cell hypervolume ΔV = dx^D.
+	   /// Used internally for functions like normalise()
+	   /// It is required when approximating integrals with sums:
+	   ///     ∫ f(x) d^D x  ≈  Σ_i f_i · ΔV
+	   ///
+	   /// Eg. for:
+	   ///     D = 1 → ΔV = dx
+	   ///     D = 2 → ΔV = dx²
+	   ///     D = 3 → ΔV = dx³
+	   ///
+	   /// Returns:
+	   /// @return The discrete cell hypervolume ΔV.
+		static constexpr real_t discreteVolume() noexcept
+			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
-			cplx_t Result{ cplx_t::zero() };
+			constexpr natural_t D = HilbertSpaceType::SpatialDimensions;
 
-			for (natural_t i = 0; i < StateVector::Size; ++i)
-			{
-				// ⟨ψ|φ⟩ = Σ ψᵢ* · φᵢ
-				Result += m_StateVector[i].conj() * other.m_StateVector[i];
-			}
+			real_t volume = 1.0;
+			for (natural_t d = 0; d < D; ++d)
+				volume *= HilbertSpaceType::dx;
 
-			return Result * dx;
+			return volume;
 		}
 
-		/// @brief Compute the probability of measuring the system in the state represented by another state vector.
-		/// @param overlap  The other state vector |φ⟩.
-		/// @param dx       Grid spacing for proper normalization.
-		/// @return The probability as a float.
-		constexpr real_t probabilityOf(const StateVector<HilbertSpaceType> overlap, double dx) const noexcept
-		{
-			const cplx_t amplitude = innerProduct(overlap, dx);
-			return amplitude.normSquared();
-		}
 	};
 }

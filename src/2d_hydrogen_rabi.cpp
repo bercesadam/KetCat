@@ -11,7 +11,7 @@ using namespace KetCat::Visu;
 
 int main(int, char**) 
 {
-    constexpr int N = 100;
+    constexpr natural_t N = 256;
     constexpr real_t ex = 20.0;
     using HilbertSpace = InfiniteHilbertSpace2D<N, ex>;
     std::cout << HilbertSpace::Dim;
@@ -103,7 +103,7 @@ int main(int, char**)
         // Create custom title for the Visu
         std::ostringstream ProbaPopulation;
         ProbaPopulation << std::setprecision(2)
-            << "Population: |⟨4d₁|ψ⟩|² = "
+            << "Population: |⟨4d₀|ψ⟩|² = "
             << Pbeta * 100.0 << "%, "
             << "|⟨3p₁|ψ⟩|² = "
             << Palpha * 100.0 << "%";
