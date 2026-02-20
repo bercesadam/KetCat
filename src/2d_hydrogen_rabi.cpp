@@ -9,48 +9,50 @@
 using namespace KetCat;
 using namespace KetCat::Visu;
 
+/// This demo program is a smoke test of new 2D functionality.
+/// It simulates and visualizes Rabi oscillations between two hydrogenic eigenstates (|3p₋₁⟩ and |4d₀⟩) in a 2D Hilbert space. 
+
 int main(int, char**) 
 {
-    constexpr natural_t N = 256;
-    constexpr real_t ex = 20.0;
-    using HilbertSpace = InfiniteHilbertSpace2D<N, ex>;
-    std::cout << HilbertSpace::Dim;
+    // Construct Hilbert-space
+    constexpr natural_t DiscretizationSteps = 256;
+    constexpr real_t PhysicalExtent = 20.0;
+    using HilbertSpace = InfiniteHilbertSpace<2_D, DiscretizationSteps, PhysicalExtent>;
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
     constexpr auto q0 = QuantumNumber::_3p_m1();
     constexpr auto q1 = QuantumNumber::_4d_m0();
 
-    // Construct stationary eigenstates:
-    // ψ₀(x,y), ψ₁(x,y)
+    // Construct initial eigenstates:
     auto Psi0 = Hydrogen2D<HilbertSpace>()(q0);
     auto Psi1 = Hydrogen2D<HilbertSpace>()(q1);
 
     // Corresponding energy eigenvalues (Hartree units):
-    // Eₙ from:  H ψₙ = Eₙ ψₙ
     const real_t E0 = q0.hartreeEnergy();
     const real_t E1 = q1.hartreeEnergy();
 
     // Rabi frequency Ω
-    const double Omega = 0.02;
+    const real_t Omega = 0.02;
 
     // Time step Δt
-    const double dt = 0.5;
+    const real_t dt = 0.5;
 
-    // Visualization window
+    // Initialize visualization window
     bool Running = true;
     SDL_Event Event;
     WavefunctionViewer<HilbertSpace> Visu(1200, 900);
-
     int Frame = 0;
-    double Palpha = 0.0; // Occupation probability P(t) = |α|²
-    double Pbeta = 0.0;  // Occupation probability P(t) = |β|²
+
+    // Initialize probabilities and the state vector
+    real_t Palpha = 0.0; // Occupation probability P(t) = |α|²
+    real_t Pbeta = 0.0;  // Occupation probability P(t) = |β|²
     auto Psi = Psi0;     // Initial state: pure ψ₀
 
     while (Running)
     {
         Frame++;
-        double t = Frame * dt;   // Physical time
+        real_t t = Frame * dt;   // Physical time
 
         // Time evolution phase factors:
         //
@@ -97,8 +99,8 @@ int main(int, char**)
         }
 
         // Calculate occupation probabilities of state ψ₀ and ψ₁:
-        Palpha = Alpha.normSquared();
-        Pbeta = Beta.normSquared();
+        Palpha = Psi.probabilityOf(Psi0);
+        Pbeta = Psi.probabilityOf(Psi1);
 
         // Create custom title for the Visu
         std::ostringstream ProbaPopulation;

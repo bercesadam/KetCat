@@ -57,6 +57,8 @@ namespace KetCat
 	constexpr natural_t SUBDIAGONAL = 2;
 }
 
+///@brief Tag struct to hold the spatial dimension's number
+///       for the user defined literal.
 struct DimensionTag
 {
 	KetCat::natural_t value;
@@ -69,6 +71,7 @@ struct DimensionTag
 	}
 };
 
+///@brief User defined literal "_D" for elegant usage of spatial dimensions
 constexpr DimensionTag operator"" _D(unsigned long long d)
 {
 	return DimensionTag{ static_cast<KetCat::natural_t>(d) };
