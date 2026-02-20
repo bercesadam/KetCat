@@ -38,7 +38,7 @@ namespace KetCat::Visu
 	/// @tparam Dim Dimension of the signal
 	/// @param samples Array of tuples: (value, ANSI color)
 	/// @param label Text label printed before the line
-	template<dimension_t Dim>
+	template<natural_t Dim>
 	inline void renderLine(
 		const std::array<std::tuple<real_t, const char*>, Dim>& samples,
 		const char* label)
@@ -61,7 +61,7 @@ namespace KetCat::Visu
 		}
 
 		std::cout << label << " |";
-		for (dimension_t i = 0; i < Dim; ++i)
+		for (natural_t i = 0; i < Dim; ++i)
 		{
 			const real_t value = std::get<0>(samples[i]);
 			const char* color = std::get<1>(samples[i]);
@@ -79,12 +79,12 @@ namespace KetCat::Visu
 	/// @param potential The potential functor to evaluate
 	/// @param dx Spatial discretization step
 	/// @return Array of potential values at discrete points
-	template <dimension_t Dim, typename PotentialFunctor>
+	template <natural_t Dim, typename PotentialFunctor>
 		requires potential_functor<PotentialFunctor, real_t>
 	std::array<real_t, Dim> evalutePotentialFunctor(const PotentialFunctor& potential, const real_t dx)
 	{
 		std::array<real_t, Dim> DiscretePotentials{};
-		for (dimension_t i = 0; i < Dim; ++i)
+		for (natural_t i = 0; i < Dim; ++i)
 		{
 			// Calculate position for the Potential callable: i * Δx
 			const real_t x = i * dx;
@@ -103,7 +103,7 @@ namespace KetCat::Visu
 	///  - Optional real part Re(ψ)  (yellow)
 	///  - Optional imaginary part Im(ψ) (cyan)
 	///  - Probability density |ψ|² (optionally phase-colored)
-	template<dimension_t Dim>
+	template<natural_t Dim>
 	class VisuOscilloscope
 	{
 		/// Configuration options
@@ -159,8 +159,8 @@ namespace KetCat::Visu
 		
 		/// @brief Update the visualization with the current state vector
 		/// @param s Current state vector
-		template<KetCat::hilbert_space_t Space>
-		void update(const StateVector<Space>& s) const
+		template<KetCat::hilbert_space_t HilbertSpace>
+		void update(const StateVector<HilbertSpace>& s) const
 		{
 			using namespace std::chrono_literals;
 
@@ -172,7 +172,7 @@ namespace KetCat::Visu
 			// --- Probability density |ψ|² ---
 			std::array<std::tuple<real_t, const char*>, Dim> ProbLine{};
 
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < Dim; ++i)
 			{
 				const real_t p = s[i].normSquared();
 
@@ -195,7 +195,7 @@ namespace KetCat::Visu
 				std::array<std::tuple<real_t, const char*>, Dim> ReLine{};
 				std::array<std::tuple<real_t, const char*>, Dim> ImLine{};
 
-				for (dimension_t i = 0; i < Dim; ++i)
+				for (natural_t i = 0; i < Dim; ++i)
 				{
 					ReLine[i] = { s[i].re, "\x1B[33m" }; // Yellow
 					ImLine[i] = { s[i].im, "\x1B[36m" }; // Cyan
@@ -215,7 +215,7 @@ namespace KetCat::Visu
 
 				const auto Potentials = evalutePotentialFunctor<Dim>(*m_potential, *m_dx);
 				std::array<std::tuple<real_t, const char*>, Dim> PotentialLine{};
-				for (dimension_t i = 0; i < Dim; ++i)
+				for (natural_t i = 0; i < Dim; ++i)
 				{
 					// Evaluate potential at position x
 					PotentialLine[i] = { Potentials[i], "\x1B[35m"}; // Magenta

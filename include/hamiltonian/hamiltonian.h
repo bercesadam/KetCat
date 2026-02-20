@@ -31,7 +31,7 @@ namespace KetCat
 	/// 		based on the provided constants and potential function.
 	///			Realizes the following equation: 
 	/// 		H = - (ℏ² / 2m·Δx²) · (d²/dx²) + V(x)
-	template<dimension_t Dim>
+	template<natural_t Dim>
 	class Hamiltonian
 	{
 		tridiagonal_matrix_t<Dim> m_hamiltonianMatrix;
@@ -59,7 +59,7 @@ namespace KetCat
 
 			// α = ℏ² / (2m·Δx²)
 			const real_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < Dim; ++i)
 			{
 				// Calculating position for the Potential callable: i * Δx					
 				real_t Position = i * dx;

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "hilbert_space/state_vector.h"
-#include "hilbert_space/hilbert2d.h"
+#include "hilbert_space/hilbert.h"
 #include "quantum_number.h"
 #include "hydrogen.h"
 
@@ -106,39 +106,37 @@ namespace KetCat
     ///     f orbitals → flower‑like symmetries  
     ///
     /// This is a visually clean way to inspect angular structure of orbitals.
-    template<dimension_t Dim, real_t Extent>
+    template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace>
     struct Hydrogen2D
     {
-        using Space = Hilbert2D<Dim, Extent>;
-
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
         /// @param QNumbers QuantumNumber object containing (n,l,m).
-        /// @return StateVector<Space> containing Ψ(x,z) values.
-        StateVector<Space> operator()(QuantumNumber QNumbers)
+        /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
+        constexpr StateVector<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
         {
-            StateVector<Space> Psi{ cplx_t::zero() };
+            constexpr natural_t Steps = HilbertSpace::Steps;
+            constexpr real_t dx = HilbertSpace::dx;
 
-            const real_t Dx = Extent / (Dim - 1);
+            StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 
             // --------------------------------------------------------
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto RadialArray = HydrogenOrbital<Dim>()(
+            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace1D<Steps, HilbertSpace::Extent>>{}(
                 QNumbers,
-                1.0,   // effective Bohr radius
-                Dx
+                1.0   // effective Bohr radius
             );
 
-            for (dimension_t IX = 0; IX < Dim; ++IX)
+            for (natural_t ix = 0; ix < Steps; ++ix)
             {
-                for (dimension_t IZ = 0; IZ < Dim; ++IZ)
+                for (natural_t iz = 0; iz < Steps; ++iz)
                 {
                     // --------------------------------------------
                     // Physical grid coordinates (centered)
                     // --------------------------------------------
-                    real_t XCoord = (static_cast<real_t>(IX) - Dim / 2) * Dx;
-                    real_t ZCoord = (static_cast<real_t>(IZ) - Dim / 2) * Dx;
+                    real_t XCoord = (static_cast<real_t>(ix) - Steps / 2) * dx;
+                    real_t ZCoord = (static_cast<real_t>(iz) - Steps / 2) * dx;
                     real_t YCoord = 0.01;   // Slight offset to avoid φ undefined at x=0
 
                     // Spherical radius
@@ -155,10 +153,10 @@ namespace KetCat
                         // --------------------------------------------
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
-                        dimension_t IR = static_cast<dimension_t>(R / Dx);
-                        if (IR >= Dim)
+                        natural_t IR = static_cast<natural_t>(R / dx);
+                        if (IR >= Steps)
                         {
-                            IR = Dim - 1;
+                            IR = Steps - 1;
                         }
 
                         real_t U = RadialArray[IR].re;
@@ -183,14 +181,11 @@ namespace KetCat
                         PsiValue = Ylm * RadialPart;
                     }
 
-                    // --------------------------------------------
-                    // Store value into 2D Hilbert-space container
-                    // --------------------------------------------
-                    dimension_t LinearIndex = Space::getIndex(IX, IZ);
-                    Psi[LinearIndex] = PsiValue;
+                    Psi[{ ix, iz }] = PsiValue;
                 }
             }
 
+            Psi.normalize();
             return Psi;
         }
     };

@@ -19,14 +19,14 @@ namespace KetCat::QCC::Gates
     /// @brief Produce an identity matrix for `QBitCount` qubits.
     /// @tparam QBitCount Number of qubits.
     /// @return A diagonal identity matrix of size (2^QBitCount × 2^QBitCount).
-    template <KetCat::dimension_t QBitCount>
+    template <KetCat::natural_t QBitCount>
     constexpr KetCat::matrix_t<ConstexprMath::pow2(QBitCount)> identityMatrix() noexcept
     {
-        constexpr dimension_t Dim = ConstexprMath::pow2(QBitCount);
+        constexpr natural_t Dim = ConstexprMath::pow2(QBitCount);
 
         // Zero-initialize and set diagonal elements to 1.
         matrix_t<Dim> Identity = {};
-        for (dimension_t i = 0; i < Dim; ++i)
+        for (natural_t i = 0; i < Dim; ++i)
         {
             Identity[i][i] = cplx_t::fromReal(1.0);
         }

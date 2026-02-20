@@ -40,7 +40,7 @@ namespace KetCat
 
         /// @brief Hydrogenic energy in Hartree units for the given n.
         /// @details Eₙ = −1 / (2 n²). Assumes non‑relativistic Coulomb problem (Z=1).
-        constexpr real_t hartreeEnergy() noexcept
+        constexpr real_t hartreeEnergy() const noexcept
         {
             return -1.0 / (2.0 * m_n * m_n);
         }

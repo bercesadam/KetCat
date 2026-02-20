@@ -10,15 +10,15 @@ namespace KetCat
 	/// @param n   Principal quantum number
 	/// @param dx  Discretisation step
 	/// @param L   Box length (w/ Dirichlet)
-	template<dimension_t Dim>
+	template<natural_t Dim>
 	struct EigenState
 	{
-		constexpr StateVector<InfiniteHilbertSpace<Dim>>
+		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
 			operator()(unsigned int n, real_t dx, real_t L) const noexcept
 		{
-			StateVector<InfiniteHilbertSpace<Dim>> Psi{};
+			StateVector<InfiniteHilbertSpace1D<Dim>> Psi{};
 
-			for (dimension_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < Dim; ++i)
 			{
 				// Position (between Dirichlet boundaries)
 				const real_t x = (i + 1) * dx;

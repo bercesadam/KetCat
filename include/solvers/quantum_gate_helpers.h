@@ -18,10 +18,10 @@ namespace KetCat::QCC
     struct is_gate_matrix : std::false_type {};
 
     /// @brief Specialization for square matrices represented as nested std::array.
-    template<dimension_t N>
+    template<natural_t N>
     struct is_gate_matrix<std::array<std::array<cplx_t, N>, N>>
     {
-        static constexpr dimension_t dim = N;
+        static constexpr natural_t dim = N;
         static constexpr bool value = ConstexprMath::isPowerOfTwo(N);
     };
 
@@ -42,19 +42,19 @@ namespace KetCat::QCC
     constexpr bool is_unitary()
     {
         // Matrix dimension from the type trait.
-        constexpr dimension_t Dim =
+        constexpr natural_t Dim =
             is_gate_matrix<std::remove_cvref_t<decltype(M)>>::dim;
 
         // Tolerance for floating‑point comparison.
         constexpr real_t Epsilon = 1E-9;
 
         // Check unitarity: M · M† == I.
-        for (dimension_t i = 0; i < Dim; i++)
-            for (dimension_t j = 0; j < Dim; j++)
+        for (natural_t i = 0; i < Dim; i++)
+            for (natural_t j = 0; j < Dim; j++)
             {
                 cplx_t Sum{ 0,0 };
 
-                for (dimension_t k = 0; k < Dim; k++)
+                for (natural_t k = 0; k < Dim; k++)
                     Sum = Sum + M[k][i].conj() * M[k][j];
 
                 if (i == j &&

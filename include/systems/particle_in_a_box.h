@@ -23,13 +23,13 @@ namespace KetCat
 	/// @details As a design decision, this configuration struct was separated from the main quantum system class
 	/// as the classes which are used to construct an 1D box system (initial wavefunction, Hamiltonian) often require knowledge of
 	/// these parameters. This ensures that the same values are used consistently across all classes.
-	template<dimension_t SpatialDiscretizationStep>
+	template<natural_t SpatialDiscretizationStep>
 	struct OneDimensionalParticleBoxConfig
 	{
 		// Number of spatial discretization steps
-		const dimension_t N = SpatialDiscretizationStep;
+		const natural_t N = SpatialDiscretizationStep;
 		// Dirichlet boundary conditions
-		const dimension_t M = N - 2;
+		const natural_t M = N - 2;
 
 		// Box length in meters
 		real_t L;
@@ -49,11 +49,11 @@ namespace KetCat
 
 	/// @brief One-dimensional particle in a box quantum system.
 	/// @tparam SpatialDiscretizationStep  Number of spatial discretization steps (including boundaries).
-	template<dimension_t SpatialDiscretizationStep>
+	template<natural_t SpatialDiscretizationStep>
 	class OneDimensionalParticleBox
 	{
 		//@brief Dimension of the state vector excluding boundary points
-		static constexpr dimension_t StateVectorSize = SpatialDiscretizationStep - 2;
+		static constexpr natural_t StateVectorSize = SpatialDiscretizationStep - 2;
 
 		//@brief Configuration of the particle in a box system
 		OneDimensionalParticleBoxConfig<SpatialDiscretizationStep> m_config;

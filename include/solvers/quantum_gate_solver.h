@@ -7,7 +7,7 @@
 namespace KetCat::QCC
 {
 	// Forward declaration of QuantumGate factory to befriend QuantumGateOp
-	template<dimension_t QBitCount, auto GateMatrix>
+	template<natural_t QBitCount, auto GateMatrix>
 		requires (is_gate_matrix_v<std::remove_cvref_t<decltype(GateMatrix)>>&& is_unitary<GateMatrix>())
 	struct QuantumGate;
 
@@ -22,7 +22,7 @@ namespace KetCat::QCC
 	 * applies the gate to the specified qubits and returns the transformed
 	 * global state vector (functional style).
 	 */
-	template<dimension_t QBitCount>
+	template<natural_t QBitCount>
 	class QuantumGateOp
 	{
 		/**
@@ -67,7 +67,7 @@ namespace KetCat::QCC
 		// Allow the factory QuantumGate to access the private ctor
 		// Underscore prefixes were added to avoid name clashes, as GCC complains otherwise,
 		// MSVC seems to be fine without it.
-		template<dimension_t _QBitCount, auto _GateMatrix>
+		template<natural_t _QBitCount, auto _GateMatrix>
 			requires (is_gate_matrix_v<std::remove_cvref_t<decltype(_GateMatrix)>>&& is_unitary<_GateMatrix>())
 		friend struct QuantumGate;
 
@@ -89,11 +89,11 @@ namespace KetCat::QCC
 		 * Only indices where all targeted qubits are zero are treated as block "bases" to avoid
 		 * redundant processing.
 		 */
-		template<dimension_t StateCount>
+		template<natural_t StateCount>
 		constexpr StateVector<FiniteHilbertSpace<StateCount>>
 			operator()(StateVector<FiniteHilbertSpace<StateCount>> state) const
 		{
-			constexpr dimension_t AffectedSubspaceDim = ConstexprMath::pow2(QBitCount);
+			constexpr natural_t AffectedSubspaceDim = ConstexprMath::pow2(QBitCount);
 
 			StateVector<FiniteHilbertSpace<StateCount>> Result = state;
 
@@ -101,12 +101,12 @@ namespace KetCat::QCC
 			// Precompute masks for affected qubits
 			// ------------------------------------------------------------
 
-			dimension_t AffectedMask = 0;
-			std::array<dimension_t, QBitCount> BitPos{};
+			natural_t AffectedMask = 0;
+			std::array<natural_t, QBitCount> BitPos{};
 
-			for (dimension_t i = 0; i < QBitCount; ++i) {
+			for (natural_t i = 0; i < QBitCount; ++i) {
 				BitPos[i] = AffectedBits[i];
-				AffectedMask |= (dimension_t(1) << BitPos[i]);
+				AffectedMask |= (natural_t(1) << BitPos[i]);
 			}
 
 			// ------------------------------------------------------------
@@ -115,7 +115,7 @@ namespace KetCat::QCC
 			// the non-affected qubits
 			// ------------------------------------------------------------
 
-			for (dimension_t base = 0; base < StateCount; ++base) {
+			for (natural_t base = 0; base < StateCount; ++base) {
 
 				// Only process each block once:
 				// base must have all affected qubits = 0
@@ -128,17 +128,17 @@ namespace KetCat::QCC
 
 				StateVector<FiniteHilbertSpace<AffectedSubspaceDim>> LocalIndices{};
 
-				for (dimension_t i = 0; i < AffectedSubspaceDim; ++i)
+				for (natural_t i = 0; i < AffectedSubspaceDim; ++i)
 				{
-					dimension_t GlobalIndex = base;
+					natural_t GlobalIndex = base;
 
 					// Map local basis |b0 b1 ... bk-1>
 					// to physical qubits affectedBits[]
-					for (dimension_t q = 0; q < QBitCount; ++q)
+					for (natural_t q = 0; q < QBitCount; ++q)
 					{
-						if (i & (dimension_t(1) << q))
+						if (i & (natural_t(1) << q))
 						{
-							GlobalIndex |= (dimension_t(1) << BitPos[q]);
+							GlobalIndex |= (natural_t(1) << BitPos[q]);
 						}
 					}
 
@@ -155,15 +155,15 @@ namespace KetCat::QCC
 				// Scatter results back to the full statevector
 				// --------------------------------------------------------
 
-				for (dimension_t i = 0; i < AffectedSubspaceDim; ++i)
+				for (natural_t i = 0; i < AffectedSubspaceDim; ++i)
 				{
-					dimension_t GlobalIndex = base;
+					natural_t GlobalIndex = base;
 
-					for (dimension_t q = 0; q < QBitCount; ++q)
+					for (natural_t q = 0; q < QBitCount; ++q)
 					{
-						if (i & (dimension_t(1) << q))
+						if (i & (natural_t(1) << q))
 						{
-							GlobalIndex |= (dimension_t(1) << BitPos[q]);
+							GlobalIndex |= (natural_t(1) << BitPos[q]);
 						}
 					}
 
@@ -183,14 +183,14 @@ namespace KetCat::QCC
 	 * `QuantumGate` owns the gate matrix and exposes `toBits(...)` to bind the
 	 * matrix to a concrete set of qubit indices producing a `QuantumGateOp`.
 	 */
-	template<dimension_t QBitCount, auto GateMatrix>
+	template<natural_t QBitCount, auto GateMatrix>
 		requires (is_gate_matrix_v<std::remove_cvref_t<decltype(GateMatrix)>>&& is_unitary<GateMatrix>())
 	struct QuantumGate
 	{
 		/**
 		 * @brief     Bind this gate to a list of qubit indices and return an operation.
 		 *
-		 * @tparam QBits  Variadic list of indices convertible to `dimension_t`. The
+		 * @tparam QBits  Variadic list of indices convertible to `natural_t`. The
 		 *                number of provided indices must equal `QBitCount`.
 		 * @param qbits   The qubit indices to which the gate will be applied.
 		 * @return         A `QuantumGateOp<QBitCount>` object ready to apply the gate.
@@ -198,11 +198,11 @@ namespace KetCat::QCC
 		 * Example:
 		 *   auto h2 = QuantumGate<1>(HADAMARD).toBits(1);
 		 */
-		template<std::convertible_to<dimension_t>... QBits>
+		template<std::convertible_to<natural_t>... QBits>
 		constexpr QuantumGateOp<QBitCount> toBits(QBits... qbits) const
 		{
 			static_assert(sizeof...(qbits) == QBitCount);
-			return QuantumGateOp<QBitCount>(GateMatrix, qbit_list_t<QBitCount>{ static_cast<dimension_t>(qbits)... });
+			return QuantumGateOp<QBitCount>(GateMatrix, qbit_list_t<QBitCount>{ static_cast<natural_t>(qbits)... });
 		}
 	};
 }
