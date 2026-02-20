@@ -86,7 +86,7 @@ namespace KetCat
     ///@brief Concept matches a spatial (Infinite) Hilbert space
     ///       of exact spatial dimensions
     template <typename T, DimensionTag _SpatialDimensions>
-    concept spatial_hilbert_space_t =
+    concept spatial_hilbert_space_with_dim_t =
         requires {
             { T::Dim } -> std::convertible_to<natural_t>;
             requires T::SpatialDimensions == _SpatialDimensions.value;

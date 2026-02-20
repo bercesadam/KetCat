@@ -97,7 +97,7 @@ namespace KetCat
 			for (natural_t i = 0; i < Size; ++i)
 			{
 				// ψ_i* · φ_i
-				result += m_StateVector[i].conj() * other.m_StateVector[i];
+				result += m_StateVector[i].conj() * phi.m_StateVector[i];
 			}
 
 			// Multiply by discrete cell volume ΔV = dx^D
@@ -161,7 +161,7 @@ namespace KetCat
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
 			// Compute ⟨ψ|ψ⟩ = Σ ψ_i* ψ_i · ΔV
-			const real_t norm2 = innerProduct(*this).real();
+			const real_t norm2 = innerProduct(*this).re;
 
 			if (norm2 > 0.0)
 			{
@@ -191,7 +191,8 @@ namespace KetCat
 				Result[i] = alpha * m_StateVector[i] + beta * phi.m_StateVector[i];
 			}
 
-			return Result.normalize();
+			Result.normalize();
+			return Result;
 		}
 
 	private:

@@ -28,7 +28,7 @@ namespace KetCat
      /// and returns a normalized StateVector.
      ///
      /// @tparam Dim  Number of discrete spatial grid points
-    template<spatial_hilbert_space_t<1_D> HilbertSpace>
+    template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	struct CoherentStateGaussian
     {
         /// @brief Generate a discretized coherent state wavefunction.

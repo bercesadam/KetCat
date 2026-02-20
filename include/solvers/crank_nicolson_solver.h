@@ -53,7 +53,7 @@ namespace KetCat
 	///
 	///   CrankNicolsonTimeEvolutionOperator<Dim> evol(hamiltonian, dt);
 	///   psi = evol(psi);
-	template<spatial_hilbert_space_t<1_D> HilbertSpace>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	class CrankNicolsonSolver
 	{
 		typedef 

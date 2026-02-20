@@ -106,7 +106,7 @@ namespace KetCat
     ///     f orbitals → flower‑like symmetries  
     ///
     /// This is a visually clean way to inspect angular structure of orbitals.
-    template<spatial_hilbert_space_t<2_D> HilbertSpace>
+    template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace>
     struct Hydrogen2D
     {
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).

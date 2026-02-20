@@ -34,7 +34,7 @@ namespace KetCat::Visu
     template<typename HilbertSpace>
     class WavefunctionViewer
     {
-        static constexpr  int Grid = HilbertSpace::Steps;
+        static constexpr int Grid = HilbertSpace::Steps;
 
         /// @brief Window width in pixels
          int m_width;
@@ -240,12 +240,12 @@ namespace KetCat::Visu
         {
             double maxVal = 0.0;
 
-            for (natural_t i = 0; i < Grid * Grid; ++i)
+            for (int i = 0; i < Grid * Grid; ++i)
                 maxVal = std::max(maxVal, psi[i].normSquared());
 
-            for (natural_t y = 0; y < h; ++y)
+            for (int y = 0; y < h; ++y)
             {
-                for (natural_t x = 0; x < w; ++x)
+                for (int x = 0; x < w; ++x)
                 {
                     natural_t gx = x * Grid / w;
                     natural_t gy = y * Grid / h;
@@ -266,12 +266,12 @@ namespace KetCat::Visu
         {
             double maxAbs = 0.0;
 
-            for (natural_t i = 0; i < Grid * Grid; ++i)
+            for (int i = 0; i < Grid * Grid; ++i)
                 maxAbs = std::max(maxAbs, std::abs(psi[i].re));
 
-            for (natural_t y = 0; y < h; ++y)
+            for (int y = 0; y < h; ++y)
             {
-                for (natural_t x = 0; x < w; ++x)
+                for (int x = 0; x < w; ++x)
                 {
                     natural_t gx = x * Grid / w;
                     natural_t gy = y * Grid / h;
@@ -293,12 +293,12 @@ namespace KetCat::Visu
         {
             double maxAbs = 0.0;
 
-            for (natural_t i = 0; i < Grid * Grid; ++i)
+            for (int i = 0; i < Grid * Grid; ++i)
                 maxAbs = std::max(maxAbs, std::abs(psi[i].im));
 
-            for (natural_t y = 0; y < h; ++y)
+            for (int y = 0; y < h; ++y)
             {
-                for (natural_t x = 0; x < w; ++x)
+                for (int x = 0; x < w; ++x)
                 {
                     natural_t gx = x * Grid / w;
                     natural_t gy = y * Grid / h;
@@ -321,12 +321,12 @@ namespace KetCat::Visu
         {
             double maxVal = 0.0;
 
-            for (natural_t i = 0; i < Grid * Grid; ++i)
+            for (int i = 0; i < Grid * Grid; ++i)
                 maxVal = std::max(maxVal, psi[i].normSquared());
 
-            for (natural_t y = 0; y < h; ++y)
+            for (int y = 0; y < h; ++y)
             {
-                for (natural_t x = 0; x < w; ++x)
+                for (int x = 0; x < w; ++x)
                 {
                     natural_t gx = x * Grid / w;
                     natural_t gy = y * Grid / h;

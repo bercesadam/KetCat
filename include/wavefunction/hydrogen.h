@@ -46,7 +46,7 @@ namespace KetCat
 	///   for central potentials; m enters only via the angular factor Y_{ℓm}.
 	///
 	/// @tparam Dim Size of the discrete spatial grid
-	template<spatial_hilbert_space_t<1_D> HilbertSpace>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	struct HydrogenOrbital
 	{
 		/// @brief Generates a hydrogen-like orbital wavefunction.
