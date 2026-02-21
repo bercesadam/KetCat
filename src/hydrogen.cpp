@@ -11,13 +11,15 @@ using namespace KetCat;
 
 int main()
 {
-	constexpr OneDimensionalParticleBoxConfig<96> cfg(1.0, 1E-4);
+	constexpr real_t BoxLength = 1.0;
+	constexpr natural_t Steps = 96;
+	using HilbertSpace = InfiniteHilbertSpace<1_D, Steps, BoxLength>;
 
 	// Hydrogen orbital constructor with fixed parameters
-	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<cfg.M>(), std::placeholders::_1, 0.05, cfg.dx);
+	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<HilbertSpace>(), std::placeholders::_1, 0.05);
 
 	// List of hydrogen orbitals to simulate: (StateVector, Name, l)
-	std::array<std::tuple<StateVector<InfiniteHilbertSpace1D<94>>, std::string, unsigned int>, 6> hydrogenOrbitals =
+	std::array<std::tuple<StateVector<HilbertSpace>, std::string, unsigned int>, 6> hydrogenOrbitals =
 	{
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_1s()), "1s", 0),
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_2s()), "2s", 0),
@@ -27,6 +29,7 @@ int main()
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_3d()), "3d", 2)
 	};
 
+	constexpr real_t TimeStep = 1E-4;
 	constexpr KetCat::real_t mass = 1.0;
 
 	for (const auto& orbital : hydrogenOrbitals)
@@ -41,21 +44,17 @@ int main()
 			mass	    // Reduced mass μ
 		);
 
-		auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, potential);
-
-		auto box = OneDimensionalParticleBox<cfg.N>(
-			cfg,
-			hamiltonian,
-			std::get<0>(orbital)
-		);
+		auto hamiltonian = Hamiltonian<Steps>(mass, HilbertSpace::dx, potential);
+		auto box = OneDimensionalParticleBox<HilbertSpace>
+			(hamiltonian, std::get<0>(orbital), TimeStep);
 		
-		auto visu = Visu::VisuOscilloscope<cfg.M>(
+		auto visu = Visu::VisuOscilloscope<Steps>(
 			Visu::UsePhaseEncoding::NO,
 			Visu::ClearScreen::NO,
 			Visu::ShowComplexParts::NO,
 			Visu::ShowPotential::YES
 		);
-		visu.setPotential(potential, cfg.dx);
+		visu.setPotential(potential, HilbertSpace::dx);
 		visu.update(box.evolve());
 	}
 

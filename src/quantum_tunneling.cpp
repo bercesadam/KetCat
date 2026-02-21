@@ -10,41 +10,41 @@ using namespace KetCat;
 
 int main()
 {
-	constexpr OneDimensionalParticleBoxConfig<96> cfg(1.0, 1E-4);
+	constexpr real_t BoxLength = 1.0;
+	constexpr natural_t Steps = 96;
+	using HilbertSpace = InfiniteHilbertSpace<1_D, Steps, BoxLength>;
 
     constexpr KetCat::real_t x0 = 0.01; 
 	constexpr KetCat::real_t sigma = 0.1;
 	constexpr KetCat::real_t k0 = ConstexprMath::Pi * 10;
+	constexpr auto GaussianPacket = FreeParticleGaussianWavePacket<HilbertSpace>()(x0, k0, sigma);
 
-	constexpr auto gaussianPacKetCat = FreeParticleGaussianWavePacket<cfg.M>()(x0, k0, sigma, cfg.dx);
-
-	constexpr PotentialBarrier potentialBarrier{
+	constexpr PotentialBarrier potentialBarrier
+	{
 		0.45, 0.55, // potential wall in the middle
 		3000
 	};
 
+	constexpr real_t TimeStep = 1E-4;
 	constexpr KetCat::real_t mass = 1.0;
-	constexpr auto hamiltonian = Hamiltonian<cfg.M>(mass, cfg.dx, potentialBarrier);
+	constexpr auto hamiltonian = Hamiltonian<HilbertSpace::Dim>(mass, HilbertSpace::dx, potentialBarrier);
 
-	OneDimensionalParticleBox<cfg.N> box(
-		cfg,
-		hamiltonian,
-		gaussianPacKetCat
-	);
+	OneDimensionalParticleBox<HilbertSpace> box(hamiltonian, GaussianPacket, TimeStep);
 	
-	Visu::VisuOscilloscope<cfg.M> visu(
+	
+	Visu::VisuOscilloscope<HilbertSpace::Dim> visu(
 		Visu::UsePhaseEncoding::YES,
 		Visu::ClearScreen::YES,
 		Visu::ShowComplexParts::NO,
 		Visu::ShowPotential::YES
 	);
 
-	visu.setPotential(potentialBarrier, cfg.dx);
+	visu.setPotential(potentialBarrier, HilbertSpace::dx);
 
 	while (true)
 	{
 		auto p = box.evolve();
-		p.normalize(cfg.dx);
+		p.normalize();
 		visu.update(p);
 	}
 

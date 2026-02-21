@@ -17,12 +17,14 @@ namespace KetCat
 			operator()(real_t x0, real_t k0, real_t sigma) const noexcept
 		{
 			constexpr real_t dx = HilbertSpace::dx;
+			constexpr natural_t Dim = HilbertSpace::Dim;
+
 			StateVector<HilbertSpace> Psi = {};
 
 			for (natural_t n = 0; n < Dim; ++n)
 			{
 				// Position corresponding to index n
-				const real_t x = (n + 1) * dx;
+				const real_t x = n * dx;
 
 				// Gaussian envelope calculation 
 				// exp(-((x - x₀)²) / (4 * σ²))
@@ -36,6 +38,10 @@ namespace KetCat
 				// Combine envelope and plane wave to form the complex amplitude
 				Psi[n] = cplx_t(Envelope * RealPart, Envelope * ImagPart);
 			}
+
+			// Dirichlet enforcement
+			Psi[0] = cplx_t::zero();
+			Psi[Dim - 1] = cplx_t::zero();
 
 			Psi.normalize();
 			return Psi;

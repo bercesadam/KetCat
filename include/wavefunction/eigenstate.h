@@ -10,28 +10,28 @@ namespace KetCat
 	/// @param n   Principal quantum number
 	/// @param dx  Discretisation step
 	/// @param L   Box length (w/ Dirichlet)
-	template<natural_t Dim>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	struct EigenState
 	{
-		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
-			operator()(unsigned int n, real_t dx, real_t L) const noexcept
+		constexpr StateVector<HilbertSpace>
+			operator()(unsigned int n) const noexcept
 		{
-			StateVector<InfiniteHilbertSpace1D<Dim>> Psi{};
+			StateVector<HilbertSpace> Psi{};
 
-			for (natural_t i = 0; i < Dim; ++i)
+			for (natural_t i = 0; i < HilbertSpace::Dim; ++i)
 			{
 				// Position (between Dirichlet boundaries)
-				const real_t x = (i + 1) * dx;
+				const real_t x = (i + 1) * HilbertSpace::dx;
 
 				// Sin for the shape of the eigenstate
 				const real_t Value = ConstexprMath::sin(
-					n * ConstexprMath::Pi * x / L
+					n * ConstexprMath::Pi * x / HilbertSpace::Extent
 				);
 
 				Psi[i] = cplx_t(Value, 0.0);
 			}
 
-			Psi.normalize(dx);
+			Psi.normalize();
 			return Psi;
 		}
 	};

@@ -159,7 +159,7 @@ namespace KetCat::Visu
 		
 		/// @brief Update the visualization with the current state vector
 		/// @param s Current state vector
-		template<KetCat::hilbert_space_t HilbertSpace>
+		template<KetCat::spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 		void update(const StateVector<HilbertSpace>& s) const
 		{
 			using namespace std::chrono_literals;

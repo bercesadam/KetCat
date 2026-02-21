@@ -18,54 +18,16 @@
 
 namespace KetCat
 {
-	/// @brief Configuration parameters for a one-dimensional particle in a box system.
-	/// @tparam SpatialDiscretizationStep  Number of spatial discretization steps (including boundaries).
-	/// @details As a design decision, this configuration struct was separated from the main quantum system class
-	/// as the classes which are used to construct an 1D box system (initial wavefunction, Hamiltonian) often require knowledge of
-	/// these parameters. This ensures that the same values are used consistently across all classes.
-	template<natural_t SpatialDiscretizationStep>
-	struct OneDimensionalParticleBoxConfig
-	{
-		// Number of spatial discretization steps
-		const natural_t N = SpatialDiscretizationStep;
-		// Dirichlet boundary conditions
-		const natural_t M = N - 2;
-
-		// Box length in meters
-		real_t L;
-		// Time step in seconds
-		real_t dt;
-		// Spatial discretization step in meters
-		real_t dx;
-
-		/// @brief Constructs a configuration for a one-dimensional particle in a box system.
-		/// @param boxLength    Length of the box.
-		/// @param timeStep     Time step size for evolution.
-		constexpr OneDimensionalParticleBoxConfig(real_t boxLength, real_t timeStep)
-			: L(boxLength), dt(timeStep), dx(boxLength / (SpatialDiscretizationStep - 1))
-		{
-		}
-	};
-
 	/// @brief One-dimensional particle in a box quantum system.
 	/// @tparam SpatialDiscretizationStep  Number of spatial discretization steps (including boundaries).
-	template<natural_t SpatialDiscretizationStep>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	class OneDimensionalParticleBox
 	{
-		//@brief Dimension of the state vector excluding boundary points
-		static constexpr natural_t StateVectorSize = SpatialDiscretizationStep - 2;
-
-		//@brief Configuration of the particle in a box system
-		OneDimensionalParticleBoxConfig<SpatialDiscretizationStep> m_config;
-
-		//@brief Hamiltonian operator of the system
-		Hamiltonian<StateVectorSize> m_hamiltonian;
-
-		//@brief State vector of the system containing only the inner points (Dirichlet BCs)
-		StateVector<InfiniteHilbertSpace<StateVectorSize>> m_psi;
+		//@brief State vector of the system containing
+		StateVector<HilbertSpace> m_psi;
 
 		//@brief Crank-Nicolson solver for time evolution
-		CrankNicolsonSolver<StateVectorSize> m_timeEvolutionSolver;
+		CrankNicolsonSolver<HilbertSpace> m_timeEvolutionSolver;
 
 	public:
 		/// @brief Constructs a one-dimensional particle in a box system.
@@ -73,15 +35,14 @@ namespace KetCat
 		/// @param hamiltonian   Hamiltonian operator of the system.
 		/// @param stateVector   Initial state vector of the system.
 		constexpr OneDimensionalParticleBox(
-			const OneDimensionalParticleBoxConfig<SpatialDiscretizationStep>& config,
-			const Hamiltonian<StateVectorSize>& hamiltonian, const StateVector<InfiniteHilbertSpace<StateVectorSize>>& stateVector) noexcept
-			: m_config(config), m_hamiltonian(hamiltonian), m_psi(stateVector),
-			m_timeEvolutionSolver(hamiltonian, config.dt)
+			const Hamiltonian<HilbertSpace::Dim>& hamiltonian, const StateVector<HilbertSpace>& stateVector, real_t dt) noexcept
+			: m_psi(stateVector),
+			  m_timeEvolutionSolver(hamiltonian, dt)
 		{
 		}
 
 		/// @brief Evolves the system by one time step using the Crank-Nicolson method.
-		constexpr StateVector<InfiniteHilbertSpace<StateVectorSize>> evolve() noexcept
+		constexpr StateVector<HilbertSpace> evolve() noexcept
 		{
 			m_psi = m_timeEvolutionSolver(m_psi);
 			return m_psi;

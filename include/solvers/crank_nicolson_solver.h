@@ -56,7 +56,6 @@ namespace KetCat
 	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	class CrankNicolsonSolver
 	{
-		typedef 
 		static constexpr natural_t Dim = HilbertSpace::Dim;
 
 		// Precomputed matrices
@@ -108,7 +107,7 @@ namespace KetCat
 	///
 	/// If the Hamiltonian matrix is tridiagonal, both A and B remain
 	/// tridiagonal, enabling efficient O(N) time stepping.
-		static constexpr void buildCrankNicolsonMatrices(const Hamiltonian<Dim>& hamiltonian, real_t dt,
+		constexpr void buildCrankNicolsonMatrices(const Hamiltonian<Dim>& hamiltonian, real_t dt,
 			tridiagonal_matrix_t<Dim>& A, tridiagonal_matrix_t<Dim>& B) noexcept
 		{
 			const tridiagonal_matrix_t<Dim>& H = hamiltonian.getMatrix();
@@ -150,9 +149,9 @@ namespace KetCat
 		/// exploiting the tridiagonal structure of the matrix. It is primarily
 		/// used to construct the right-hand side of the Crank–Nicolson system.
 		template<natural_t Dim>
-		static constexpr StateVector<HilbertSpace>
+		constexpr StateVector<HilbertSpace>
 			multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
-				const StateVector<HilbertSpace>& x) noexcept
+				const StateVector<HilbertSpace>& x) const noexcept
 		{
 			StateVector<HilbertSpace> Result{ cplx_t::zero() };
 
@@ -192,7 +191,7 @@ namespace KetCat
 		/// The matrix is passed by value and modified internally.
 		template<natural_t Dim>
 		constexpr StateVector<HilbertSpace> solveTridiagonal(
-			tridiagonal_matrix_t<Dim> M, StateVector<HilbertSpace> psi) noexcept
+			tridiagonal_matrix_t<Dim> M, StateVector<HilbertSpace> psi) const noexcept
 		{
 			// --- FORWARD ELIMINATION ---
 			for (natural_t i = 1; i < Dim; ++i)
