@@ -72,7 +72,7 @@ struct DimensionTag
 };
 
 ///@brief User defined literal "_D" for elegant usage of spatial dimensions
-constexpr DimensionTag operator"" _D(unsigned long long d)
+constexpr DimensionTag operator ""_D(unsigned long long d)
 {
 	return DimensionTag{ static_cast<KetCat::natural_t>(d) };
 }
