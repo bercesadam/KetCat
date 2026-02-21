@@ -1,10 +1,9 @@
 ﻿#include <SDL2/SDL.h>
-#include <vector>
 #include <iostream>
 #include <iomanip>
-#include "visu/wavefunction_viewer/wavefunction_viewer.h"
+
 #include "wavefunction/2d_hydrogen.h"
-#include "wavefunction/2d_harmonic.h"
+#include "visu/wavefunction_viewer/wavefunction_viewer.h"
 
 using namespace KetCat;
 using namespace KetCat::Visu;
