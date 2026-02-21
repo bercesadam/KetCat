@@ -59,7 +59,14 @@ namespace KetCat
 
 			// α = ℏ² / (2m·Δx²)
 			const real_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
-			for (natural_t i = 0; i < Dim; ++i)
+
+			// Left Dirichlet point
+			m_hamiltonianMatrix[MAINDIAGONAL][0] = cplx_t::fromReal(1.0);
+
+			// Right Dirichllet point
+			m_hamiltonianMatrix[MAINDIAGONAL][Dim - 1] = cplx_t::fromReal(1.0);
+
+			for (natural_t i = 1; i < Dim - 1; ++i)
 			{
 				// Calculating position for the Potential callable: i * Δx					
 				real_t Position = i * dx;
