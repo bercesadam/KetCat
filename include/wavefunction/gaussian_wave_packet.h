@@ -10,13 +10,14 @@ namespace KetCat
 	/// @param k0     Central wave number 
 	/// @param sigma  The standard deviation
 	/// @param dx     Discretisation step
-	template<natural_t Dim>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	struct FreeParticleGaussianWavePacket
 	{
-		constexpr StateVector<InfiniteHilbertSpace1D<Dim>>
-			operator()(real_t x0, real_t k0, real_t sigma, real_t dx) const noexcept
+		constexpr StateVector<HilbertSpace>
+			operator()(real_t x0, real_t k0, real_t sigma) const noexcept
 		{
-			StateVector<InfiniteHilbertSpace1D<Dim>> Psi = {};
+			constexpr real_t dx = HilbertSpace::dx;
+			StateVector<HilbertSpace> Psi = {};
 
 			for (natural_t n = 0; n < Dim; ++n)
 			{
@@ -36,7 +37,7 @@ namespace KetCat
 				Psi[n] = cplx_t(Envelope * RealPart, Envelope * ImagPart);
 			}
 
-			Psi.normalize(dx);
+			Psi.normalize();
 			return Psi;
 		}
 	};
