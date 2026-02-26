@@ -49,7 +49,7 @@ namespace KetCat
         // Static constexpr constructors for allowed (n,l,m)
         // --------------------------
 
-        /// @name Legacy constructors for (n,l) only with m = 0
+        /// @name Constructors for (n,l) only with m = 0 (eg. to be used in 1D examples)
         /// @{
         static constexpr QuantumNumber _1s() { return QuantumNumber{ 1, 0, 0 }; }
         static constexpr QuantumNumber _2s() { return QuantumNumber{ 2, 0, 0 }; }
@@ -61,6 +61,10 @@ namespace KetCat
         static constexpr QuantumNumber _4p() { return QuantumNumber{ 4, 1, 0 }; }
         static constexpr QuantumNumber _4d() { return QuantumNumber{ 4, 2, 0 }; }
         static constexpr QuantumNumber _4f() { return QuantumNumber{ 4, 3, 0 }; }
+        static constexpr QuantumNumber _5g() { return QuantumNumber{ 5, 4, 0 }; }
+        static constexpr QuantumNumber _6h() { return QuantumNumber{ 6, 5, 0 }; }
+        static constexpr QuantumNumber _7i() { return QuantumNumber{ 7, 6, 0 }; }
+        static constexpr QuantumNumber _8k() { return QuantumNumber{ 8, 7, 0 }; }
         /// @}
 
         /// @name n = 1
