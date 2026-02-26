@@ -166,7 +166,7 @@ namespace KetCat::Visu
 
 			if (enabled(m_clearScreen))
 			{
-				std::cout << "\x1B[2J\x1B[H";
+				std::cout << "\x1B[2J\x1B[H" << std::endl;
 			}
 
 			// --- Probability density |ψ|² ---
