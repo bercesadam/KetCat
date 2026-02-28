@@ -15,28 +15,28 @@ namespace KetCat
     /// avoid selecting invalid configurations.
     class QuantumNumber
     {
-        unsigned int m_n; // principal quantum number
-        unsigned int m_l; // orbital angular momentum
+        natural_t m_n; // principal quantum number
+        natural_t m_l; // orbital angular momentum
         int m_m;          // magnetic quantum number
 
         /// @brief Construct a quantum number triple (n,l,m).
         /// @param n Principal quantum number (n ≥ 1).
         /// @param l Orbital angular momentum (0 ≤ l ≤ n−1).
         /// @param m Magnetic quantum number (−l ≤ m ≤ l).
-        constexpr QuantumNumber(unsigned int n, unsigned int l, int m)
+        constexpr QuantumNumber(natural_t n, natural_t l, int m)
             : m_n(n), m_l(l), m_m(m)
         {
         }
 
     public:
         /// @brief Principal quantum number n.
-        constexpr unsigned int n() const { return m_n; }
+        constexpr natural_t n() const { return m_n; }
 
         /// @brief Orbital angular momentum l.
-        constexpr unsigned int l() const { return m_l; }
+        constexpr natural_t l() const { return m_l; }
 
         /// @brief Magnetic quantum number m.
-        constexpr unsigned int m() const { return m_m; }
+        constexpr natural_t m() const { return m_m; }
 
         /// @brief Hydrogenic energy in Hartree units for the given n.
         /// @details Eₙ = −1 / (2 n²). Assumes non‑relativistic Coulomb problem (Z=1).

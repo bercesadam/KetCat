@@ -14,13 +14,13 @@ int main()
 	constexpr natural_t Steps = 136;
 	using HilbertSpace = InfiniteHilbertSpace<1_D, Steps, BoxLength>;
 
-	constexpr auto GaussianPacket = EigenState<HilbertSpace>()(5);
+	constexpr auto Psi = EigenState<HilbertSpace>()(5);
 
 	constexpr real_t TimeStep = 1E-3;
 	constexpr KetCat::real_t mass = 1.0;
 	constexpr auto hamiltonian = Hamiltonian<HilbertSpace::Dim>(mass, HilbertSpace::dx, ZeroPotential);
 
-	OneDimensionalParticleBox<HilbertSpace> box(hamiltonian, GaussianPacket, TimeStep);
+	OneDimensionalParticleBox<HilbertSpace> box(hamiltonian, Psi, TimeStep);
 	
 	Visu::VisuOscilloscope<HilbertSpace::Dim> visu(
 		Visu::UsePhaseEncoding::YES,

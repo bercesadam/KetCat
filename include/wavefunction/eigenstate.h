@@ -14,7 +14,7 @@ namespace KetCat
 	struct EigenState
 	{
 		constexpr StateVector<HilbertSpace>
-			operator()(unsigned int n) const noexcept
+			operator()(natural_t n) const noexcept
 		{
 			StateVector<HilbertSpace> Psi{};
 

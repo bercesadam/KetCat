@@ -16,7 +16,7 @@ namespace KetCat::QCC
 		/// @param initialValue  Index of the basis state to generate (0 ≤ initialValue < Dim).
 		/// @return State vector representing the selected basis state.
 		constexpr StateVector<FiniteHilbertSpace<Dim>>
-			operator()(unsigned int initialValue = 0) const noexcept
+			operator()(natural_t initialValue = 0) const noexcept
 		{
 			StateVector<FiniteHilbertSpace<Dim>> Psi{};
 			Psi[initialValue] = cplx_t::fromReal(1.0);

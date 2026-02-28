@@ -60,8 +60,8 @@ namespace KetCat
 		constexpr StateVector<HilbertSpace>
 			operator()(QuantumNumber q, double a_eff) const noexcept
 		{
-			const unsigned int n = q.n();
-			const unsigned int l = q.l();
+			const natural_t n = q.n();
+			const natural_t l = q.l();
 
 			StateVector<HilbertSpace> Psi{ cplx_t::zero() };
 

@@ -19,7 +19,7 @@ int main()
 	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<HilbertSpace>(), std::placeholders::_1, 0.05);
 
 	// List of hydrogen orbitals to simulate: (StateVector, Name, l)
-	std::array<std::tuple<StateVector<HilbertSpace>, std::string, unsigned int>, 6> hydrogenOrbitals =
+	std::array<std::tuple<StateVector<HilbertSpace>, std::string, natural_t>, 6> hydrogenOrbitals =
 	{
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_1s()), "1s", 0),
 		 std::make_tuple(hydrogenCtor(QuantumNumber::_2s()), "2s", 0),
@@ -45,8 +45,7 @@ int main()
 		);
 
 		auto hamiltonian = Hamiltonian<Steps>(mass, HilbertSpace::dx, potential);
-		auto box = OneDimensionalParticleBox<HilbertSpace>
-			(hamiltonian, std::get<0>(orbital), TimeStep);
+		auto box = OneDimensionalParticleBox<HilbertSpace>(hamiltonian, std::get<0>(orbital), TimeStep);
 		
 		auto visu = Visu::VisuOscilloscope<Steps>(
 			Visu::UsePhaseEncoding::NO,
