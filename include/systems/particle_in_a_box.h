@@ -37,7 +37,7 @@ namespace KetCat
 		constexpr OneDimensionalParticleBox(
 			const Hamiltonian<HilbertSpace::Dim>& hamiltonian, const StateVector<HilbertSpace>& stateVector, real_t dt) noexcept
 			: m_psi(stateVector),
-			  m_timeEvolutionSolver(hamiltonian, dt)
+			  m_timeEvolutionSolver(hamiltonian.getMatrix(), dt)
 		{
 		}
 
