@@ -164,9 +164,10 @@ namespace KetCat::Visu
 		{
 			using namespace std::chrono_literals;
 
+			// This is needed to have better lookiung output in GitHub Codespaces terminal
 			if (enabled(m_clearScreen))
 			{
-				std::cout << "\x1B[2J\x1B[H" << std::endl;
+				std::cout << std::endl;
 			}
 
 			// --- Probability density |ψ|² ---
@@ -222,6 +223,11 @@ namespace KetCat::Visu
 				}
 
 				renderLine<Dim>(PotentialLine, "Potential: ");
+			}
+
+			if (enabled(m_clearScreen))
+			{
+				std::cout << "\x1B[2J\x1B[H";
 			}
 
 			// Small delay to allow visualization update
