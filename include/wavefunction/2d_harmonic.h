@@ -11,7 +11,7 @@ namespace KetCat
     ///   H₀(x) = 1  
     ///   H₁(x) = 2x  
     ///   Hₙ(x) = 2x·Hₙ₋₁(x) − 2(n−1)·Hₙ₋₂(x)  for n ≥ 2
-    constexpr real_t hermite(natural_t n, real_t x) noexcept
+    constexpr inline real_t hermite(natural_t n, real_t x) noexcept
     {
         if (n == 0) return 1.0;
         if (n == 1) return 2.0 * x;
@@ -27,6 +27,25 @@ namespace KetCat
             H1 = Hn;
         }
         return Hn;
+    }
+
+
+    /// @brief 2D harmonic oscillator energy in Hartree units.
+    /// @details
+    /// Energy:
+    ///     E(nx, ny) = ω (nx + ny + 1)
+    ///
+    /// @param nx     Quantum number n_x
+    /// @param ny     Quantum number n_y
+    /// @param omega  Trap frequency (atomic units)
+    /// @return       Energy in Hartree
+    constexpr inline real_t hartreeEnergy(
+        natural_t nx,
+        natural_t ny,
+        real_t omega
+    ) noexcept
+    {
+        return omega * (real_t(nx + ny) + 1.0);
     }
 
     /// @brief 2D quantum harmonic oscillator seed wavefunction generator.
@@ -58,19 +77,23 @@ namespace KetCat
         ///
         ///     Σ |ψᵢⱼ|² (Δx)² = 1.
         ///
-        /// @param nx  Quantum number nₓ (0,1,2,…)
-        /// @param ny  Quantum number nᵧ (0,1,2,…)
-        /// @param alpha Scaling parameter α controlling wavefunction width
-        ///              α = √(m·ω)
-        ///               • m: particle mass (a.u.)
-        ///               • ω: angular trap frequency (a.u.)
-        ///              Examples:
-        ///               • Electron: α ≈ 1  
-        ///           • Ca⁺ in 1 MHz trap: α ≈ 0.003346  
-        /// @return    A StateVector with ψₙₓ,ₙᵧ sampled on the grid.
-        StateVector<HilbertSpace> operator()(natural_t nx, natural_t ny, real_t alpha)
+        /// @param nx   Quantum number nₓ (0,1,2,…)
+        /// @param ny   Quantum number nᵧ (0,1,2,…)
+        /// @param mass Particle mass (atomic units)
+        /// @param omega Trap frequency (atomic units)
+        /// @return    A Wavefunction object with ψₙₓ,ₙᵧ sampled on the grid.
+        Wavefunction<HilbertSpace> operator()(natural_t nx, natural_t ny, real_t mass, real_t omega) const noexcept
         {
             StateVector<HilbertSpace> Psi{ cplx_t::zero() };
+
+            /// Scaling parameter α controlling wavefunction width
+            ///              α = √(m·ω)
+            ///               • m: particle mass (a.u.)
+            ///               • ω: angular trap frequency (a.u.)
+            ///              Examples:
+            ///               • Electron: α ≈ 1  
+            ///           • Ca⁺ in 1 MHz trap: α ≈ 0.003346  
+            real_t alpha = ConstexprMath::sqrt(mass * omega);
 
             // Grid spacing Δx = Extent / (Dim-1)
             const real_t dx = HilbertSpace::Extent / (HilbertSpace::Dim - 1);
@@ -100,7 +123,7 @@ namespace KetCat
             }
             
             Psi.normalize();
-            return Psi;
+            return { Psi, hartreeEnergy(nx, ny, omega) };
         }
     };
 

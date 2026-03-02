@@ -14,7 +14,7 @@ int main()
 	constexpr natural_t Steps = 136;
 	using HilbertSpace = InfiniteHilbertSpace<1_D, Steps, BoxLength>;
 
-	constexpr auto Psi = EigenState<HilbertSpace>()(5);
+	constexpr auto Psi = EigenState<HilbertSpace>()(5).m_Psi;
 
 	constexpr real_t TimeStep = 1E-3;
 	constexpr KetCat::real_t mass = 1.0;

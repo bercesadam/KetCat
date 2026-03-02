@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "hilbert_space/state_vector.h"
-#include "hilbert_space/hilbert.h"
+#include "wavefunction.h"
 #include "quantum_number.h"
 #include "hydrogen.h"
 
@@ -9,7 +8,7 @@ namespace KetCat
     /// @brief Associated Legendre polynomial Pₗᵐ(x).
     /// @details Handles negative m using the standard Condon–Shortley phase:
     ///          Pₗ⁻ᵐ(x) = (−1)ᵐ ( (l−m)! / (l+m)! ) Pₗᵐ(x)
-    real_t legendre(int L, int M, real_t X)
+    inline real_t legendre(int L, int M, real_t X)
     {
         // Handle negative m using reflection formula:
         if (M < 0)
@@ -65,7 +64,7 @@ namespace KetCat
     /// @brief Spherical harmonic Yₗᵐ(θ,φ).
     /// @details Normalized using the standard Nₗᵐ factor:
     ///          Yₗᵐ = Nₗᵐ Pₗᵐ(cosθ) e^{i m φ}
-    cplx_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
+    inline cplx_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
     {
         real_t Norm =
             std::sqrt((2.0 * L + 1.0) /
@@ -112,7 +111,7 @@ namespace KetCat
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
         /// @param QNumbers QuantumNumber object containing (n,l,m).
         /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
-        constexpr StateVector<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
+        constexpr Wavefunction<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
         {
             constexpr natural_t Steps = HilbertSpace::Steps;
             constexpr real_t dx = HilbertSpace::dx;
@@ -123,7 +122,7 @@ namespace KetCat
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace1D<Steps, HilbertSpace::Extent>>{}(
+            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent>>{}(
                 QNumbers,
                 1.0   // effective Bohr radius
             );
@@ -186,7 +185,7 @@ namespace KetCat
             }
 
             Psi.normalize();
-            return Psi;
+            return { Psi, QNumbers.hartreeEnergy() };
         }
     };
 }

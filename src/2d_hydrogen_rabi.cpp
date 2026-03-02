@@ -24,8 +24,8 @@ int main(int, char**)
     constexpr auto q1 = QuantumNumber::_4d_m0();
 
     // Construct initial eigenstates:
-    auto Psi0 = Hydrogen2D<HilbertSpace>()(q0);
-    auto Psi1 = Hydrogen2D<HilbertSpace>()(q1);
+    auto Psi0 = Hydrogen2D<HilbertSpace>()(q0).m_Psi;
+    auto Psi1 = Hydrogen2D<HilbertSpace>()(q1).m_Psi;
 
     // Corresponding energy eigenvalues (Hartree units):
     const real_t E0 = q0.hartreeEnergy();

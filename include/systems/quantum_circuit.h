@@ -3,7 +3,6 @@
 #include <iomanip>
 
 // Aggressively include all relevant headers for ease of use
-#include "wavefunction/qbit_seed.h"
 #include "solvers/quantum_gate_solver.h"
 
 #include "quantum_gates/common_gates.h"
@@ -53,7 +52,7 @@ namespace KetCat::QCC
         constexpr QuantumCircuitExecutor(const Gates& ... gates)
         {
             // Initialize to the |0...0> computational basis state
-			m_stateVector = QBitState<QBitCount>()();
+			m_stateVector = { cplx_t::fromReal(1.0) };
 
             // Apply the provided gates in sequence
             executeCircuit(gates...);

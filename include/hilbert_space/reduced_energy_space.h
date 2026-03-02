@@ -1,14 +1,13 @@
 #pragma once
 #include "hilbert_space/state_vector.h"
-#include "wavefunction/wavefunction_concept.h"
+#include "wavefunction/wavefunction.h"
 
 namespace KetCat
 {
 
     /// @brief Reduced Hilbert space constructed from an arbitrary set of wavefunction seeds.
     ///
-    /// @tparam GridDim    Number of discretization steps per spatial axis.
-    /// @tparam Extent     Spatial extent of the grid.
+    /// @tparam OriginalHilbertSpace The original full Hilbert space (e.g. an infinite-dimensional spatial grid).
     /// @tparam LevelCount Number of retained basis states in the reduced space.
     ///
     /// ------------------------------------------------------------------------
@@ -52,15 +51,21 @@ namespace KetCat
     ///
     /// allowing full state-vector simulation in a reduced, physically
     /// meaningful subspace.
-    template<natural_t GridDim, real_t Extent, natural_t LevelCount>
-    struct ReducedEnergySpace
+    template<spatial_hilbert_space_t InitialHilbertSpace, natural_t LevelCount>
+    class ReducedEnergySpace
     {
-        using GridHilbertSpace = InfiniteHilbertSpace2D<GridDim, Extent>;
+    public:
+        using FullHilbertSpace = InitialHilbertSpace;
         using ReducedHilbertSpace = FiniteHilbertSpace<LevelCount>;
-
+    
+    private:
         /// Embedded basis states |φ_i⟩ represented in the full grid space
-        std::array<StateVector<GridHilbertSpace>, LevelCount> Basis;
+        std::array<StateVector<FullHilbertSpace>, LevelCount> m_Basis;
 
+        /// Energies of the basis states, computed as ⟨φ_i|H|φ_i⟩, where H is the system Hamiltonian.
+        std::array<real_t, LevelCount> m_Energies;
+
+    public:
         /// @brief Construct the reduced space from an arbitrary wavefunction generator.
         ///
         /// The generator must satisfy the `wavefunction_generator_t` concept.
@@ -74,32 +79,14 @@ namespace KetCat
         {
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-               Basis[i] = std::apply(generator, params[i]);
+               auto w = std::apply(generator, params[i]);
+               m_Basis[i] = w.m_Psi;
+               m_Energies[i] = w.m_Energy;
             }
 
             orthonormalize();
         }
 
-        /// @brief Orthonormalize the basis using Gram–Schmidt.
-        ///
-        /// Ensures the basis satisfies:
-        ///
-        ///      ⟨φ_i | φ_j⟩ = δ_ij
-        constexpr void orthonormalize() noexcept
-        {
-            for (natural_t i = 0; i < LevelCount; ++i)
-            {
-                for (natural_t j = 0; j < i; ++j)
-                {
-                    auto Proj = Basis[j].innerProduct(Basis[i]);
-                    for (natural_t k = 0; k < GridHilbertSpace::Dim; ++k)
-                    {
-                        Basis[i][k] = Basis[i][k] - Proj * Basis[j][k];
-                    }
-                }
-                Basis[i].normalize();
-            }
-        }
 
         /// @brief Project a full spatial state into the reduced subspace.
         ///
@@ -111,13 +98,13 @@ namespace KetCat
         ///
         ///      |ψ⟩ → (c₀, ..., c_{K-1})
         constexpr StateVector<ReducedHilbertSpace>
-            project(const StateVector<GridHilbertSpace>& psi) const noexcept
+            project(const StateVector<FullHilbertSpace>& psi) const noexcept
         {
             StateVector<ReducedHilbertSpace> Coeffs{};
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                Coeffs[i] = Basis[i].innerProduct(psi);
+                Coeffs[i] = m_Basis[i].innerProduct(psi);
             }
 
             return Coeffs;
@@ -128,20 +115,49 @@ namespace KetCat
         /// Computes:
         ///
         ///      |ψ_red⟩ = Σ_i c_i |φ_i⟩
-        constexpr StateVector<GridHilbertSpace>
+        constexpr StateVector<FullHilbertSpace>
             embed(const StateVector<ReducedHilbertSpace>& coeffs) const noexcept
         {
-            StateVector<GridHilbertSpace> Psi{ cplx_t::zero() };
+            StateVector<FullHilbertSpace> Psi{ cplx_t::zero() };
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                for (natural_t k = 0; k < GridHilbertSpace::Dim; ++k)
+                for (natural_t k = 0; k < FullHilbertSpace::Dim; ++k)
                 {
-                    Psi[k] += coeffs[i] * Basis[i][k];
+                    Psi[k] += coeffs[i] * m_Basis[i][k];
                 }
             }
 
             return Psi;
+        }
+
+        /// @brief Get the energies of the reduced basis states.
+        /// @return Array of energies corresponding to the basis states |φ_i⟩
+        constexpr std::array<real_t, LevelCount> getEnergies() const noexcept
+        {
+            return m_Energies;
+        }
+
+    private:
+        /// @brief Orthonormalize the basis using Gram–Schmidt.
+        ///
+        /// Ensures the basis satisfies:
+        ///
+        ///      ⟨φ_i | φ_j⟩ = δ_ij
+        constexpr void orthonormalize() noexcept
+        {
+            for (natural_t i = 0; i < LevelCount; ++i)
+            {
+                for (natural_t j = 0; j < i; ++j)
+                {
+                    auto Proj = m_Basis[j].innerProduct(m_Basis[i]);
+                    for (natural_t k = 0; k < FullHilbertSpace::Dim; ++k)
+                    {
+                        m_Basis[i][k] = m_Basis[i][k] - Proj * m_Basis[j][k];
+                    }
+                }
+                m_Basis[i].normalize();
+            }
         }
     };
 

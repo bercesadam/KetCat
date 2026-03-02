@@ -15,6 +15,7 @@
 
 namespace KetCat
 {
+    /// Dummy placeholder type to represent coordinate types in non-spatial Hilbert spaces (e.g. finite-dimensional qudit spaces).
     struct _{};
 
 	///@brief Struct representing a finite-dimensional Hilbert space
@@ -61,12 +62,6 @@ namespace KetCat
             return Index;
         }
     };
-
-    template<natural_t DiscretizationSteps, real_t SystemExtent>
-    using InfiniteHilbertSpace1D = InfiniteHilbertSpace<1_D, DiscretizationSteps, SystemExtent>;
-
-    template<natural_t DiscretizationSteps, real_t SystemExtent>
-    using InfiniteHilbertSpace2D = InfiniteHilbertSpace<2_D, DiscretizationSteps, SystemExtent>;
 
 	///@brief Concept matches any Hilbert space
 	template <typename T>
