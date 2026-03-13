@@ -39,7 +39,7 @@ namespace KetCat
 					n * ConstexprMath::Pi * x / HilbertSpace::Extent
 				);
 
-				Psi[i] = cplx_t(Value, 0.0);
+				Psi[i] = complex_t(Value, 0.0);
 			}
 
 			Psi.normalize();

@@ -33,7 +33,7 @@ namespace KetCat::QCC::Gates
                 const real_t re = ConstexprMath::cos(Angle);
                 const real_t im = -ConstexprMath::sin(Angle);
 
-                IQFTMatrix[j][k] = cplx_t(
+                IQFTMatrix[j][k] = complex_t(
                     InvSqrtDim * re,
                     InvSqrtDim * im
                 );

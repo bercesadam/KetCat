@@ -36,12 +36,12 @@ namespace KetCat
 				const real_t ImagPart = ConstexprMath::sin(k0 * x);
 
 				// Combine envelope and plane wave to form the complex amplitude
-				Psi[n] = cplx_t(Envelope * RealPart, Envelope * ImagPart);
+				Psi[n] = complex_t(Envelope * RealPart, Envelope * ImagPart);
 			}
 
 			// Dirichlet enforcement
-			Psi[0] = cplx_t::zero();
-			Psi[Dim - 1] = cplx_t::zero();
+			Psi[0] = complex_t::zero();
+			Psi[Dim - 1] = complex_t::zero();
 
 			Psi.normalize();
 			return Psi;

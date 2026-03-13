@@ -28,7 +28,7 @@ namespace KetCat::QCC::Gates
         matrix_t<Dim> Identity = {};
         for (natural_t i = 0; i < Dim; ++i)
         {
-            Identity[i][i] = cplx_t::fromReal(1.0);
+            Identity[i][i] = complex_t::fromReal(1.0);
         }
         return Identity;
     }
@@ -39,70 +39,70 @@ namespace KetCat::QCC::Gates
     /// @brief Hadamard gate:
     ///        H = (1/sqrt(2)) * [[1, 1], [1, −1]]
     constexpr KetCat::matrix_t<2> H = { {
-        { cplx_t(1.0 / sqrt2, 0.0),  cplx_t(1.0 / sqrt2, 0.0) },
-        { cplx_t(1.0 / sqrt2, 0.0),  cplx_t(-1.0 / sqrt2, 0.0) }
+        { complex_t(1.0 / sqrt2, 0.0),  complex_t(1.0 / sqrt2, 0.0) },
+        { complex_t(1.0 / sqrt2, 0.0),  complex_t(-1.0 / sqrt2, 0.0) }
     } };
 
     /// @brief Pauli‑X gate (NOT).
     constexpr KetCat::matrix_t<2> X = { {
-        { cplx_t(0.0, 0.0), cplx_t(1.0, 0.0) },
-        { cplx_t(1.0, 0.0), cplx_t(0.0, 0.0) }
+        { complex_t(0.0, 0.0), complex_t(1.0, 0.0) },
+        { complex_t(1.0, 0.0), complex_t(0.0, 0.0) }
     } };
 
     /// @brief Pauli‑Y gate.
     constexpr KetCat::matrix_t<2> Y = { {
-        { cplx_t(0.0, 0.0),  cplx_t(0.0, -1.0) },
-        { cplx_t(0.0, 1.0),  cplx_t(0.0, 0.0) }
+        { complex_t(0.0, 0.0),  complex_t(0.0, -1.0) },
+        { complex_t(0.0, 1.0),  complex_t(0.0, 0.0) }
     } };
 
     /// @brief Pauli‑Z gate.
     constexpr KetCat::matrix_t<2> Z = { {
-        { cplx_t(1.0, 0.0),  cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0),  cplx_t(-1.0, 0.0) }
+        { complex_t(1.0, 0.0),  complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0),  complex_t(-1.0, 0.0) }
     } };
 
     /// @brief Two‑qubit SWAP gate.
     constexpr KetCat::matrix_t<4> SWAP = { {
-        { cplx_t(1.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(1.0, 0.0), cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(1.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(1.0, 0.0) }
+        { complex_t(1.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(1.0, 0.0), complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(1.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(1.0, 0.0) }
     } };
 
     /// @brief CNOT gate (control is the first qubit).
     constexpr KetCat::matrix_t<4> CX = { {
-        { cplx_t(1.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(1.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(0.0, 0.0), cplx_t(1.0, 0.0), cplx_t(0.0, 0.0) },
-        { cplx_t(0.0, 0.0), cplx_t(1.0, 0.0), cplx_t(0.0, 0.0), cplx_t(0.0, 0.0) }
+        { complex_t(1.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(1.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(0.0, 0.0), complex_t(1.0, 0.0), complex_t(0.0, 0.0) },
+        { complex_t(0.0, 0.0), complex_t(1.0, 0.0), complex_t(0.0, 0.0), complex_t(0.0, 0.0) }
     } };
     constexpr auto CNOT = CX;
 
     /// @brief Toffoli gate (CCNOT / CCX), control-first.
     constexpr KetCat::matrix_t<8> CCX = { {
-        { cplx_t(1.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(1.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(1.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(1.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(1.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(1.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(1.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(1.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(1.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(1.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(1.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(1.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(1.0,0.0) },
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(1.0,0.0) },
 
-        { cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(0.0,0.0),
-          cplx_t(0.0,0.0), cplx_t(0.0,0.0), cplx_t(1.0,0.0), cplx_t(0.0,0.0) }
+        { complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(0.0,0.0),
+          complex_t(0.0,0.0), complex_t(0.0,0.0), complex_t(1.0,0.0), complex_t(0.0,0.0) }
     } };
     constexpr auto TOFFOLI = CCX;
 
@@ -114,10 +114,10 @@ namespace KetCat::QCC::Gates
     {
         const real_t halfTheta = theta / 2.0;
         return KetCat::matrix_t<2>{ {
-            { cplx_t(ConstexprMath::cos(halfTheta), 0.0),
-              cplx_t(-ConstexprMath::sin(halfTheta), 0.0) },
-            { cplx_t(ConstexprMath::sin(halfTheta), 0.0),
-              cplx_t(ConstexprMath::cos(halfTheta), 0.0) }
+            { complex_t(ConstexprMath::cos(halfTheta), 0.0),
+              complex_t(-ConstexprMath::sin(halfTheta), 0.0) },
+            { complex_t(ConstexprMath::sin(halfTheta), 0.0),
+              complex_t(ConstexprMath::cos(halfTheta), 0.0) }
         } };
     }
 

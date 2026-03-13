@@ -64,7 +64,7 @@ namespace KetCat
     /// @brief Spherical harmonic Yₗᵐ(θ,φ).
     /// @details Normalized using the standard Nₗᵐ factor:
     ///          Yₗᵐ = Nₗᵐ Pₗᵐ(cosθ) e^{i m φ}
-    inline cplx_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
+    inline complex_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
     {
         real_t Norm =
             std::sqrt((2.0 * L + 1.0) /
@@ -76,7 +76,7 @@ namespace KetCat
         real_t P = legendre(L, ConstexprMath::abs(M), X);
 
         // Phase factor e^{i m φ}
-        cplx_t Phase = ConstexprMath::exp<20>(cplx_t(0.0, M * Phi));
+        complex_t Phase = ConstexprMath::exp<20>(complex_t(0.0, M * Phi));
 
         if (M < 0)
         {
@@ -116,7 +116,7 @@ namespace KetCat
             constexpr natural_t Steps = HilbertSpace::Steps;
             constexpr real_t dx = HilbertSpace::dx;
 
-            StateVector<HilbertSpace> Psi{ cplx_t::zero() };
+            StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
             // --------------------------------------------------------
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
@@ -145,7 +145,7 @@ namespace KetCat
                         ZCoord * ZCoord
                     );
 
-                    cplx_t PsiValue = cplx_t::zero();
+                    complex_t PsiValue = complex_t::zero();
 
                     if (R > 1e-12)
                     {
@@ -170,7 +170,7 @@ namespace KetCat
                         real_t Phi   = ConstexprMath::atan2(YCoord, XCoord);
 
                         // Angular spherical harmonic Yₗᵐ(θ,φ)
-                        cplx_t Ylm = spherical_harmonic(
+                        complex_t Ylm = spherical_harmonic(
                             QNumbers.l(),
                             QNumbers.m(),
                             Theta,

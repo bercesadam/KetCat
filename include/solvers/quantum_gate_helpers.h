@@ -19,7 +19,7 @@ namespace KetCat::QCC
 
     /// @brief Specialization for square matrices represented as nested std::array.
     template<natural_t N>
-    struct is_gate_matrix<std::array<std::array<cplx_t, N>, N>>
+    struct is_gate_matrix<std::array<std::array<complex_t, N>, N>>
     {
         static constexpr natural_t dim = N;
         static constexpr bool value = ConstexprMath::isPowerOfTwo(N);
@@ -52,7 +52,7 @@ namespace KetCat::QCC
         for (natural_t i = 0; i < Dim; i++)
             for (natural_t j = 0; j < Dim; j++)
             {
-                cplx_t Sum{ 0,0 };
+                complex_t Sum{ 0,0 };
 
                 for (natural_t k = 0; k < Dim; k++)
                     Sum = Sum + M[k][i].conj() * M[k][j];

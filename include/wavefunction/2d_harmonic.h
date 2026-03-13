@@ -84,7 +84,7 @@ namespace KetCat
         /// @return    A Wavefunction object with ψₙₓ,ₙᵧ sampled on the grid.
         Wavefunction<HilbertSpace> operator()(natural_t nx, natural_t ny, real_t mass, real_t omega) const noexcept
         {
-            StateVector<HilbertSpace> Psi{ cplx_t::zero() };
+            StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
             /// Scaling parameter α controlling wavefunction width
             ///              α = √(m·ω)
@@ -116,7 +116,7 @@ namespace KetCat
                         ConstexprMath::exp<20>(-0.5 * alpha * alpha * (x*x + y*y));
 
                     // --- 4) Full 2D Hermite–Gauss mode
-                    cplx_t Value = cplx_t(Hx * Hy * Envelope, 0.0);
+                    complex_t Value = complex_t(Hx * Hy * Envelope, 0.0);
 
                     Psi[{ ix, iy }] = Value;
                 }

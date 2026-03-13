@@ -52,7 +52,7 @@ namespace KetCat::QCC
         constexpr QuantumCircuitExecutor(const Gates& ... gates)
         {
             // Initialize to the |0...0> computational basis state
-			m_stateVector = { cplx_t::fromReal(1.0) };
+			m_stateVector = { complex_t::fromReal(1.0) };
 
             // Apply the provided gates in sequence
             executeCircuit(gates...);

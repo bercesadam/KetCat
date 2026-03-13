@@ -63,8 +63,8 @@ int main(int, char**)
         //
         // For energy eigenstates:
         //   ψ(t) = ψ(0) e^{-i E t}
-        cplx_t Phase0 = ConstexprMath::exp<20>(cplx_t(0.0, -E0 * t));
-        cplx_t Phase1 = ConstexprMath::exp<20>(cplx_t(0.0, -E1 * t));
+        complex_t Phase0 = ConstexprMath::exp<20>(complex_t(0.0, -E0 * t));
+        complex_t Phase1 = ConstexprMath::exp<20>(complex_t(0.0, -E1 * t));
 
         // Rabi mixing angle:
         //
@@ -80,8 +80,8 @@ int main(int, char**)
         //
         // The factor -i ensures proper phase relation
         // for unitary two-level rotation.
-        cplx_t Alpha = Phase0 * cplx_t(std::cos(Theta / 2.0), 0.0);
-        cplx_t Beta = Phase1 * cplx_t(0.0, -std::sin(Theta / 2.0));
+        complex_t Alpha = Phase0 * complex_t(std::cos(Theta / 2.0), 0.0);
+        complex_t Beta = Phase1 * complex_t(0.0, -std::sin(Theta / 2.0));
 
         // While transition is not complete:
         if (Pbeta < 0.99)

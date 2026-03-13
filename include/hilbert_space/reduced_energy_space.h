@@ -118,7 +118,7 @@ namespace KetCat
         constexpr StateVector<FullHilbertSpace>
             embed(const StateVector<ReducedHilbertSpace>& coeffs) const noexcept
         {
-            StateVector<FullHilbertSpace> Psi{ cplx_t::zero() };
+            StateVector<FullHilbertSpace> Psi{ complex_t::zero() };
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {

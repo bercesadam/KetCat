@@ -63,7 +63,7 @@ namespace KetCat
 			const natural_t n = q.n();
 			const natural_t l = q.l();
 
-			StateVector<HilbertSpace> Psi{ cplx_t::zero() };
+			StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
 			for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
@@ -89,7 +89,7 @@ namespace KetCat
 				const double Laguerre = laguerre(p, alpha, x);
 
 				const double Value = rPow * Exponential * Laguerre;
-				Psi[i] = cplx_t::fromReal(Value);
+				Psi[i] = complex_t::fromReal(Value);
 			}
 
 			// Enforce discrete radial normalization: Σ |u|² · Δr = 1

@@ -114,13 +114,13 @@ namespace KetCat
             const tridiagonal_matrix_t<Dim>& H = hamiltonian;
 
             // i * dt / (2ℏ)
-            const cplx_t Factor(0.0, dt / (2.0 * hBar));
+            const complex_t Factor(0.0, dt / (2.0 * hBar));
 
             for (natural_t i = 0; i < Dim; ++i)
             {
                 // Build main diagonal
-                A[MAINDIAGONAL][i] = cplx_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
-                B[MAINDIAGONAL][i] = cplx_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
+                A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
+                B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
                 //  Build lower diagonal
                 if (i > 0)
@@ -154,7 +154,7 @@ namespace KetCat
         multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
                             const StateVector<HilbertSpace>& x) const noexcept
         {
-            StateVector<HilbertSpace> Result{ cplx_t::zero() };
+            StateVector<HilbertSpace> Result{ complex_t::zero() };
 
             for (natural_t i = 0; i < Dim; ++i)
             {
@@ -198,7 +198,7 @@ namespace KetCat
             for (natural_t i = 1; i < Dim; ++i)
             {
                 // Elimination multiplier
-                const cplx_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
+                const complex_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
 
                 // Update main diagonal
                 M[MAINDIAGONAL][i] = M[MAINDIAGONAL][i] - w * M[SUPERDIAGONAL][i - 1];

@@ -61,10 +61,10 @@ namespace KetCat
 			const real_t Alpha = hBar * hBar / (2.0 * m * dx * dx);
 
 			// Left Dirichlet point
-			m_hamiltonianMatrix[MAINDIAGONAL][0] = cplx_t::fromReal(1.0);
+			m_hamiltonianMatrix[MAINDIAGONAL][0] = complex_t::fromReal(1.0);
 
 			// Right Dirichllet point
-			m_hamiltonianMatrix[MAINDIAGONAL][Dim - 1] = cplx_t::fromReal(1.0);
+			m_hamiltonianMatrix[MAINDIAGONAL][Dim - 1] = complex_t::fromReal(1.0);
 
 			for (natural_t i = 1; i < Dim - 1; ++i)
 			{
@@ -74,19 +74,19 @@ namespace KetCat
 				// Superdiagonal: represents kinetic coupling to the next site (i + 1)
 				if (i + 1 < Dim)
 				{
-					m_hamiltonianMatrix[SUPERDIAGONAL][i] = cplx_t::fromReal(-Alpha);
+					m_hamiltonianMatrix[SUPERDIAGONAL][i] = complex_t::fromReal(-Alpha);
 				}
 
 				// Main diagonal elements: Kinetic + Potential energy
 				// Kinetic part: 2α (from the central term of the second-order finite difference)
 				// Potential part: V(position)
 				// Total: 2α + V(position)
-				m_hamiltonianMatrix[MAINDIAGONAL][i] = cplx_t::fromReal(2.0 * Alpha + potential(Position));
+				m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(2.0 * Alpha + potential(Position));
 
 				// Subdiagonal: represents kinetic coupling to the previous site (i - 1)
 				if (i > 0)
 				{
-					m_hamiltonianMatrix[SUBDIAGONAL][i] = cplx_t::fromReal(-Alpha);
+					m_hamiltonianMatrix[SUBDIAGONAL][i] = complex_t::fromReal(-Alpha);
 				}
 			}
 		}

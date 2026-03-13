@@ -83,7 +83,7 @@ namespace KetCat
 
                 /// Construct complex wavefunction value:
                 /// ψ(x) = gauss · (cos(phase) + i sin(phase))
-                Psi[i] = cplx_t(
+                Psi[i] = complex_t(
                     Gauss * ConstexprMath::cos(Phase),
                     Gauss * ConstexprMath::sin(Phase)
                 );

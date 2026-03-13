@@ -23,7 +23,7 @@ namespace KetCat
 		///        provided by the Hilbert Space type (depending on the spatial dimensions)
 		/// @param Spatial coordinates on the discrete grid
 		/// @return Reference to a complex number at the given state index
-		constexpr cplx_t& operator[](HilbertSpace::CoordinateType index) noexcept
+		constexpr complex_t& operator[](HilbertSpace::CoordinateType index) noexcept
 		{
 			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
@@ -32,7 +32,7 @@ namespace KetCat
 		///       provided by the Hilbert Space type (depending on the spatial dimensions)
 		/// @param Spatial coordinates on the discrete grid
 		/// @return Const reference to a complex number at the given state index
-		constexpr const cplx_t& operator[](HilbertSpace::CoordinateType index) const noexcept
+		constexpr const complex_t& operator[](HilbertSpace::CoordinateType index) const noexcept
 		{
 			return m_StateVector.at(HilbertSpace::getIndex(index));
 		}
@@ -41,7 +41,7 @@ namespace KetCat
 		///        regardless the spatial dimensions of the underlying Hilbert space.
 		/// @param Index of the discrete grid
 		/// @return Reference to a complex number at the given state index
-		constexpr cplx_t& operator[](natural_t index) noexcept
+		constexpr complex_t& operator[](natural_t index) noexcept
 		{
 			return m_StateVector.at(index);
 		}
@@ -50,7 +50,7 @@ namespace KetCat
 		///        regardless the spatial dimensions of the underlying Hilbert space.
 		/// @param Index of the discrete grid
 		/// @return Const reference to a complex number at the given state index
-		constexpr const cplx_t& operator[](natural_t index) const noexcept
+		constexpr const complex_t& operator[](natural_t index) const noexcept
 		{
 			return m_StateVector.at(index);
 		}
@@ -65,7 +65,7 @@ namespace KetCat
 			StateVector<HilbertSpaceType> Result;
 			for (natural_t i = 0; i < Size; ++i)
 			{
-				cplx_t Sum = cplx_t::zero();
+				complex_t Sum = complex_t::zero();
 				for (natural_t j = 0; j < Size; ++j)
 				{
 					Sum = Sum + mat[i][j] * m_StateVector[j];
@@ -89,10 +89,10 @@ namespace KetCat
 		///
 		/// @param phi    The state |φ⟩.
 		/// @return       The complex amplitude ⟨ψ|φ⟩.
-		constexpr cplx_t innerProduct(const StateVector<HilbertSpaceType>& phi) const noexcept
+		constexpr complex_t innerProduct(const StateVector<HilbertSpaceType>& phi) const noexcept
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
-			cplx_t result = cplx_t::zero();
+			complex_t result = complex_t::zero();
 
 			for (natural_t i = 0; i < Size; ++i)
 			{
@@ -119,7 +119,7 @@ namespace KetCat
 		constexpr real_t probabilityOf(const StateVector<HilbertSpaceType>& phi) const noexcept
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
-			const cplx_t amplitude = innerProduct(phi);
+			const complex_t amplitude = innerProduct(phi);
 			return amplitude.normSquared();
 		}
 
@@ -167,7 +167,7 @@ namespace KetCat
 			{
 				const real_t invNorm = 1.0 / ConstexprMath::sqrt(norm2);
 
-				for (cplx_t& c : m_StateVector)
+				for (complex_t& c : m_StateVector)
 					c = c * invNorm;
 			}
 		}
@@ -180,7 +180,7 @@ namespace KetCat
 		/// @param beta   Complex amplitude for the other state vector.
 		/// @param dx     Grid spacing for normalization.
 		constexpr StateVector<HilbertSpaceType> superpose(const StateVector<HilbertSpaceType>& phi,
-			cplx_t alpha, cplx_t beta) const noexcept
+			complex_t alpha, complex_t beta) const noexcept
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
 			StateVector Result;

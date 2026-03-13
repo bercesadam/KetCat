@@ -331,7 +331,7 @@ namespace KetCat::Visu
                     natural_t gx = x * Grid / w;
                     natural_t gy = y * Grid / h;
 
-                    cplx_t a = psi[{gx, gy}];
+                    complex_t a = psi[{gx, gy}];
 
                     double ampl = a.normSquared() / maxVal;
 
