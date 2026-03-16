@@ -29,49 +29,32 @@ int main(int, char**)
        ParamSets[n] = std::make_tuple(n + 1);
     }
 
-    /*
-    Hydrogen2D<InfiniteHilbertSpace<2_D, N, L>> Generator;
-
-    std::array<std::tuple<QuantumNumber>, NumBasis> ParamSets = {
-        std::make_tuple(QuantumNumber::_1s()),
-        std::make_tuple(QuantumNumber::_2p()),
-        std::make_tuple(QuantumNumber::_3d()),
-        std::make_tuple(QuantumNumber::_4f()),
-        std::make_tuple(QuantumNumber::_5g()),
-        std::make_tuple(QuantumNumber::_6h()),
-        std::make_tuple(QuantumNumber::_7i()),
-        std::make_tuple(QuantumNumber::_8k()),
-    };
-    */
-
     auto ReducedSpace =
         std::make_unique<ReducedEnergySpace<HilbertSpace, NumBasis>>(Generator, ParamSets);
 
     using ReducedHilbertSpace = typename decltype(ReducedSpace)::element_type::ReducedHilbertSpace;
 
     const natural_t Ket0Level = 0;
-    const natural_t Ket1Level = 1;
+    const natural_t Ket1Level = 7;
 
     auto Wavefunction0 = Generator(std::get<0>(ParamSets[Ket0Level]));
     auto Wavefunction1 = Generator(std::get<0>(ParamSets[Ket1Level]));
 
-    QuditSubspaceEngine<NumBasis, 3> Engine;
-   
-
-
+    QuditSubspaceHelper<NumBasis, 3> Helper;
+    
     // Initial state (|0>)
-    auto Psi = ReducedSpace->project(Wavefunction0.m_Psi);
+    auto Seed = ReducedSpace->project(Wavefunction0.m_Psi);
+    auto Psi = Seed; //Helper.productStateFromSeed(Seed);
 
-    using H = SingleQditGateHamiltonian<NumBasis>;
+    using H = SingleQuditGateHamiltonian<NumBasis>;
     const real_t HartreeEnergyDiff = Wavefunction1.m_Energy - Wavefunction0.m_Energy;
     std::cout << "Hartree energy difference between |0> and |1>: " << HartreeEnergyDiff << std::endl;
-    const real_t Omega = 5.0;
-    const real_t lambda = 0.1;
-    const real_t leakageFactor = 0.0;
-    auto Hx = H(RotationAxis::X, ReducedSpace->getEnergies(), Omega, lambda, leakageFactor, Ket0Level, Ket1Level);
-    auto Hz = H(RotationAxis::Z, ReducedSpace->getEnergies(), Omega, lambda, leakageFactor, Ket0Level, Ket1Level);
+    const real_t Omega = 20.0;
+    const real_t leakageFactor = 0.0001;
+    auto Hx = H(ReducedSpace->getEnergies(), Ket0Level, Ket1Level, Omega, leakageFactor, RotationAxis::X);
+    //auto Hz = H(RotationAxis::Z, ReducedSpace->getEnergies(), Omega, lambda, leakageFactor, Ket0Level, Ket1Level);
 
-    const real_t dt = 0.01;
+    const real_t dt = 0.005;
     real_t time = 0.0;
     using Solver = CrankNicolsonSolver<ReducedHilbertSpace>;
 
@@ -82,53 +65,44 @@ int main(int, char**)
 		Visu::ShowPotential::NO
 	);
 
-   // ===== Hadamard gate sequence =====
 
     // 1️⃣ X π/2 pulse
     const real_t tX = ConstexprMath::Pi / (Omega);
     real_t elapsed = 0.0;
-
-    while (elapsed < tX)
+    while (true)
     {
         tridiagonal_matrix_t Hmat = Hx(time);
-        //Psi = Solver(Hmat, dt)(Psi);
+        Solver solver(Hmat, dt);
+        Psi = solver(Psi);
 
-        Engine.applyHamiltonian(Psi, {0}, Hmat, dt);
+        //Helper.applyHamiltonian<1>(Psi, {0}, Hmat, dt);
 
-        auto Psi_ = ReducedSpace->embed(Psi);
+        auto Psi_ = ReducedSpace->embed(Psi); //Helper.extractLocalState(Psi, 0));
+
         Psi_.normalize();
 
         std::cout << std::endl << "\nX |0> " << Psi_.probabilityOf(Wavefunction0.m_Psi)
                 << "  |1> " << Psi_.probabilityOf(Wavefunction1.m_Psi)
                 << "  Time: " << time << std::endl;
 
-  //      visu.update(Psi_);
-
-        time += dt;
-        elapsed += dt;
-    }
-exit(0);
-    // 2️⃣ Z π phase
-    const real_t omega = HartreeEnergyDiff;
-    const real_t tZ = ConstexprMath::Pi / omega;
-    elapsed = 0.0;
-
-    while (elapsed < tZ)
-    {
-        tridiagonal_matrix_t Hmat = Hz(time);
-        Psi = Solver(Hmat, dt)(Psi);
-
-        auto Psi_ = ReducedSpace->embed(Psi);
-        Psi_.normalize();
-
-        std::cout << std::endl << "\nZ |0> " << Psi_.probabilityOf(Wavefunction0.m_Psi)
-                << "  |1> " << Psi_.probabilityOf(Wavefunction1.m_Psi)
-                << "  Time: " << time << std::endl;
-
-        //visu.update(Psi_);
+        visu.update(Psi_);
 
         time += dt;
         elapsed += dt;
     }
 }
 
+/*
+   Hydrogen2D<InfiniteHilbertSpace<2_D, N, L>> Generator;
+
+   std::array<std::tuple<QuantumNumber>, NumBasis> ParamSets = {
+       std::make_tuple(QuantumNumber::_1s()),
+       std::make_tuple(QuantumNumber::_2p()),
+       std::make_tuple(QuantumNumber::_3d()),
+       std::make_tuple(QuantumNumber::_4f()),
+       std::make_tuple(QuantumNumber::_5g()),
+       std::make_tuple(QuantumNumber::_6h()),
+       std::make_tuple(QuantumNumber::_7i()),
+       std::make_tuple(QuantumNumber::_8k()),
+   };
+   */
