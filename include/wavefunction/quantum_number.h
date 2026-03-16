@@ -51,7 +51,7 @@ namespace KetCat
 
         /// @name Constructors for (n,l) only with m = 0 (eg. to be used in 1D examples)
         /// @{
-        static constexpr QuantumNumber _1s() { return QuantumNumber{ 1, 0, 0 }; }
+ static constexpr QuantumNumber _1s() { return QuantumNumber{ 1, 0, 0 }; }
         static constexpr QuantumNumber _2s() { return QuantumNumber{ 2, 0, 0 }; }
         static constexpr QuantumNumber _2p() { return QuantumNumber{ 2, 1, 0 }; }
         static constexpr QuantumNumber _3s() { return QuantumNumber{ 3, 0, 0 }; }
@@ -65,6 +65,8 @@ namespace KetCat
         static constexpr QuantumNumber _6h() { return QuantumNumber{ 6, 5, 0 }; }
         static constexpr QuantumNumber _7i() { return QuantumNumber{ 7, 6, 0 }; }
         static constexpr QuantumNumber _8k() { return QuantumNumber{ 8, 7, 0 }; }
+        static constexpr QuantumNumber _9l() { return QuantumNumber{ 9, 8, 0 }; }
+        static constexpr QuantumNumber _10m() { return QuantumNumber{ 10, 9, 0 }; }
         /// @}
 
         /// @name n = 1

@@ -9,17 +9,17 @@ namespace KetCat
 {
 
 template<natural_t _LocalQditDim, natural_t _QuditCount>
-class QuditSubspaceEngine
+class QuditSubspaceHelper
 {
-    static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2"); // _LocalDim legalább 2
-    static_assert(_QuditCount >= 1, "Qudit count must be >= 1");     // legalább egy qudit
+    static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2");
+    static_assert(_QuditCount >= 1, "Qudit count must be >= 1");
 
-    static constexpr natural_t LocalDim = _LocalQditDim;      // lokális dimenzió
-    static constexpr natural_t QuditCount = _QuditCount;    // quditok száma
-    static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QuditCount); // teljes állapottér dimenziója
+    static constexpr natural_t LocalDim = _LocalQditDim;      // d
+    static constexpr natural_t QuditCount = _QuditCount;    // C
+    static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QuditCount);
 
-    using FullHilbertSpace = FiniteHilbertSpace<FullDim>; // teljes Hilbert-tér
-    using OneQuditSpace   = FiniteHilbertSpace<LocalDim>;   // egy qudit tér
+    using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
+    using OneQuditSpace   = FiniteHilbertSpace<LocalDim>;
 
 
     /// @brief Determine a basis state from a flat global state vector index, little-endian digit order.
@@ -36,27 +36,6 @@ class QuditSubspaceEngine
             globalIndex /= LocalDim;
         }
         return BasisState;
-    }
-
-    /// @brief Initialize all qdit registers based on a single-qudit seed state |ψ⟩ ∈ ℂ^d,
-    ///        creating the product state |Ψ⟩ = |ψ⟩^{⊗ C}.
-    /// @param seed Single-qudit state vector (size d)
-    /// @return Product state vector for the entire register (size d^C)
-    static constexpr StateVector<FullHilbertSpace>
-    productStateFromSeed(const StateVector<OneQuditSpace>& seed) noexcept
-    {
-        StateVector<FullHilbertSpace> Result{};
-        for (natural_t GlobalIndex = 0; GlobalIndex < FullDim; ++GlobalIndex)
-        {
-            auto Digits = decodeIndex(GlobalIndex);
-            complex_t Amplitude = complex_t::fromReal(1.0);
-            for (natural_t i = 0; i < QuditCount; ++i)
-            {
-                Amplitude = Amplitude * seed[Digits[i]];
-            }
-            Result[GlobalIndex] = Amplitude;
-        }
-        return Result;
     }
 
     /// @brief  Number of tiles produced when selecting K target qudits.
@@ -106,7 +85,7 @@ class QuditSubspaceEngine
     /// This validation is primarily intended for compile-time or
     /// initialization checks when defining a subsystem.
     template <natural_t K>
-    static constexpr bool isTargetsArrayValid(const qdit_list_t<K>& targets) noexcept
+    static constexpr bool isTargetsArrayValid(const qdit_list_t<K> targets) noexcept
     {
         // Check that all indices are within the valid range [0, C)
         for (natural_t i = 0; i < K; ++i)
@@ -232,7 +211,7 @@ class QuditSubspaceEngine
                           const qdit_list_t<K>& targets) noexcept
     {
         const natural_t Rank = nonTargetRank(position, targets);
-        return (nonTargetBasisIndex / ConstexprMath::pow(LocalDim, Rank)) % d;
+        return (nonTargetBasisIndex / ConstexprMath::pow(LocalDim, Rank)) % LocalDim;
     }
 
     /// @brief  Encode target-qudit digits into a local tile index.
@@ -266,7 +245,7 @@ class QuditSubspaceEngine
         for (natural_t i = 0; i < K; ++i)
         {
             idx += targetDigits[i] * mul;
-            mul *= d;
+            mul *= LocalDim;
         }
         return idx;
     }
@@ -294,8 +273,8 @@ class QuditSubspaceEngine
         std::array<natural_t, K> tdigits{};
         for (natural_t i = 0; i < K; ++i)
         {
-            tdigits[i] = local % d;
-            local /= d;
+            tdigits[i] = local % LocalDim;
+            local /= LocalDim;
         }
         return tdigits;
     }
@@ -334,18 +313,18 @@ class QuditSubspaceEngine
         natural_t Offset = 0;
         natural_t Multiplier = 1;
         natural_t rem = nonTargetBasisIndex;
-        for (natural_t pos = 0; pos < C; ++pos)
+        for (natural_t pos = 0; pos < QuditCount; ++pos)
         {
             if (isInTargets(pos, targets))
             {
-                Multiplier *= d;
+                Multiplier *= LocalDim;
             }
             else
             {
-                const natural_t Digit = rem % d;
-                rem /= d;
+                const natural_t Digit = rem % LocalDim;
+                rem /= LocalDim;
                 Offset += Digit * Multiplier;
-                Multiplier *= d;
+                Multiplier *= LocalDim;
             }
         }
         return Offset;
@@ -376,12 +355,17 @@ class QuditSubspaceEngine
     /// accumulate, etc.) to reuse the same indexing logic.
     template <natural_t K>
     static constexpr void
-    tileOperationsCore(const qdit_list_t<K>& targetQdits,
+    tileOperationsCore(const qdit_list_t<K> targetQdits,
             natural_t nonTargetBasisIndex,
             const std::function<void(natural_t, natural_t)>& operation) noexcept
     {
-        static_assert(isTargetsArrayValid(targetQdits),
-                    "targets[] must be unique and in [0..C)");
+        // `targetQdits` is a function parameter and may not be a compile-time
+        // constant. Use a runtime check instead of static_assert which
+        // requires a constant expression.
+        if (!isTargetsArrayValid(targetQdits))
+        {
+            return; // invalid targets: nothing to do
+        }
 
         // Compute the linear strides associated with a qudit position.
         // The global basis index of a multi-qudit state is represented as a base-d number:
@@ -391,11 +375,11 @@ class QuditSubspaceEngine
         for (natural_t i = 0; i < K; ++i)
         {
 
-            TileStrides[i] = ConstexprMath::pow(d, targetQdits[i]);
+            TileStrides[i] = ConstexprMath::pow(LocalDim, targetQdits[i]);
         }
 
         //  Size of a local tile corresponding to K target qudits.
-        const natural_t TileSize = ConstexprMath::pow(d, K);
+        const natural_t TileSize = ConstexprMath::pow(LocalDim, K);
         // Base global index of the tile, determined by the configuration of non-target qudits.
         const natural_t BaseOffset = baseOffsetFromNonTargetIndex(nonTargetBasisIndex, targetQdits);
 
@@ -434,7 +418,7 @@ class QuditSubspaceEngine
     gatherTile(const StateVector<FullHilbertSpace>& fullSpace,
             const qdit_list_t<K>& targetQdits,
             natural_t nonTargetBasisIndex,
-            StateVector<FiniteHilbertSpace<ConstexprMath::pow(d, K)>>& out) noexcept
+            StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& out) noexcept
     {
         tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
             [&](natural_t LocalIndex, natural_t GlobalIndex)
@@ -463,7 +447,7 @@ class QuditSubspaceEngine
     scatterTile(StateVector<FullHilbertSpace>& fullSpace,
                 const qdit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
-                const StateVector<FiniteHilbertSpace<ConstexprMath::pow(d, K)>>& in) noexcept
+                const StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& in) noexcept
     {
         tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
             [&](natural_t LocalIndex, natural_t GlobalIndex)
@@ -472,7 +456,28 @@ class QuditSubspaceEngine
             });
     }
 
-    public:
+public:
+    /// @brief Initialize all qdit registers based on a single-qudit seed state |ψ⟩ ∈ ℂ^d,
+    ///        creating the product state |Ψ⟩ = |ψ⟩^{⊗ C}.
+    /// @param seed Single-qudit state vector (size d)
+    /// @return Product state vector for the entire register (size d^C)
+    static constexpr StateVector<FullHilbertSpace>
+        productStateFromSeed(const StateVector<OneQuditSpace>& seed) noexcept
+    {
+        StateVector<FullHilbertSpace> Result{};
+        for (natural_t GlobalIndex = 0; GlobalIndex < FullDim; ++GlobalIndex)
+        {
+            auto Digits = decodeIndex(GlobalIndex);
+            complex_t Amplitude = complex_t::fromReal(1.0);
+            for (natural_t i = 0; i < QuditCount; ++i)
+            {
+                Amplitude = Amplitude * seed[Digits[i]];
+            }
+            Result[GlobalIndex] = Amplitude;
+        }
+        return Result;
+    }
+
     /// @brief  Apply a K-qudit operation defined by a tridiagonal Hamiltonian
     ///         to the specified target qudits in the global state vector.
     /// @tparam K        Number of target qudits.
@@ -488,30 +493,64 @@ class QuditSubspaceEngine
     ///    a. Gathers the relevant amplitudes from the global state       vector into a local tile vector.
     ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
     ///    c. Scatters the updated tile amplitudes back into the global state vector.
+    template <natural_t K>
     static constexpr void applyHamiltonian(StateVector<FullHilbertSpace>&   psi,
-                                        qdit_list_t<K>& targetQdits,
-                                        const tridiagonal_matrix_t<ConstexprMath::pow(d, K)>& hamiltonian,
+                                        qdit_list_t<K> targetQdits,
+                                        const tridiagonal_matrix_t<ConstexprMath::pow(LocalDim, K)>& hamiltonian,
                                         real_t dt) noexcept
     {
-        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(d, K)>;
+        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>;
         CrankNicolsonSolver<OperationSpace> solver(hamiltonian, dt);
         const natural_t BlockCount = blockCount<K>();
+
         StateVector<OperationSpace> local{};
+        StateVector<FullHilbertSpace> psiUpdated = psi;
+
         for (natural_t b = 0; b < BlockCount; ++b)
         {
-            gatherTile<K>(psi, targetQdits, b, local);
-            local = solver(local);
-            scatterTile<K>(psi, targetQdits, b, local);
+            gatherTile<K>(psi, targetQdits, b, local);     // mindig a régi psi-ből
+            auto updatedLocal = solver(local);
+            scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
         }
+
+        psi = psiUpdated;
     }
 
+    template <natural_t K>
     static constexpr void applyUnitary(StateVector<FullHilbertSpace>&   psi,
                                         qdit_list_t<K>& targetQdits,
-                                        const matrix_t<ConstexprMath::pow(d, K)>& unitary) noexcept
+                                        const matrix_t<ConstexprMath::pow(LocalDim, K)>& unitary) noexcept
     {
         
     }
-    
+
+	/// @brief  Extract the local state of a single qudit from the global state vector.
+	/// @param  psi             Global state vector representing the entire register.
+	/// @param  quditIndex      Index of the qudit whose local state is to be extracted.
+	/// @return                 Normalized state vector of the specified qudit (size d).
+	/// @details This function computes the reduced state of a single qudit by summing over all
+    /// configurations of the other qudits. It iterates through the global state vector, decodes
+    /// the basis state to identify the value of the target qudit, and accumulates the corresponding
+    /// amplitudes. Finally, it normalizes the resulting single-qudit state vector before returning it.
+    static constexpr StateVector<OneQuditSpace>
+        extractLocalState(const StateVector<FullHilbertSpace>& psi,
+            natural_t quditIndex) noexcept
+    {
+        StateVector<OneQuditSpace> result{};
+
+        if (quditIndex >= QuditCount)
+            return result;
+
+        for (natural_t globalIndex = 0; globalIndex < FullDim; ++globalIndex)
+        {
+            const auto digits = decodeIndex(globalIndex);
+            result[digits[quditIndex]] += psi[globalIndex];
+        }
+
+        //result.normalize();
+
+        return result;
+    }
 };
 
 } // namespace KetCat
