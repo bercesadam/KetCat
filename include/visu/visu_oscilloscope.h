@@ -227,11 +227,11 @@ namespace KetCat::Visu
 
 			if (enabled(m_clearScreen))
 			{
-				std::cout << "\x1B[2J\x1B[H";
+				std::cout << "\x1B[H";
 			}
 
 			// Small delay to allow visualization update
-			std::this_thread::sleep_for(100ms);
+			std::this_thread::sleep_for(10ms);
 		}
 	};
 }
