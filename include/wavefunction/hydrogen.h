@@ -57,8 +57,9 @@ namespace KetCat
 		/// @param x0  Position of the atomic center
 		///
 		/// @return Normalized quantum state vector representing the orbital
+		template <quantum_number_t QuantumNumberType>
 		constexpr StateVector<HilbertSpace>
-			operator()(QuantumNumber q, double a_eff) const noexcept
+			operator()(QuantumNumberType q, double a_eff) const noexcept
 		{
 			const natural_t n = q.n();
 			const natural_t l = q.l();

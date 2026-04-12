@@ -1,118 +1,93 @@
 #pragma once
+#include <concepts>
 #include "core_types.h"
 
 namespace KetCat
 {
-    /// @brief Compact representation of hydrogenic quantum numbers (n, l, m) in spectroscopic notation.
+	/// @brief Represents the azimuthal quantum number l
+    struct AzimuthalQuantumNumber
+    {
+		/// @brief The underlying value of the azimuthal quantum number l
+        natural_t m_l;
+
+		///@brief Constructor for AzimuthalQuantumNumber
+        consteval AzimuthalQuantumNumber(natural_t l) : m_l(l){}
+	};
+
+	/// @brief Named constants for azimuthal quantum numbers corresponding to spectroscopic letters.
+	/// Enclosing them in a namespace to not to pollute the main KetCat namespace with single-letter constants
+	/// @group SpectroscopicLetters
+    /// {
+    namespace SpectroscopicLetters
+    {
+        constexpr AzimuthalQuantumNumber s{ 0 };
+        constexpr AzimuthalQuantumNumber p{ 1 };
+        constexpr AzimuthalQuantumNumber d{ 2 };
+        constexpr AzimuthalQuantumNumber f{ 3 };
+        constexpr AzimuthalQuantumNumber g{ 4 };
+        constexpr AzimuthalQuantumNumber h{ 5 };
+        constexpr AzimuthalQuantumNumber i{ 5 };
+        constexpr AzimuthalQuantumNumber k{ 6 };
+        constexpr AzimuthalQuantumNumber l{ 7 };
+        constexpr AzimuthalQuantumNumber m{ 8 };
+        constexpr AzimuthalQuantumNumber n{ 9 };
+    }
+	/// }
+
+    /// @brief Representation of  quantum numbers (n, l, m)
     /// @details
     /// Encodes the triplet (n, l, m) with the usual constraints:
     ///  • n: principal quantum number, n ≥ 1 (controls energy and radial extent)  
     ///  • l: orbital angular momentum, 0 ≤ l ≤ n−1 (controls angular structure and parity)  
     ///  • m: magnetic quantum number, −l ≤ m ≤ l (controls angular orientation)  
-    ///
-    /// Spectroscopic letters: s≡l=0, p≡1, d≡2, f≡3, g≡4, …  
-    /// This type offers a set of `constexpr` named constructors for valid (n,l,m) choices to
-    /// avoid selecting invalid configurations.
+    template<natural_t N, AzimuthalQuantumNumber L, int M = 0>
     class QuantumNumber
     {
-        natural_t m_n; // principal quantum number
-        natural_t m_l; // orbital angular momentum
-        int m_m;          // magnetic quantum number
+        /// Compile-time checks for valid quantum numbers, replaces the old approach
+        /// where I had a vast amount of predefined static constructors for each valid combination of (n, l, m)
+        static_assert(N >= 1,
+            "The principal quantum number (n) must be at least 1.");
+        static_assert(L.m_l < N,
+            "The azimuthal quantum number (l) must be less than the principal quantum number (n).");
+        static_assert(M >= -static_cast<int>(L.m_l) && M <= static_cast<int>(L.m_l),
+            "The magnetic quantum number (m) must satisfy -l ≤ m ≤ l.");
 
-        /// @brief Construct a quantum number triple (n,l,m).
-        /// @param n Principal quantum number (n ≥ 1).
-        /// @param l Orbital angular momentum (0 ≤ l ≤ n−1).
-        /// @param m Magnetic quantum number (−l ≤ m ≤ l).
-        constexpr QuantumNumber(natural_t n, natural_t l, int m)
-            : m_n(n), m_l(l), m_m(m)
-        {
-        }
+        /// @brief The underlying value of the principal quantum number n
+        natural_t m_n;
+
+        /// @brief The underlying value of the azimuthal quantum number l
+        natural_t m_l;
+
+        /// @brief The underlying value of the magnmetic quantum number m
+        natural_t m_m;
 
     public:
-        /// @brief Principal quantum number n.
-        constexpr natural_t n() const { return m_n; }
+		constexpr QuantumNumber() = default;
 
-        /// @brief Orbital angular momentum l.
-        constexpr natural_t l() const { return m_l; }
+        ///@brief Getter for the principal quantum number n
+        static constexpr natural_t n() noexcept { return N; }
 
-        /// @brief Magnetic quantum number m.
-        constexpr natural_t m() const { return m_m; }
+        ///@brief Getter for the azimuthal quantum number l
+        static constexpr natural_t l() noexcept { return L.m_l; }
 
-        /// @brief Hydrogenic energy in Hartree units for the given n.
-        /// @details Eₙ = −1 / (2 n²). Assumes non‑relativistic Coulomb problem (Z=1).
-        constexpr real_t hartreeEnergy() const noexcept
-        {
-            return -1.0 / (2.0 * m_n * m_n);
+        ///@brief Getter for the magetic quantum number m
+        static constexpr int m() noexcept { return M; }
+
+		/// @brief Calculate the energy eigenvalue in Hartree units for a hydrogenic orbital with quantum numbers (n, l, m).
+        static constexpr real_t hartreeEnergy() noexcept {
+            return -1.0 / (2.0 * N * N);
         }
+    };
 
-        // --------------------------
-        // Static constexpr constructors for allowed (n,l,m)
-        // --------------------------
+	/// @brief Concept to check if a type T has the required interface of quantum numbers (n, l, m) with appropriate return types.
+    template<typename T>
+    concept arithmetic_t = std::is_arithmetic_v<T>;
 
-        /// @name Constructors for (n,l) only with m = 0 (eg. to be used in 1D examples)
-        /// @{
- static constexpr QuantumNumber _1s() { return QuantumNumber{ 1, 0, 0 }; }
-        static constexpr QuantumNumber _2s() { return QuantumNumber{ 2, 0, 0 }; }
-        static constexpr QuantumNumber _2p() { return QuantumNumber{ 2, 1, 0 }; }
-        static constexpr QuantumNumber _3s() { return QuantumNumber{ 3, 0, 0 }; }
-        static constexpr QuantumNumber _3p() { return QuantumNumber{ 3, 1, 0 }; }
-        static constexpr QuantumNumber _3d() { return QuantumNumber{ 3, 2, 0 }; }
-        static constexpr QuantumNumber _4s() { return QuantumNumber{ 4, 0, 0 }; }
-        static constexpr QuantumNumber _4p() { return QuantumNumber{ 4, 1, 0 }; }
-        static constexpr QuantumNumber _4d() { return QuantumNumber{ 4, 2, 0 }; }
-        static constexpr QuantumNumber _4f() { return QuantumNumber{ 4, 3, 0 }; }
-        static constexpr QuantumNumber _5g() { return QuantumNumber{ 5, 4, 0 }; }
-        static constexpr QuantumNumber _6h() { return QuantumNumber{ 6, 5, 0 }; }
-        static constexpr QuantumNumber _7i() { return QuantumNumber{ 7, 6, 0 }; }
-        static constexpr QuantumNumber _8k() { return QuantumNumber{ 8, 7, 0 }; }
-        static constexpr QuantumNumber _9l() { return QuantumNumber{ 9, 8, 0 }; }
-        static constexpr QuantumNumber _10m() { return QuantumNumber{ 10, 9, 0 }; }
-        /// @}
-
-        /// @name n = 1
-        /// @{
-        static constexpr QuantumNumber _1s_m0() { return QuantumNumber{ 1, 0, 0 }; }
-        /// @}
-
-        /// @name n = 2 (s, p with m ∈ {−l,…,l})
-        /// @{
-        static constexpr QuantumNumber _2s_m0()      { return QuantumNumber{ 2, 0, 0 }; }
-        static constexpr QuantumNumber _2p_m_minus1(){ return QuantumNumber{ 2, 1, -1 }; }
-        static constexpr QuantumNumber _2p_m0()      { return QuantumNumber{ 2, 1,  0 }; }
-        static constexpr QuantumNumber _2p_m1()      { return QuantumNumber{ 2, 1,  1 }; }
-        /// @}
-
-        /// @name n = 3 (s, p, d with m ∈ {−l,…,l})
-        /// @{
-        static constexpr QuantumNumber _3s_m0()       { return QuantumNumber{ 3, 0, 0 }; }
-        static constexpr QuantumNumber _3p_m_minus1() { return QuantumNumber{ 3, 1, -1 }; }
-        static constexpr QuantumNumber _3p_m0()       { return QuantumNumber{ 3, 1,  0 }; }
-        static constexpr QuantumNumber _3p_m1()       { return QuantumNumber{ 3, 1,  1 }; }
-        static constexpr QuantumNumber _3d_m_minus2() { return QuantumNumber{ 3, 2, -2 }; }
-        static constexpr QuantumNumber _3d_m_minus1() { return QuantumNumber{ 3, 2, -1 }; }
-        static constexpr QuantumNumber _3d_m0()       { return QuantumNumber{ 3, 2,  0 }; }
-        static constexpr QuantumNumber _3d_m1()       { return QuantumNumber{ 3, 2,  1 }; }
-        static constexpr QuantumNumber _3d_m2()       { return QuantumNumber{ 3, 2,  2 }; }
-        /// @}
-
-        /// @name n = 4 (s, p, d, f with m ∈ {−l,…,l})
-        /// @{
-        static constexpr QuantumNumber _4s_m0()       { return QuantumNumber{ 4, 0, 0 }; }
-        static constexpr QuantumNumber _4p_m_minus1() { return QuantumNumber{ 4, 1, -1 }; }
-        static constexpr QuantumNumber _4p_m0()       { return QuantumNumber{ 4, 1,  0 }; }
-        static constexpr QuantumNumber _4p_m1()       { return QuantumNumber{ 4, 1,  1 }; }
-        static constexpr QuantumNumber _4d_m_minus2() { return QuantumNumber{ 4, 2, -2 }; }
-        static constexpr QuantumNumber _4d_m_minus1() { return QuantumNumber{ 4, 2, -1 }; }
-        static constexpr QuantumNumber _4d_m0()       { return QuantumNumber{ 4, 2,  0 }; }
-        static constexpr QuantumNumber _4d_m1()       { return QuantumNumber{ 4, 2,  1 }; }
-        static constexpr QuantumNumber _4d_m2()       { return QuantumNumber{ 4, 2,  2 }; }
-        static constexpr QuantumNumber _4f_m_minus3() { return QuantumNumber{ 4, 3, -3 }; }
-        static constexpr QuantumNumber _4f_m_minus2() { return QuantumNumber{ 4, 3, -2 }; }
-        static constexpr QuantumNumber _4f_m_minus1() { return QuantumNumber{ 4, 3, -1 }; }
-        static constexpr QuantumNumber _4f_m0()       { return QuantumNumber{ 4, 3,  0 }; }
-        static constexpr QuantumNumber _4f_m1()       { return QuantumNumber{ 4, 3,  1 }; }
-        static constexpr QuantumNumber _4f_m2()       { return QuantumNumber{ 4, 3,  2 }; }
-        static constexpr QuantumNumber _4f_m3()       { return QuantumNumber{ 4, 3,  3 }; }
-        /// @}
+    template <typename T>
+    concept quantum_number_t = requires
+    {
+        { T::n() } -> arithmetic_t;
+        { T::l() } -> std::convertible_to<natural_t>;
+        { T::m() } -> std::convertible_to<int>;
     };
 }

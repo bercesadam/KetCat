@@ -15,8 +15,8 @@ namespace KetCat
         {
             real_t Sign = (M % 2 == 0) ? 1.0 : -1.0;
             return Sign *
-                ConstexprMath::factorial(L - std::abs(M)) /
-                ConstexprMath::factorial(L + std::abs(M)) *
+                ConstexprMath::factorial(L - ConstexprMath::abs(M)) /
+                ConstexprMath::factorial(L + ConstexprMath::abs(M)) *
                 legendre(L, -M, X);
         }
 
@@ -64,10 +64,10 @@ namespace KetCat
     /// @brief Spherical harmonic Yₗᵐ(θ,φ).
     /// @details Normalized using the standard Nₗᵐ factor:
     ///          Yₗᵐ = Nₗᵐ Pₗᵐ(cosθ) e^{i m φ}
-    inline complex_t spherical_harmonic(int L, int M, real_t Theta, real_t Phi)
+    inline complex_t sphericalHarmonic(int L, int M, real_t Theta, real_t Phi)
     {
         real_t Norm =
-            std::sqrt((2.0 * L + 1.0) /
+            ConstexprMath::sqrt((2.0 * L + 1.0) /
                       (4.0 * ConstexprMath::Pi) *
                       ConstexprMath::factorial(L - ConstexprMath::abs(M)) /
                       ConstexprMath::factorial(L + ConstexprMath::abs(M)));
@@ -111,7 +111,8 @@ namespace KetCat
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
         /// @param QNumbers QuantumNumber object containing (n,l,m).
         /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
-        constexpr Wavefunction<HilbertSpace> operator()(QuantumNumber QNumbers) noexcept
+		template <quantum_number_t QuantumNumberType>
+        constexpr Wavefunction<HilbertSpace> operator()(QuantumNumberType QNumbers) noexcept
         {
             constexpr natural_t Steps = HilbertSpace::Steps;
             constexpr real_t dx = HilbertSpace::dx;
@@ -170,7 +171,7 @@ namespace KetCat
                         real_t Phi   = ConstexprMath::atan2(YCoord, XCoord);
 
                         // Angular spherical harmonic Yₗᵐ(θ,φ)
-                        complex_t Ylm = spherical_harmonic(
+                        complex_t Ylm = sphericalHarmonic(
                             QNumbers.l(),
                             QNumbers.m(),
                             Theta,

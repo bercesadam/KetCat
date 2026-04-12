@@ -19,14 +19,15 @@ int main()
 	constexpr auto hydrogenCtor = std::bind(HydrogenOrbital<HilbertSpace>(), std::placeholders::_1, 0.05);
 
 	// List of hydrogen orbitals to simulate: (StateVector, Name, l)
+	using namespace SpectroscopicLetters;
 	std::array<std::tuple<StateVector<HilbertSpace>, std::string, natural_t>, 6> hydrogenOrbitals =
 	{
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_1s()), "1s", 0),
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_2s()), "2s", 0),
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_2p()), "2p", 1),
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_3s()), "3s", 0),
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_3p()), "3p", 1),
-		 std::make_tuple(hydrogenCtor(QuantumNumber::_3d()), "3d", 2)
+		 std::make_tuple(hydrogenCtor(QuantumNumber<1, s>()), "1s", 0),
+		 std::make_tuple(hydrogenCtor(QuantumNumber<2, p>()), "2p", 1),
+		 std::make_tuple(hydrogenCtor(QuantumNumber<3, d>()), "3d", 2),
+		 std::make_tuple(hydrogenCtor(QuantumNumber<4, f>()), "4f", 3),
+		 std::make_tuple(hydrogenCtor(QuantumNumber<5, g>()), "5g", 4),
+		 std::make_tuple(hydrogenCtor(QuantumNumber<6, h>()), "6h", 5)
 	};
 
 	constexpr real_t TimeStep = 1E-4;

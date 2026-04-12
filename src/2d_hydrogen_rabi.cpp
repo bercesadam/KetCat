@@ -1,6 +1,6 @@
-﻿#include <SDL2/SDL.h>
-#include <iostream>
+﻿#include <iostream>
 #include <iomanip>
+#include <memory>
 
 #include "wavefunction/2d_hydrogen.h"
 #include "visu/wavefunction_viewer/wavefunction_viewer.h"
@@ -20,12 +20,18 @@ int main(int, char**)
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
-    constexpr auto q0 = QuantumNumber::_3p_m1();
-    constexpr auto q1 = QuantumNumber::_4d_m0();
+    using namespace SpectroscopicLetters;
+	constexpr auto q0 = QuantumNumber<2, p, 1>();
+	constexpr auto q1 = QuantumNumber<3, d, 0>();
 
     // Construct initial eigenstates:
-    auto Psi0 = Hydrogen2D<HilbertSpace>()(q0).m_Psi;
-    auto Psi1 = Hydrogen2D<HilbertSpace>()(q1).m_Psi;
+    auto Psi0 = std::make_unique<StateVector<HilbertSpace>>(
+        Hydrogen2D<HilbertSpace>()(q0).m_Psi
+    );
+
+    auto Psi1 = std::make_unique<StateVector<HilbertSpace>>(
+        Hydrogen2D<HilbertSpace>()(q1).m_Psi
+    );
 
     // Corresponding energy eigenvalues (Hartree units):
     const real_t E0 = q0.hartreeEnergy();
@@ -46,7 +52,6 @@ int main(int, char**)
     // Initialize probabilities and the state vector
     real_t Palpha = 0.0; // Occupation probability P(t) = |α|²
     real_t Pbeta = 0.0;  // Occupation probability P(t) = |β|²
-    auto Psi = Psi0;     // Initial state: pure ψ₀
 
     while (Running)
     {
@@ -89,28 +94,28 @@ int main(int, char**)
             // Construct superposition:
             //
             // ψ = α ψ₀ + β ψ₁
-            Psi = Psi0.superpose(Psi1, Alpha, Beta);
+            auto Psi = Psi0->superpose(*Psi1, Alpha, Beta);
 
             // Renormalize in discrete 2D space:
             //
             // ∑ |ψ|² dx² = 1
             Psi.normalize();
+
+            // Calculate occupation probabilities of state ψ₀ and ψ₁:
+            Palpha = Psi.probabilityOf(*Psi0);
+            Pbeta = Psi.probabilityOf(*Psi1);
+
+            // Create custom title for the Visu
+            std::ostringstream ProbaPopulation;
+            ProbaPopulation << std::setprecision(2)
+                << "Population: |⟨4d₀|ψ⟩|² = "
+                << Pbeta * 100.0 << "%, "
+                << "|⟨3p₁|ψ⟩|² = "
+                << Palpha * 100.0 << "%";
+
+            // Render density |ψ(x,y,t)|² and state coefficients
+            Visu.render(Psi, ProbaPopulation.str());
         }
-
-        // Calculate occupation probabilities of state ψ₀ and ψ₁:
-        Palpha = Psi.probabilityOf(Psi0);
-        Pbeta = Psi.probabilityOf(Psi1);
-
-        // Create custom title for the Visu
-        std::ostringstream ProbaPopulation;
-        ProbaPopulation << std::setprecision(2)
-            << "Population: |⟨4d₀|ψ⟩|² = "
-            << Pbeta * 100.0 << "%, "
-            << "|⟨3p₁|ψ⟩|² = "
-            << Palpha * 100.0 << "%";
-
-        // Render density |ψ(x,y,t)|² and state coefficients
-        Visu.render(Psi, ProbaPopulation.str());
 
         while (SDL_PollEvent(&Event))
         {
