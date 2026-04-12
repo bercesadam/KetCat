@@ -48,6 +48,13 @@ foreach(SRC_FILE ${ALL_SOURCES})
 
     add_executable(${EXE_NAME} ${SRC_FILE})
 
+    if (MSVC)
+        set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864")
+    else()
+        # Linux/GCC
+        target_link_options(${EXE_NAME} PRIVATE "-Wl,-z,stack-size=67108864")
+    endif()
+
     target_include_directories(${EXE_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
