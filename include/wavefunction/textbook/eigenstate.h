@@ -1,6 +1,6 @@
 #pragma once
 #include "core_types.h"
-#include "wavefunction.h"
+#include "wavefunction/wavefunction.h"
 #include "hilbert_space/state_vector.h"
 
 namespace KetCat

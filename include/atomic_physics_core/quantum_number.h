@@ -1,7 +1,7 @@
 #pragma once
 #include <concepts>
 #include "core_types.h"
-
+#include "spectroscopic_letters.h"
 
 namespace KetCat
 {

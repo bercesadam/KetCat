@@ -9,9 +9,6 @@ namespace KetCat
 	// Maximum number of shells/subshells to consider in the electron configuration
 	constexpr natural_t MAX_SHELLS = 10; 
 
-	// Type alias for the electron configuration array, which holds the electron counts for each shell/subshell.
-	using electron_config_t = std::array<ElectronShell, MAX_SHELLS>;
-
 	/// @brief Helper struct to store the number of electrons on each subshell
 	struct ElectronShell
 	{
@@ -19,6 +16,9 @@ namespace KetCat
 		natural_t m_l; // Orbital angular momentum quantum number
 		natural_t m_numElectrons; // Number of electrons in this shell
 	};
+
+	// Type alias for the electron configuration array, which holds the electron counts for each shell/subshell.
+	using electron_config_t = std::array<ElectronShell, MAX_SHELLS>;
 
 	/// @brief Atom class template to store basic atomic information and electron configuration for seed wavefunction generation.
 	/// @tparam E Element type (e.g. Element::Li, Element::Na)
@@ -32,7 +32,7 @@ namespace KetCat
 			natural_t m_Z;
 			
 			// Effective Bohr radius
-			real_t m_Aeff
+			real_t m_Aeff;
 
 			// Electron configuration array, where each entry corresponds to a subshell defined by (n, l)
 			//and the number of electrons in that subshell.
@@ -42,9 +42,6 @@ namespace KetCat
 			// (Index of the last used element in the static array.)
 			natural_t m_OuterShellIndex;
 		};
-
-		// @brief Electron configuration and outer shell index for the atom, generated at compile time.
-		static constexpr AtomData m_Data = generateConfig();
 
 		///@brief Calculate the electron configuration for a given element based on its atomic number Z.
 		static constexpr AtomData generateConfig()
@@ -81,7 +78,7 @@ namespace KetCat
 
 			// The atomic number Z corresponds to the total number of electrons in a neutral atom,
 			// which is equal to the underlying value of the Element enum.
-			natural_t Remaining = Z;
+			natural_t Remaining = Data.m_Z;
 
 			for (natural_t i = 0; i < std::size(Aufbau); ++i)
 			{
@@ -104,33 +101,36 @@ namespace KetCat
 			return Data;
 		}
 
-	public:
-		/// @brief Get the electron configuration for this atom.
-		/// @return A constexpr array of ElectronShell structs representing the electron configuration.
-		static constexpr electron_config_t getElectronConfiguration() noexcept
-		{
-			return m_ElectronConfiguration;
-		}
+		// @brief Electron configuration and outer shell index for the atom, generated at compile time.
+		static constexpr AtomData m_Data = generateConfig();
 
-		/// @brief Get the index of the outermost occupied shell/subshell in the electron configuration.
-		/// @return The index of the outermost occupied shell/subshell.
-		static constexpr natural_t getOuterShellIndex() noexcept
+	public:
+		/// @brief Get the atomic number (total number of electrons) for this atom.
+		/// @return The atomic number Z.
+		static constexpr natural_t getAtomicNumber() noexcept
 		{
-			return m_OuterShellIndex;
+			return m_Data.m_Z;
 		}
 
 		/// @brief Get the effective Bohr radius for this atom, which can be used in hydrogenic orbital calculations.
 		/// @return The effective Bohr radius (currently set equal to the actual Bohr radius for simplicity).
 		static constexpr real_t getEffectiveBohrRadius() noexcept
 		{
-			return m_Aeff;
+			return m_Data.m_Aeff;
 		}
 
-		/// @brief Get the atomic number (total number of electrons) for this atom.
-		/// @return The atomic number Z.
-		static constexpr natural_t getAtomicNumber() noexcept
+		/// @brief Get the electron configuration for this atom.
+		/// @return A constexpr array of ElectronShell structs representing the electron configuration.
+		static constexpr electron_config_t getElectronConfiguration() noexcept
 		{
-			return m_Z;
+			return m_Data.m_ElectronConfiguration;
+		}
+
+		/// @brief Get the index of the outermost occupied shell/subshell in the electron configuration.
+		/// @return The index of the outermost occupied shell/subshell.
+		static constexpr natural_t getOuterShellIndex() noexcept
+		{
+			return m_Data.m_OuterShellIndex;
 		}
 	};	
 }

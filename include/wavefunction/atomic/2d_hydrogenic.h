@@ -1,7 +1,9 @@
 ﻿#pragma once
-#include "wavefunction.h"
-#include "quantum_number.h"
-#include "hydrogen.h"
+#include "wavefunction/wavefunction.h"
+#include "effective_radial_orbital.h"
+
+#include "atomic_physics_core/quantum_number.h"
+#include "atomic_physics_core/elements.h"
 
 namespace KetCat
 {
@@ -105,7 +107,7 @@ namespace KetCat
     ///     f orbitals → flower‑like symmetries  
     ///
     /// This is a visually clean way to inspect angular structure of orbitals.
-    template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace>
+    template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace, Element element>
     struct Hydrogen2D
     {
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
@@ -123,10 +125,10 @@ namespace KetCat
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto RadialArray = HydrogenOrbital<InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent>>{}(
-                QNumbers,
-                1.0   // effective Bohr radius
-            );
+            auto RadialArray =
+                EffectiveRadialOrbital<
+                    InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent>,
+                    element>{}(QNumbers);
 
             for (natural_t ix = 0; ix < Steps; ++ix)
             {

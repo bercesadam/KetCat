@@ -1,11 +1,12 @@
 #pragma once
-#include "core_types.h"
-#include "hilbert_space/state_vector.h"
-#include "atomic_physics_core/quantum_number.h"
-#include "atomic_physics_core/atoms.h"
-#include "atomic_physics_core/rydberg_quantum_defects.h"
-	
+#include "hydrogenic_radial.h"
+#include "slater_type_radial.h"
 
+#include "atomic_physics_core/atom.h"
+#include "atomic_physics_core/quantum_number.h"
+#include "atomic_physics_core/rydberg_quantum_defect.h"
+
+	
 namespace KetCat
 {
 	/// @brief  This is a meta-wavefunction generator that performs a model selection for the radial part
@@ -20,7 +21,7 @@ namespace KetCat
 	///   For all other cases, a Slater-type orbital seed is generated using an effective nuclear charge calculated from Slater's rules.
 	///
 	/// @tparam HilbertSpace 1D Spatial Hilbert space defining the radial grid
-	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
+	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace, Element element>
 	struct EffectiveRadialOrbital
 	{
 		/// @brief Generates the effective radial orbital seed for alkali atoms,
@@ -32,11 +33,10 @@ namespace KetCat
 		/// @return Normalized quantum state vector representing the orbital
 		template <quantum_number_t QuantumNumberType>
 		constexpr StateVector<HilbertSpace>
-			operator()(Element element, QuantumNumberType q) const noexcept
+			operator()(QuantumNumberType q) const noexcept
 		{
-			const natural_t n = q.n();
 			const natural_t l = q.l();
-			const real_t QuantumDefect = RydbergQuantumDefect::value(element, n, l);
+			const real_t QuantumDefect = RydbergQuantumDefect::value(element, q);
 
 			StateVector<HilbertSpace> Psi{ complex_t::zero() };
 			
@@ -64,11 +64,11 @@ namespace KetCat
 
 			if (UseHydrogenic)
 			{
-				Psi = HydrogenOrbital<HilbertSpace>{}(element, q);
+				Psi = HydrogenOrbitalRadial<HilbertSpace, element>{}(q);
 			}
 			else
 			{
-				Psi = SlaterTypeOrbital<HilbertSpace>{}(element, q);
+				Psi = SlaterOrbitalRadial<HilbertSpace, element>{}(q);
 			}
 
 			return Psi;

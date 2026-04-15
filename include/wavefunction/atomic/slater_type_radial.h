@@ -32,15 +32,17 @@ namespace KetCat
     ///                          n* = n - quantum_defect
     ///
     /// @return Estimated Slater exponent zeta
-    constexpr real_t calculateZeta(Element element, real_t nStar)
+    template <Element element>
+    constexpr real_t calculateZeta(real_t nStar)
     {
+        constexpr natural_t TargetShellIndex = Atom<element>::getOuterShellIndex();
 		constexpr auto Config = Atom<element>::getElectronConfiguration();
 
         // Atomic number = total number of electrons in a neutral atom.
         constexpr natural_t Z = std::to_underlying(element);
 
         // Select the target subshell for which we estimate shielding.
-        const ElectronShell Target = Config[targetShellIndex];
+        const ElectronShell Target = Config[TargetShellIndex];
 
         // Total shielding contribution from all other electrons.
         real_t Shielding = 0.0;
@@ -68,7 +70,7 @@ namespace KetCat
             //   same-shell electrons contribute ~0.35 each
             //
             // Subtract 1 because the target electron does not shield itself.
-            if (i == targetShellIndex)
+            if (i == TargetShellIndex)
             {
                 Shielding += (Shell.m_numElectrons - 1) * 0.35;
             }
@@ -135,8 +137,8 @@ namespace KetCat
     ///
     /// @tparam HilbertSpace
     ///   Discrete 1D spatial Hilbert space defining the radial grid size and spacing.
-    template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
-    struct SlaterOrbital
+    template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace, Element element>
+    struct SlaterOrbitalRadial
     {
         /// @brief Generate a Slater-type reduced radial orbital.
         ///
@@ -147,17 +149,13 @@ namespace KetCat
         ///   Normalized state vector representing u(r)
         template <quantum_number_t QuantumNumberType>
         constexpr StateVector<HilbertSpace>
-            operator()(Element element, QuantumNumberType q) const noexcept
+            operator()(QuantumNumberType q) const noexcept
         {
             // Effective (possibly non-integer) principal quantum number n*
             const real_t N_star = SlaterEffectiveQuantumNumber::value(q.n());
 
             // Estimate the Slater orbital exponent ζ using effective nuclear charge and n*.
-            const real_t Zeta = calculateZeta(element, N_star);
-
-            // Orbital angular momentum ℓ (not explicitly used in STO radial form,
-            // but kept for consistency with the general orbital interface)
-            const natural_t l = q.l();
+            const real_t Zeta = calculateZeta<element>(N_star);
 
             StateVector<HilbertSpace> Psi{ complex_t::zero() };
 

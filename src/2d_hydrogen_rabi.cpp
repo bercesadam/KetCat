@@ -3,34 +3,33 @@
 #include <memory>
 
 #include "wavefunction/atomic/2d_hydrogenic.h"
-#include "visu/wavefunction_viewer/wavefunction_viewer.h"
+#include "visu/file_exporter.h"
 
 using namespace KetCat;
-using namespace KetCat::Visu;
 
 /// This demo program is a smoke test of new 2D functionality.
 /// It simulates and visualizes Rabi oscillations between two hydrogenic eigenstates (|3p₋₁⟩ and |4d₀⟩) in a 2D Hilbert space. 
 
-int main(int, char**) 
+int main() 
 {
     // Construct Hilbert-space
     constexpr natural_t DiscretizationSteps = 256;
-    constexpr real_t PhysicalExtent = 20.0;
+    constexpr real_t PhysicalExtent = 50.0;
     using HilbertSpace = InfiniteHilbertSpace<2_D, DiscretizationSteps, PhysicalExtent>;
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
     using namespace SpectroscopicLetters;
-	constexpr auto q0 = QuantumNumber<2, p, 1>();
-	constexpr auto q1 = QuantumNumber<3, d, 0>();
+	constexpr auto q0 = QuantumNumber<6, s, 0>();
+	constexpr auto q1 = QuantumNumber<7, p, 0>();
 
     // Construct initial eigenstates:
     auto Psi0 = std::make_unique<StateVector<HilbertSpace>>(
-        Hydrogen2D<HilbertSpace>()(q0).m_Psi
+        Hydrogen2D<HilbertSpace, Element::Cs>()(q0).m_Psi
     );
 
     auto Psi1 = std::make_unique<StateVector<HilbertSpace>>(
-        Hydrogen2D<HilbertSpace>()(q1).m_Psi
+        Hydrogen2D<HilbertSpace, Element::Cs>()(q1).m_Psi
     );
 
     // Corresponding energy eigenvalues (Hartree units):
@@ -43,17 +42,18 @@ int main(int, char**)
     // Time step Δt
     const real_t dt = 0.5;
 
-    // Initialize visualization window
-    bool Running = true;
-    SDL_Event Event;
-    WavefunctionViewer<HilbertSpace> Visu(1200, 900);
     int Frame = 0;
 
     // Initialize probabilities and the state vector
     real_t Palpha = 0.0; // Occupation probability P(t) = |α|²
     real_t Pbeta = 0.0;  // Occupation probability P(t) = |β|²
 
-    while (Running)
+    KetCat::StateVectorCsvExporter<HilbertSpace> exporter(
+        "simulation.csv",
+        KetCat::ExportMode::RealImag
+    );
+
+    while (Frame < 300)
     {
         Frame++;
         real_t t = Frame * dt;   // Physical time
@@ -112,17 +112,10 @@ int main(int, char**)
                 << Pbeta * 100.0 << "%, "
                 << "|⟨3p₁|ψ⟩|² = "
                 << Palpha * 100.0 << "%";
+			std::cout << ProbaPopulation.str() << std::endl;
 
             // Render density |ψ(x,y,t)|² and state coefficients
-            Visu.render(Psi, ProbaPopulation.str());
-        }
-
-        while (SDL_PollEvent(&Event))
-        {
-            if (Event.type == SDL_QUIT)
-            {
-                Running = false;
-            }
+            exporter.writeTimestep(t, Psi);
         }
     }
 
