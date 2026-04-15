@@ -3,17 +3,6 @@
 
 namespace KetCat
 {
-	///@brief Enumeration of alkali atoms
-    enum class Atom : natural_t
-    {
-        H,
-        Li,
-        Na,
-        K,
-        Rb,
-        Cs
-    };
-
     /// @brief Quantum defects for alkali atoms (s, p, d, f states) based on experimental data.
     /// 
     /// @details The quantum defect δₗ modifies the effective principal quantum number n* = n - δₗ,
@@ -24,7 +13,7 @@ namespace KetCat
     /// but it's more accurate for high-n states where the quantum defect becomes less significant.
     /// 
     /// Indexing: QuantumDefects[atom][l] gives the quantum defect for a given atom and orbital angular momentum l.
-    class QuantumDefects
+    class RydbergQuantumDefect
     {
         static constexpr std::array<std::array<real_t, 4>, 6> m_QuantumDefects =
         { {
@@ -38,7 +27,8 @@ namespace KetCat
         }};
 
     public:
-		constexpr real_t getEffectivePrincipalQuantumNumber(Atom atom, natural_t l, natural_t n) const noexcept
+		/// @brief Get the effective principal quantum number n* for a given atom, orbital angular momentum l, and principal quantum number n.
+		constexpr real_t operator()(Element element, natural_t n, natural_t l) const noexcept
         {
             if (l >= 4)
             {
@@ -46,7 +36,19 @@ namespace KetCat
 				return n; 
             }
 
-            real_t Delta = m_QuantumDefects[static_cast<natural_t>(atom)][l];
+            natural_t Index = 0;
+            switch (element)
+            {
+                case Element::H:  Index = 0; break;
+                case Element::Li: Index = 1; break;
+                case Element::Na: Index = 2; break;
+                case Element::K:  Index = 3; break;
+                case Element::Rb: Index = 4; break;
+                case Element::Cs: Index = 5; break;
+				default: Index = 0; break; // Default to H if unknown element
+			}
+
+            real_t Delta = m_QuantumDefects[Index][l];
             return n - Delta;
 		}
     };

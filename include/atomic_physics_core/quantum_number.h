@@ -4,36 +4,6 @@
 
 namespace KetCat
 {
-	/// @brief Represents the azimuthal quantum number l
-    struct AzimuthalQuantumNumber
-    {
-		/// @brief The underlying value of the azimuthal quantum number l
-        natural_t m_l;
-
-		///@brief Constructor for AzimuthalQuantumNumber
-        consteval AzimuthalQuantumNumber(natural_t l) : m_l(l){}
-	};
-
-	/// @brief Named constants for azimuthal quantum numbers corresponding to spectroscopic letters.
-	/// Enclosing them in a namespace to not to pollute the main KetCat namespace with single-letter constants
-	/// @group SpectroscopicLetters
-    /// {
-    namespace SpectroscopicLetters
-    {
-        constexpr AzimuthalQuantumNumber s{ 0 };
-        constexpr AzimuthalQuantumNumber p{ 1 };
-        constexpr AzimuthalQuantumNumber d{ 2 };
-        constexpr AzimuthalQuantumNumber f{ 3 };
-        constexpr AzimuthalQuantumNumber g{ 4 };
-        constexpr AzimuthalQuantumNumber h{ 5 };
-        constexpr AzimuthalQuantumNumber i{ 5 };
-        constexpr AzimuthalQuantumNumber k{ 6 };
-        constexpr AzimuthalQuantumNumber l{ 7 };
-        constexpr AzimuthalQuantumNumber m{ 8 };
-        constexpr AzimuthalQuantumNumber n{ 9 };
-    }
-	/// }
-
     /// @brief Representation of  quantum numbers (n, l, m)
     /// @details
     /// Encodes the triplet (n, l, m) with the usual constraints:
@@ -77,6 +47,10 @@ namespace KetCat
         static constexpr real_t hartreeEnergy() noexcept {
             return -1.0 / (2.0 * N * N);
         }
+
+        static constexpr real_t rydbergEnergy() noexcept {
+            return -1.0 / (2.0 * N * N);
+		}
     };
 
 	/// @brief Concept to check if a type T has the required interface of quantum numbers (n, l, m) with appropriate return types.
