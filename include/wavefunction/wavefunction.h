@@ -38,4 +38,22 @@ namespace KetCat
         requires hilbert_space_t<typename decltype(std::apply(g, t))::HilbertSpace>;
     };
 
+
+    
+    // @brief Concept for wavefunction generators constrained to a specific Hilbert space.
+    /// @tparam Generator     Type of the wavefunction generator.
+    /// @tparam ParamTuple    Tuple of parameters passed to the generator.
+    /// @tparam HilbertSpace  The exact Hilbert space the generator must produce.
+    template<
+        typename Generator,
+        typename ParamTuple,
+        typename HilbertSpace
+    >
+    concept wavefunction_generator_for_t =
+        hilbert_space_t<HilbertSpace> &&
+        requires(Generator g, ParamTuple t)
+    {
+        { std::apply(g, t) } -> std::same_as<Wavefunction<HilbertSpace>>;
+    };
+
 }

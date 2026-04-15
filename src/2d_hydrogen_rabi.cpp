@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <memory>
 
-#include "wavefunction/2d_hydrogen.h"
+#include "wavefunction/atomic/2d_hydrogenic.h"
 #include "visu/wavefunction_viewer/wavefunction_viewer.h"
 
 using namespace KetCat;

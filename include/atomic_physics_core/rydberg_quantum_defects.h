@@ -1,6 +1,7 @@
 #pragma once
 #include "quantum_number.h"
 
+
 namespace KetCat
 {
     /// @brief Quantum defects for alkali atoms (s, p, d, f states) based on experimental data.
@@ -28,27 +29,19 @@ namespace KetCat
 
     public:
 		/// @brief Get the effective principal quantum number n* for a given atom, orbital angular momentum l, and principal quantum number n.
-		constexpr real_t operator()(Element element, natural_t n, natural_t l) const noexcept
+        template <quantum_number_t QuantumNumberType>
+		static constexpr real_t value(Element element, QuantumNumberType q) noexcept
         {
+            const natural_t l = q.l();
+            const natural_t n = q.n();
+
+            // For l >= 4, quantum defect is negligible
             if (l >= 4)
             {
-                // For l >= 4, quantum defect is negligible
 				return n; 
             }
 
-            natural_t Index = 0;
-            switch (element)
-            {
-                case Element::H:  Index = 0; break;
-                case Element::Li: Index = 1; break;
-                case Element::Na: Index = 2; break;
-                case Element::K:  Index = 3; break;
-                case Element::Rb: Index = 4; break;
-                case Element::Cs: Index = 5; break;
-				default: Index = 0; break; // Default to H if unknown element
-			}
-
-            real_t Delta = m_QuantumDefects[Index][l];
+            real_t Delta = m_QuantumDefects[std::to_underlying(element)][l];
             return n - Delta;
 		}
     };

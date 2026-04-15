@@ -33,36 +33,53 @@ namespace KetCat
 		return Lk;
 	}
 
-
-	/// @brief  Construct a hydrogenic-like reduced radial wavefunction seed u(r) flattened to 1D.
-	/// @param  n     Principal quantum number n ≥ 1.
-	/// @param  l     Orbital angular momentum ℓ with 0 ≤ ℓ < n.
-	/// @param  a_eff Effective length scale a_eff > 0.
-	/// @param  dx    Grid spacing Δr.
-	/// @return       Reduced radial component u(r), normalized so that Σ |u|² · Δr = 1.
-	/// @details
-	///   This returns u(r) (1D) which depends only on (n, ℓ). The full wavefunction is
-	///   ψ_{nℓm}(r,θ,φ) = (u_{nℓ}(r)/r) · Y_{ℓm}(θ,φ). The Hamiltonian is m-independent
-	///   for central potentials; m enters only via the angular factor Y_{ℓm}.
+	
+	/// @brief Construct a hydrogenic reduced radial wavefunction seed u(r)
+	///   This implements a hydrogen-like bound-state orbital for a Coulomb potential.
+	///   The returned function is the reduced radial wavefunction
 	///
-	/// @tparam Dim Size of the discrete spatial grid
+	///     u(r) = r · R(r),
+	///
+	///   discretized on a 1D radial grid and normalized on that grid.
+	///
+	///   Unlike Slater-type orbitals, hydrogenic orbitals are exact eigenfunctions of the
+	///   hydrogen atom Hamiltonian and are expressed in terms of associated Laguerre
+	///   polynomials. The radial dependence is controlled by the principal quantum number n
+	///   and orbital angular momentum ℓ.
+	///
+	///   The reduced radial function takes the form:
+	///
+	///     uₙℓ(r) ∝ r^{ℓ+1} · exp(−r / (n a_eff)) · L_{n−ℓ−1}^{2ℓ+1}(2r / (n a_eff))
+	///
+	///   where L_{p}^{α}(x) is an associated Laguerre polynomial and a_eff is an effective
+	///   Bohr radius (e.g. incorporating screening or reduced-mass effects).
+	///
+	///   The full spatial wavefunction is
+	///
+	///     ψ_{nℓm}(r,θ,φ) = (u_{nℓ}(r) / r) · Y_{ℓm}(θ,φ)
+	///
+	///   As with all central potentials, the Hamiltonian is m-independent; the magnetic
+	///   quantum number m enters only through the spherical harmonic Y_{ℓm}.
+	///
+	/// @tparam HilbertSpace
+	///   Discrete 1D spatial Hilbert space defining the radial grid size and spacing.
+
 	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace>
 	struct HydrogenOrbital
 	{
-		/// @brief Generates a hydrogen-like orbital wavefunction.
+		/// @brief Generates a reduced radial part of a hydrogen-like orbital wavefunction.
 		///
-		/// @param q   Quantum number pair (n, l)
-		/// @param a0  Effective Bohr radius (controls spatial scale)
-		/// @param dx  Spatial discretization step
-		/// @param x0  Position of the atomic center
+		/// @param element   Chemical element descriptor (e.g. Li, Na, K)
+		/// @param q         Quantum number pair (n, l)
 		///
-		/// @return Normalized quantum state vector representing the orbital
+		/// @return Normalized quantum state vector representing the radial part of a hydrogenic orbital
 		template <quantum_number_t QuantumNumberType>
 		constexpr StateVector<HilbertSpace>
-			operator()(QuantumNumberType q, double a_eff) const noexcept
+			operator()(Element element, QuantumNumberType q) const noexcept
 		{
 			const natural_t n = q.n();
 			const natural_t l = q.l();
+			const real_t A_eff = Atom<element>::getEffectiveBohrRadius();
 
 			StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
@@ -70,7 +87,7 @@ namespace KetCat
 			for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
 			{
 				const double r = i * HilbertSpace::dx;
-				const double x = 2.0 * r / (n * a_eff);
+				const double x = 2.0 * r / (n * A_eff);
 
 				// Behavior near r=0 (the nucleus)
 				// r^(ℓ+1)
@@ -82,7 +99,7 @@ namespace KetCat
 
 				// Exponential tail
 				// exp(−r / (n·a_eff))
-				const double Exponential = ConstexprMath::exp<30>(-r / (n * a_eff));
+				const double Exponential = ConstexprMath::exp<30>(-r / (n * A_eff));
 
 				// Associated Laguerre: L_{n−ℓ−1}^(2ℓ+1)(x)
 				const unsigned p = n - l - 1;

@@ -62,7 +62,7 @@ namespace KetCat
         /// Embedded basis states |φ_i⟩ represented in the full grid space
         std::array<StateVector<FullHilbertSpace>, LevelCount> m_Basis;
 
-        /// Energies of the basis states, computed as ⟨φ_i|H|φ_i⟩, where H is the system Hamiltonian.
+        /// Energies of the basis states, computed as ⟨φ_i|Ĥ|φ_i⟩
         std::array<real_t, LevelCount> m_Energies;
 
     public:

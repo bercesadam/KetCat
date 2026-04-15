@@ -1,6 +1,7 @@
 #pragma once
 #include "core_types.h"
 
+
 namespace KetCat
 {
 	/// @brief Slater's effective principal quantum numbers (n*)
@@ -20,8 +21,8 @@ namespace KetCat
         };
 
     public:
-		/// @brief Get the effective principal quantum number n* for a given atom and principal quantum number n.
-        constexpr real_t operator()(Atom atom, natural_t n) const noexcept
+		/// @brief Get the effective principal quantum number n* for a given principal quantum number n.
+        static constexpr real_t value(natural_t n) noexcept
         {
             if (n >= 7)
             {
@@ -31,7 +32,7 @@ namespace KetCat
 				return n - 2.5;
             }
 
-            return m_EffectivePrincipalQuantumNumbers[natural_t];
+            return m_EffectivePrincipalQuantumNumbers[n];
         }
     };
 }

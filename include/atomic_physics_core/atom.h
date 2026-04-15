@@ -1,6 +1,8 @@
 #pragma once
 #include <utility>
+#include "constants.h"
 #include "elements.h"
+
 
 namespace KetCat
 {
@@ -10,7 +12,7 @@ namespace KetCat
 	// Type alias for the electron configuration array, which holds the electron counts for each shell/subshell.
 	using electron_config_t = std::array<ElectronShell, MAX_SHELLS>;
 
-	/// @brief Helper struct to calculate 
+	/// @brief Helper struct to store the number of electrons on each subshell
 	struct ElectronShell
 	{
 		natural_t m_n; // Principal quantum number
@@ -18,15 +20,26 @@ namespace KetCat
 		natural_t m_numElectrons; // Number of electrons in this shell
 	};
 
-	/// @brief Atom class template that currently generates the electron configuration for a given element based on its atomic number.
-	/// (Preserved for potential future use of more detailed atomic properties.)
+	/// @brief Atom class template to store basic atomic information and electron configuration for seed wavefunction generation.
+	/// @tparam E Element type (e.g. Element::Li, Element::Na)
 	template <Element E>
 	class Atom
 	{
 		// @brief Internal struct to hold the electron configuration and outer shell index for the atom.
 		struct AtomData
 		{
+			// Atomic number (total number of electrons in a neutral atom)
+			natural_t m_Z;
+			
+			// Effective Bohr radius
+			real_t m_Aeff
+
+			// Electron configuration array, where each entry corresponds to a subshell defined by (n, l)
+			//and the number of electrons in that subshell.
 			electron_config_t m_ElectronConfiguration;
+
+			// Index of the outermost occupied shell/subshell in the electron configuration.
+			// (Index of the last used element in the static array.)
 			natural_t m_OuterShellIndex;
 		};
 
@@ -38,7 +51,19 @@ namespace KetCat
 		{
 			AtomData Data{};
 
+			// Store the atomic number in the data struct
+			Data.m_Z = AtomicNumber<E>::value;
+
+			// Calculate effective Bohr radius
+			// WARNING! Defining it as equal to the Bohr radius as currently this is used only
+			// for the calculation of Hydrogenic like radial orbitals in Rydberg states,
+			// where the effective Bohr radius is close to the actual Bohr radius.
+			Data.m_Aeff = BohrRadius;
+
+			// Temporary struct to represent a subshell with its quantum numbers (n, l).
 			struct SubshellStub { natural_t n, l; };
+
+			// The Aufbau principle dictates the order in which electrons fill atomic orbitals.
 			constexpr SubshellStub Aufbau[] =
 			{
 				{1,0},
@@ -56,7 +81,7 @@ namespace KetCat
 
 			// The atomic number Z corresponds to the total number of electrons in a neutral atom,
 			// which is equal to the underlying value of the Element enum.
-			natural_t Remaining = std::to_underlying(E);
+			natural_t Remaining = Z;
 
 			for (natural_t i = 0; i < std::size(Aufbau); ++i)
 			{
@@ -93,5 +118,19 @@ namespace KetCat
 		{
 			return m_OuterShellIndex;
 		}
-	};
+
+		/// @brief Get the effective Bohr radius for this atom, which can be used in hydrogenic orbital calculations.
+		/// @return The effective Bohr radius (currently set equal to the actual Bohr radius for simplicity).
+		static constexpr real_t getEffectiveBohrRadius() noexcept
+		{
+			return m_Aeff;
+		}
+
+		/// @brief Get the atomic number (total number of electrons) for this atom.
+		/// @return The atomic number Z.
+		static constexpr natural_t getAtomicNumber() noexcept
+		{
+			return m_Z;
+		}
+	};	
 }
