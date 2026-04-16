@@ -7,7 +7,7 @@
 namespace KetCat
 {
 	// Maximum number of shells/subshells to consider in the electron configuration
-	constexpr natural_t MAX_SHELLS = 10; 
+	constexpr natural_t MAX_SHELLS = 30; 
 
 	/// @brief Helper struct to store the number of electrons on each subshell
 	struct ElectronShell
