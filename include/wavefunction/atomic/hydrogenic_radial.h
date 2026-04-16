@@ -9,6 +9,7 @@
 namespace KetCat
 {
 	/// @brief Helper function which computes the associated Laguerre polynomial L_p^(α)(x).
+	///		   Currently unused legacy function, replaced by kummerHypergeometric1F1 to support non-integer principal quantum numebrs
 	/// @param p     Degree of the polynomial (non-negative integer).
 	/// @param alpha Parameter of the polynomial (non-negative integer).
 	/// @param x     Point at which to evaluate the polynomial.
@@ -35,37 +36,74 @@ namespace KetCat
 		return Lk;
 	}
 
-	
-	/// @brief Construct a hydrogenic reduced radial wavefunction seed u(r)
-	///   This implements a hydrogen-like bound-state orbital for a Coulomb potential.
-	///   The returned function is the reduced radial wavefunction
+	/// @brief Computes the confluent hypergeometric function 1F1(a, b, x) (Kummer's function).
+    /// @details Evaluates the series expansion 1 + (a/b)x + (a(a+1)/b(b+1))(x^2/2!) + ...
+    /// This generalizes the associated Laguerre polynomials to non-integer degrees,
+    /// which is required for calculating alkali Rydberg states with quantum defects.
 	///
-	///     u(r) = r · R(r),
-	///
-	///   discretized on a 1D radial grid and normalized on that grid.
-	///
-	///   Unlike Slater-type orbitals, hydrogenic orbitals are exact eigenfunctions of the
-	///   hydrogen atom Hamiltonian and are expressed in terms of associated Laguerre
-	///   polynomials. The radial dependence is controlled by the principal quantum number n
-	///   and orbital angular momentum ℓ.
-	///
-	///   The reduced radial function takes the form:
-	///
-	///     uₙℓ(r) ∝ r^{ℓ+1} · exp(−r / (n a_eff)) · L_{n−ℓ−1}^{2ℓ+1}(2r / (n a_eff))
-	///
-	///   where L_{p}^{α}(x) is an associated Laguerre polynomial and a_eff is an effective
-	///   Bohr radius (e.g. incorporating screening or reduced-mass effects).
-	///
-	///   The full spatial wavefunction is
-	///
-	///     ψ_{nℓm}(r,θ,φ) = (u_{nℓ}(r) / r) · Y_{ℓm}(θ,φ)
-	///
-	///   As with all central potentials, the Hamiltonian is m-independent; the magnetic
-	///   quantum number m enters only through the spherical harmonic Y_{ℓm}.
-	///
-	/// @tparam HilbertSpace
-	///   Discrete 1D spatial Hilbert space defining the radial grid size and spacing.
+    /// @param a 	First parameter (numerator of the Pochhammer symbols).
+    /// @param b 	Second parameter (denominator of the Pochhammer symbols).
+    /// @param x 	The value at which to evaluate the function.
+    /// @return The value of the Kummer confluent hypergeometric function.
+	static constexpr real_t kummerHypergeometric1F1(real_t a, real_t b, real_t x) noexcept
+	{
+		real_t Term = 1.0;
+		real_t Sum = 1.0;
 
+		// Constrained to maximum 1000 terms as a safety limit
+		for (natural_t k = 1; k < 1000; ++k)
+		{
+			Term *= (a + k - 1.0) / (b + k - 1.0) * (x / k);
+			Sum += Term;
+
+			// Stopping condition if the term is negligible
+			if (ConstexprMath::abs(Term) < 1e-14 * ConstexprMath::abs(Sum)) 
+				break;
+		}
+		return Sum;
+	}
+	
+	/// @brief Construct a generalized hydrogenic reduced radial wavefunction seed u(r).
+    ///
+    /// This implements a radial bound-state orbital for a central Coulomb potential,
+    /// generalized to support both pure hydrogenic states and alkali-metal Rydberg 
+    /// states through the use of the quantum defect theory. 
+    ///
+    /// The returned function is the reduced radial wavefunction:
+    ///
+    ///     u(r) = r · R(r),
+    ///
+    /// discretized on a 1D radial grid and normalized on that grid.
+    ///
+    /// Unlike standard hydrogenic orbitals that rely on integer principal quantum 
+    /// numbers (n), this implementation utilizes the effective principal quantum 
+    /// number n* = n - δ_l, where δ_l is the l-dependent Rydberg quantum defect.
+    ///
+    /// To support non-integer values of n*, the associated Laguerre polynomial 
+    /// L_{p}^{α}(x) is generalized via the Kummer confluent hypergeometric 
+    /// function ₁F₁(a, b, x). This ensures that the nodal structure (radial nodes) 
+    /// and the phase of the wavefunction correctly reflect the core penetration 
+    /// effects in alkali atoms.
+    ///
+    /// The reduced radial function takes the form:
+    ///
+    ///     u_{n*l}(r) ∝ r^{l+1} · exp(−r / (n* a_eff)) · ₁F₁( -(n* - l - 1), 2l + 2, 2r / (n* a_eff) )
+    ///
+    /// When n* is an integer (e.g., pure Hydrogen), the Kummer series terminates 
+    /// and the expression becomes mathematically identical to the standard 
+    /// associated Laguerre polynomial form:
+    ///
+    ///     u_{nl}(r) ∝ r^{l+1} · exp(−r / (n a_eff)) · L_{n−l−1}^{2l+1}(2r / (n a_eff))
+    ///
+    /// The full spatial wavefunction is:
+    ///
+    ///     ψ_{n*lm}(r,θ,φ) = (u_{n*l}(r) / r) · Y_{lm}(θ,φ)
+    ///
+    /// @tparam HilbertSpace
+    ///   Discrete 1D spatial Hilbert space defining the radial grid size and spacing.
+    /// @tparam element
+    ///   The chemical element used to retrieve the appropriate quantum defect and 
+    ///   effective Bohr radius.
 	template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace, Element element>
 	struct HydrogenOrbitalRadial
 	{
@@ -88,7 +126,7 @@ namespace KetCat
 			// Radial grid: r_i = i·dx, i = 0..Dim−1; u(0) remains 0
 			for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
 			{
-				const real_t r = i * HilbertSpace::dx;
+				const real_t r = HilbertSpace::gridToR(i);
 				const real_t x = 2.0 * r / (N_star * A_eff);
 
 				// Behavior near r=0 (the nucleus)
@@ -101,7 +139,7 @@ namespace KetCat
 
 				// Exponential tail
 				// exp(−r / (n·a_eff))
-				const real_t Exponential = ConstexprMath::exp<30>(-r / (N_star * A_eff));
+				const real_t Exponential = ConstexprMath::exp(-r / (N_star * A_eff));
 
 				// Associated Laguerre: L_{n−ℓ−1}^(2ℓ+1)(x)
 				const natural_t p = N_star - l - 1;

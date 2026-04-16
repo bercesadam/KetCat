@@ -50,7 +50,6 @@ namespace ConstexprMath
         return Result;
     }
 
-
     /// @brief Determine whether a value is an exact power of two.
     /// @tparam UIntType Unsigned integral type.
     /// @param x Value to check.

@@ -14,8 +14,8 @@ int main()
 {
     // Construct Hilbert-space
     constexpr natural_t DiscretizationSteps = 256;
-    constexpr real_t PhysicalExtent = 50.0;
-    using HilbertSpace = InfiniteHilbertSpace<2_D, DiscretizationSteps, PhysicalExtent>;
+    constexpr real_t PhysicalExtent = 200.0;
+    using HilbertSpace = InfiniteHilbertSpace<2_D, DiscretizationSteps, PhysicalExtent, GridType::Logarithmic>;
 
     // Select quantum numbers:
     // |3p, m = -1⟩ and |4d, m = 0⟩
@@ -31,6 +31,11 @@ int main()
     auto Psi1 = std::make_unique<StateVector<HilbertSpace>>(
         Hydrogen2D<HilbertSpace, Element::Cs>()(q1).m_Psi
     );
+
+
+    std::cout << "Psi0 self-overlap: " << Psi0->innerProduct(*Psi0).re << "\n";
+std::cout << "Psi1 self-overlap: " << Psi1->innerProduct(*Psi1).re << "\n";
+std::cout << "<Psi0|Psi1>: "       << Psi0->innerProduct(*Psi1).re << "\n";
 
     // Corresponding energy eigenvalues (Hartree units):
     const real_t E0 = q0.hartreeEnergy();
@@ -68,8 +73,8 @@ int main()
         //
         // For energy eigenstates:
         //   ψ(t) = ψ(0) e^{-i E t}
-        complex_t Phase0 = ConstexprMath::exp<20>(complex_t(0.0, -E0 * t));
-        complex_t Phase1 = ConstexprMath::exp<20>(complex_t(0.0, -E1 * t));
+        complex_t Phase0 = ConstexprMath::exp(complex_t(0.0, -E0 * t));
+        complex_t Phase1 = ConstexprMath::exp(complex_t(0.0, -E1 * t));
 
         // Rabi mixing angle:
         //

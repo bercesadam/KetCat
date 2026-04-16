@@ -92,16 +92,16 @@ namespace KetCat
 		constexpr complex_t innerProduct(const StateVector<HilbertSpaceType>& phi) const noexcept
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
-			complex_t result = complex_t::zero();
+			complex_t Result = complex_t::zero();
 
 			for (natural_t i = 0; i < Size; ++i)
 			{
 				// ψ_i* · φ_i
-				result += m_StateVector[i].conj() * phi.m_StateVector[i];
+				Result += m_StateVector[i].conj() * phi.m_StateVector[i] * HilbertSpaceType::cellVolume(i);;
 			}
 
 			// Multiply by discrete cell volume ΔV = dx^D
-			return result * discreteVolume();
+			return Result;
 		}
 
 		/// PROBABILITY MEASUREMENTS ////////////////////////////////////////////////////////
@@ -119,8 +119,8 @@ namespace KetCat
 		constexpr real_t probabilityOf(const StateVector<HilbertSpaceType>& phi) const noexcept
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
-			const complex_t amplitude = innerProduct(phi);
-			return amplitude.normSquared();
+			const complex_t Amplitude = innerProduct(phi);
+			return Amplitude.normSquared();
 		}
 
 		/// @brief Get the probabilities of measuring the selected basis states.
@@ -161,14 +161,14 @@ namespace KetCat
 			requires (spatial_hilbert_space_t<HilbertSpaceType>)
 		{
 			// Compute ⟨ψ|ψ⟩ = Σ ψ_i* ψ_i · ΔV
-			const real_t norm2 = innerProduct(*this).re;
+			const real_t Norm2 = innerProduct(*this).re;
 
-			if (norm2 > 0.0)
+			if (Norm2 > 0.0)
 			{
-				const real_t invNorm = 1.0 / ConstexprMath::sqrt(norm2);
+				const real_t InvNorm = 1.0 / ConstexprMath::sqrt(Norm2);
 
 				for (complex_t& c : m_StateVector)
-					c = c * invNorm;
+					c = c * InvNorm;
 			}
 		}
 
@@ -194,31 +194,5 @@ namespace KetCat
 			Result.normalize();
 			return Result;
 		}
-
-	private:
-	   /// @brief Returns the discrete cell hypervolume ΔV = dx^D.
-	   /// Used internally for functions like normalise()
-	   /// It is required when approximating integrals with sums:
-	   ///     ∫ f(x) d^D x  ≈  Σ_i f_i · ΔV
-	   ///
-	   /// Eg. for:
-	   ///     D = 1 → ΔV = dx
-	   ///     D = 2 → ΔV = dx²
-	   ///     D = 3 → ΔV = dx³
-	   ///
-	   /// Returns:
-	   /// @return The discrete cell hypervolume ΔV.
-		static constexpr real_t discreteVolume() noexcept
-			requires (spatial_hilbert_space_t<HilbertSpaceType>)
-		{
-			constexpr natural_t D = HilbertSpaceType::SpatialDimensions;
-
-			real_t volume = 1.0;
-			for (natural_t d = 0; d < D; ++d)
-				volume *= HilbertSpaceType::dx;
-
-			return volume;
-		}
-
 	};
 }

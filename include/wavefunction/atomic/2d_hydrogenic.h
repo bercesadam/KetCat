@@ -78,7 +78,7 @@ namespace KetCat
         real_t P = legendre(L, ConstexprMath::abs(M), X);
 
         // Phase factor e^{i m φ}
-        complex_t Phase = ConstexprMath::exp<20>(complex_t(0.0, M * Phi));
+        complex_t Phase = ConstexprMath::exp(complex_t(0.0, M * Phi));
 
         if (M < 0)
         {
@@ -117,7 +117,6 @@ namespace KetCat
         constexpr Wavefunction<HilbertSpace> operator()(QuantumNumberType QNumbers) noexcept
         {
             constexpr natural_t Steps = HilbertSpace::Steps;
-            constexpr real_t dx = HilbertSpace::dx;
 
             StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
@@ -125,10 +124,8 @@ namespace KetCat
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            auto RadialArray =
-                EffectiveRadialOrbital<
-                    InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent>,
-                    element>{}(QNumbers);
+            using RadialSpace = InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent, HilbertSpace::Grid>;
+            auto RadialArray = EffectiveRadialOrbital<RadialSpace, element>{}(QNumbers);
 
             for (natural_t ix = 0; ix < Steps; ++ix)
             {
@@ -137,9 +134,23 @@ namespace KetCat
                     // --------------------------------------------
                     // Physical grid coordinates (centered)
                     // --------------------------------------------
-                    real_t XCoord = (static_cast<real_t>(ix) - Steps / 2) * dx;
-                    real_t ZCoord = (static_cast<real_t>(iz) - Steps / 2) * dx;
-                    real_t YCoord = 0.01;   // Slight offset to avoid φ undefined at x=0
+                    natural_t ixFromCenter = (ix < Steps / 2)
+                        ? (Steps / 2 - ix)
+                        : (ix - Steps / 2);
+
+                    natural_t izFromCenter = (iz < Steps / 2)
+                        ? (Steps / 2 - iz)
+                        : (iz - Steps / 2);
+
+                    real_t XCoord = (ix < Steps / 2)
+                        ? -HilbertSpace::gridToR(ixFromCenter)
+                        :  HilbertSpace::gridToR(ixFromCenter);
+
+                    real_t ZCoord = (iz < Steps / 2)
+                        ? -HilbertSpace::gridToR(izFromCenter)
+                        :  HilbertSpace::gridToR(izFromCenter);
+
+                    real_t YCoord = HilbertSpace::RMin; 
 
                     // Spherical radius
                     real_t R = ConstexprMath::sqrt(
@@ -155,7 +166,7 @@ namespace KetCat
                         // --------------------------------------------
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
-                        natural_t IR = static_cast<natural_t>(R / dx);
+                        natural_t IR = RadialSpace::rToGrid(R);
                         
                         //Zero-clamp the radial overflow 
                         if (IR >= Steps)
