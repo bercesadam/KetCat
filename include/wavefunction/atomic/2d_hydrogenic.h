@@ -156,9 +156,12 @@ namespace KetCat
                         // Radial part Rₙₗ(r) = uₙₗ(r) / r
                         // --------------------------------------------
                         natural_t IR = static_cast<natural_t>(R / dx);
+                        
+                        //Zero-clamp the radial overflow 
                         if (IR >= Steps)
                         {
-                            IR = Steps - 1;
+                            Psi[{ ix, iz }] = complex_t::zero();
+                            continue;
                         }
 
                         real_t U = RadialArray[IR].re;
