@@ -1,123 +1,122 @@
+import os
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.colors import hsv_to_rgb
+from matplotlib.colors import ListedColormap, Normalize
+import matplotlib.cm as cm
 
 # ==========================
 # USER SETTINGS
 # ==========================
-csv_file = "C:/Users/User/source/repos/bercesadam/QuantumCircuitsinCompiler/out/build/x64-Release/simulation.csv"
+csv_file = "../out/build/x64-Release/simulation.csv"
+output_dir = "frames2"
 
-Nx = 256   # grid size in x
-Ny = 256   # grid size in y
+Nx, Ny = 256, 256
+# Centered coordinates: -100 to +100 = 200 total size
+L = 100.0 
 
 fps = 30
 interval_ms = 50
+save_frames = True
+
+if save_frames and not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 # ==========================
-# LOAD CSV
+# LOAD DATA
 # ==========================
-data = np.loadtxt(csv_file, delimiter=",", skiprows=1)
-
-times = data[:, 0]
-raw = data[:, 1:]
+df = pd.read_csv(csv_file, index_col=False)
+captions = df.iloc[:, 0].astype(str).values
+times    = df.iloc[:, 1].values
+raw      = df.iloc[:, 2:].values
 
 n_timesteps = raw.shape[0]
-expected_cols = Nx * Ny * 2
-
-if raw.shape[1] != expected_cols:
-    raise ValueError(
-        f"CSV shape mismatch: expected {expected_cols} columns "
-        f"(for {Nx}x{Ny} complex grid), got {raw.shape[1]}"
-    )
+psi_all = (raw[:, 0::2] + 1j * raw[:, 1::2]).reshape(n_timesteps, Ny, Nx)
 
 # ==========================
-# RECONSTRUCT COMPLEX FIELD
-# shape = (T, Ny, Nx)
+# COLORMAP LOGIC
 # ==========================
-psi_all = np.empty((n_timesteps, Ny, Nx), dtype=np.complex128)
+def phase_to_rgb(psi):
+    phase = (np.angle(psi) + np.pi) / (2 * np.pi)
+    phase = phase - np.floor(phase)
+    
+    amplitude = np.abs(psi)**2
+    if amplitude.max() > 0:
+        amplitude /= amplitude.max()
+    amplitude = np.power(amplitude, 0.5)
 
-for t in range(n_timesteps):
-    row = raw[t]
+    r, g, b = np.zeros_like(phase), np.zeros_like(phase), np.zeros_like(phase)
 
-    real_part = row[0::2]
-    imag_part = row[1::2]
+    m1 = (phase < 0.25); f1 = phase[m1]/0.25
+    r[m1], g[m1], b[m1] = 1.0, 0.0, f1
+    
+    m2 = (phase >= 0.25) & (phase < 0.50); f2 = (phase[m2]-0.25)/0.25
+    r[m2], g[m2], b[m2] = 1.0-f2, 0.0, 1.0
+    
+    m3 = (phase >= 0.50) & (phase < 0.75); f3 = (phase[m3]-0.50)/0.25
+    r[m3], g[m3], b[m3] = 0.0, f3, 1.0
+    
+    m4 = (phase >= 0.75); f4 = (phase[m4]-0.75)/0.25
+    r[m4], g[m4], b[m4] = f4, 1.0-f4, 1.0-f4
 
-    psi = real_part + 1j * imag_part
-    psi_all[t] = psi.reshape((Ny, Nx))
-
+    return np.clip(np.stack((r*amplitude, g*amplitude, b*amplitude), axis=-1), 0, 1)
 
 # ==========================
-# COLOR MAPPING:
-# phase -> hue
-# density -> brightness
+# COLORBAR PREPARATION
 # ==========================
-def complex_to_rgb(psi):
-    density = np.abs(psi) ** 2
-    phase = np.angle(psi)
-
-    # normalize density frame-wise for visibility
-    max_density = density.max()
-    if max_density > 0:
-        density = density / max_density
-
-    hue = (phase + np.pi) / (2 * np.pi)   # map [-pi, pi] -> [0,1]
-    saturation = np.ones_like(hue)
-    value = density
-
-    hsv = np.stack((hue, saturation, value), axis=-1)
-    rgb = hsv_to_rgb(hsv)
-
-    return rgb
-
+bar_samples = 256
+phase_range = np.linspace(-np.pi, np.pi, bar_samples)
+colorbar_input = np.exp(1j * phase_range).reshape(1, -1)
+colorbar_rgb = phase_to_rgb(colorbar_input)
+custom_cmap = ListedColormap(colorbar_rgb[0])
 
 # ==========================
 # SETUP PLOT
 # ==========================
-fig, ax = plt.subplots(figsize=(8, 8))
+fig, ax = plt.subplots(figsize=(10, 8))
+plt.subplots_adjust(right=0.82) 
 
-rgb0 = complex_to_rgb(psi_all[0])
-
+# extent=[-100, 100, -100, 100] shifts (0,0) to the center
 im = ax.imshow(
-    rgb0,
+    phase_to_rgb(psi_all[0]),
     origin="lower",
-    interpolation="nearest"
+    extent=[-L, L, -L, L],
+    interpolation="bilinear"
 )
 
-title = ax.set_title(f"t = {times[0]:.3f}")
+cax = fig.add_axes([0.85, 0.15, 0.03, 0.7]) 
+norm = Normalize(vmin=-np.pi, vmax=np.pi)
+cb = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=custom_cmap), cax=cax)
+cb.set_label('Phase (radians)')
+cb.set_ticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+cb.set_ticklabels([r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'])
 
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-
-# phase colorbar reference
-phase_gradient = np.linspace(-np.pi, np.pi, 256)
-phase_hsv = np.zeros((20, 256, 3))
-phase_hsv[..., 0] = (phase_gradient + np.pi) / (2 * np.pi)
-phase_hsv[..., 1] = 1.0
-phase_hsv[..., 2] = 1.0
-
-fig2, ax2 = plt.subplots(figsize=(8, 1.5))
-ax2.imshow(hsv_to_rgb(phase_hsv), aspect="auto", extent=[-np.pi, np.pi, 0, 1])
-ax2.set_title("Phase color scale")
-ax2.set_yticks([])
-ax2.set_xlabel("Phase [rad]")
-
+ax.set_xlabel("x (a.u.)")
+ax.set_ylabel("y (a.u.)")
+title_text = ax.set_title(f"{captions[0]}")
 
 # ==========================
-# ANIMATION UPDATE
+# ANIMATION & SAVING
 # ==========================
 def update(frame):
-    rgb = complex_to_rgb(psi_all[frame])
-    im.set_data(rgb)
-    title.set_text(f"t = {times[frame]:.3f}")
-    return [im, title]
+    im.set_data(phase_to_rgb(psi_all[frame]))
+    title_text.set_text(f"{captions[frame]}")
+    
+    if save_frames:
+        filename = os.path.join(output_dir, f"{frame:04d}.png")
+        plt.savefig(filename, dpi=150)
+        if frame % 20 == 0:
+            print(f"Exporting: {filename}")
 
+    return [im, title_text]
 
 ani = FuncAnimation(
-    fig,
-    update,
-    frames=n_timesteps,
-    interval=interval_ms,
+    fig, 
+    update, 
+    frames=n_timesteps, 
+    interval=interval_ms, 
+    repeat=False,
     blit=False
 )
 

@@ -62,6 +62,7 @@ namespace KetCat
 		}
 		return Sum;
 	}
+
 	
 	/// @brief Construct a generalized hydrogenic reduced radial wavefunction seed u(r).
     ///

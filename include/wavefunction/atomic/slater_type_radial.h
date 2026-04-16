@@ -39,7 +39,7 @@ namespace KetCat
 		constexpr auto Config = Atom<element>::getElectronConfiguration();
 
         // Atomic number = total number of electrons in a neutral atom.
-        constexpr natural_t Z = std::to_underlying(element);
+		constexpr natural_t Z = AtomicNumber<element>::value;
 
         // Select the target subshell for which we estimate shielding.
         const ElectronShell Target = Config[TargetShellIndex];
@@ -175,7 +175,9 @@ namespace KetCat
                 // Final reduced radial value at grid point i
                 const double Value = rPow * Exponential;
 
-                Psi[i] = complex_t::fromReal(Value);
+                const double logValue = N_star * ConstexprMath::log(r) - Zeta * r;
+                Psi[i] = complex_t::fromReal(ConstexprMath::exp(logValue));
+                //Psi[i] = complex_t::fromReal(Value);
             }
 
             // Enforce discrete radial normalization: Σ |u|² · Δr = 1

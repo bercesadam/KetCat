@@ -46,8 +46,9 @@ namespace KetCat
         }
 
         /// @brief Append one simulation timestep to CSV
-        void writeTimestep(real_t time, const State& state)
+        void writeTimestep(real_t time, const State& state, const std::string& Title)
         {
+			m_File << Title << ',';
             m_File << time;
 
             for (natural_t i = 0; i < Size; ++i)
@@ -78,7 +79,7 @@ namespace KetCat
 
         void writeHeader()
         {
-            m_File << "time";
+            m_File << "caption,time";
 
             for (natural_t i = 0; i < Size; ++i)
             {
