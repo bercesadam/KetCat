@@ -1,6 +1,7 @@
 #pragma once
 #include "core_types.h"
 
+
 namespace KetCat
 {
     constexpr real_t Hbar = 1.0; // Planck's constant divided by 2π, in atomic units

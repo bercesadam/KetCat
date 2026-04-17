@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <memory>
 
+#include "hilbert_space/basis_set.h"
 #include "wavefunction/atomic/2d_hydrogenic.h"
 #include "visu/file_exporter.h"
 
@@ -24,22 +25,26 @@ int main()
     constexpr auto q4 = QuantumNumber<9, f, 0>();
     constexpr auto q5 = QuantumNumber<10, g, 0>();
 
-    std::array<Wavefunction<HilbertSpace>, 5> Wavefunctions = {
-        Hydrogen2D<HilbertSpace, Element::Cs>()(q0),
-        Hydrogen2D<HilbertSpace, Element::Cs>()(q1),
-        Hydrogen2D<HilbertSpace, Element::Cs>()(q2),
-        Hydrogen2D<HilbertSpace, Element::Cs>()(q4),
-        Hydrogen2D<HilbertSpace, Element::Cs>()(q5)
-	};
+    auto Wavefunctions = BasisSet<HilbertSpace, 5>(
+    {{
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q0),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q1),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q2),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q4),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q5)
+	}});
 
-    std::array<std::string, 4> Captions = {
+
+    std::array<std::string, 4> Captions =
+    {
 		"Cesium 6s -> 7p",
 		"Cesium 7p -> 8d",
 		"Cesium 8d -> 9f",
 		"Cesium 9f -> 10g",
     };
 
-    KetCat::StateVectorCsvExporter<HilbertSpace> exporter(
+    KetCat::StateVectorCsvExporter<HilbertSpace> exporter
+    (
         "simulation.csv",
         KetCat::ExportMode::RealImag
     );

@@ -4,10 +4,11 @@
 #include "constexprmath/constexpr_core_functions.h"
 #include "constexprmath/constexpr_exp.h"
 
+
 namespace KetCat
 {
 	/// @file
-	/// @brief Core type aliases used across the project: sizes, complex number type, vectors and matrices.
+	/// @brief Core type aliases used across the project: sizes, number types, vectors and matrices.
 
 	/// @brief Alias for unsigned integer types
 	using natural_t = unsigned long;
@@ -29,8 +30,8 @@ namespace KetCat
 	template<natural_t StateCount>
 	using probability_vector_t = std::array<real_t, StateCount>;
 
-	/// @brief Fixed-size list of qubit indices.
-	/// @tparam QBitCount  Number of qubits in the list.
+	/// @brief Fixed-size list of qubit/qudit indices.
+	/// @tparam QBitCountQDitCount  Number of qubits/qudits in the list.
 	template<natural_t QBitCount>
 	using qbit_list_t = std::array<natural_t, QBitCount>;
 	template<natural_t QDitCount>

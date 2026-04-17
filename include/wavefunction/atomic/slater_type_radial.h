@@ -161,23 +161,10 @@ namespace KetCat
 
             for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
             {
-                // Physical radial coordinate
                 const double r = HilbertSpace::gridToR(i);
-
-                // Power-law prefactor:
-                // For reduced radial STO: u(r) = r^{n*} · exp(−ζ r)
-                const double rPow = std::pow(r, N_star);
-
-                // Exponential decay controlled by the screening parameter ζ
-                const double Exponential = ConstexprMath::exp(-Zeta * r);
-
-                // STOs do NOT use Laguerre polynomials — this is their defining feature
-                // Final reduced radial value at grid point i
-                const double Value = rPow * Exponential;
-
+            
                 const double logValue = N_star * ConstexprMath::log(r) - Zeta * r;
                 Psi[i] = complex_t::fromReal(ConstexprMath::exp(logValue));
-                //Psi[i] = complex_t::fromReal(Value);
             }
 
             // Enforce discrete radial normalization: Σ |u|² · Δr = 1

@@ -108,7 +108,7 @@ namespace KetCat
     ///
     /// This is a visually clean way to inspect angular structure of orbitals.
     template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace, Element element>
-    struct Hydrogen2D
+    struct Hydrogenic2D
     {
         /// @brief Calculates the energy eigenvalue (Hartree energy) for the orbital.
         ///
