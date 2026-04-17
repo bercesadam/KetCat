@@ -1,5 +1,6 @@
 #pragma once
-#include "basis_set.h"
+#include "wavefunction/wavefunction.h"
+
 
 namespace KetCat
 {
@@ -11,7 +12,7 @@ namespace KetCat
     /// @param y     Output vector/array to be modified in-place.
     /// @param size  Number of elements to process.
     template<natural_t Dim>
-    constexpr void axpy(complex_t alpha, state_vector_t<Dim>& x, state_vector_t<Dim>& y) noexcept
+    constexpr void axpy(const complex_t alpha, const state_vector_t<Dim>& x, state_vector_t<Dim>& y) noexcept
     {
         for (natural_t k = 0; k < Dim; ++k)
         {
@@ -45,12 +46,10 @@ namespace KetCat
         /// (Current) instead of the raw input, we minimize the accumulation of 
         /// rounding errors.
         template<hilbert_space_t HilbertSpace>
-        constexpr void learn(const BasisSet<HilbertSpace, Dim>& rawBasis)
+        constexpr void learn(const basis_set_t<HilbertSpace, Dim>& rawBasis)
         {
-            auto StateVectors = rawBasis.getStateVectors();
-
             // Temporary buffer for orthonormalized vectors used during the j-loop projections.
-            BasisSet<HilbertSpace, Dim> Temp;
+            basis_set_t<HilbertSpace, Dim> Temp;
             
             // Zero-initialize matrix and temporary basis
             m_Coefficients = {};
@@ -59,27 +58,27 @@ namespace KetCat
             // Outer loop thru all basis states
             for (natural_t i = 0; i < Dim; ++i)
             {
-                auto Current = StateVectors[i]; 
+                auto Current = rawBasis[i].m_Psi;
                 m_Coefficients[i][i] = 1.0; 
 
                 // --- Modified Gram-Schmidt Step --- 
                 for (natural_t j = 0; j < i; ++j)
                 {
                     /// Pass 1: Project the residual 'Current' onto the already normalized Temp[j].
-                    // MGS Improvement: Using 'Current' instead of 'rawBasis[i].m_Psi' 
+                    // MGS for numerical stability: using 'Current' instead of 'rawBasis[i]' 
                     // significantly improves numerical stability.
-                    complex_t innerProduct1 = Temp[j].innerProduct(Current);
+                    complex_t innerProduct1 = Temp[j].m_Psi.innerProduct(Current);
 
                     axpy(-innerProduct1, m_Coefficients[j], m_Coefficients[i]);
-                    axpy(-innerProduct1, Temp[j], Current);
+                    axpy(-innerProduct1, Temp[j].m_Psi.m_StateVector, Current.m_StateVector);
 
                     // Optional Pass 2: Re-orthogonalization ("Twice is Enough").
                     // Effectively cleans up remaining machine-precision leakage.
                     if constexpr (UseTwoPass)
                     {
-                        complex_t innerProduct2 = Temp[j].innerProduct(Current);
+                        complex_t innerProduct2 = Temp[j].m_Psi.innerProduct(Current);
                         axpy(-innerProduct2, m_Coefficients[j], m_Coefficients[i]);
-                        axpy(-innerProduct2, Temp[j], Current);
+                        axpy(-innerProduct2, Temp[j].m_Psi.m_StateVector, Current.m_StateVector);
                     }
                 }
 
@@ -107,7 +106,7 @@ namespace KetCat
 
                 }
 
-                Temp[i] = Current;
+                Temp[i].m_Psi = Current;
             }
 
             m_isTrained = true;
@@ -118,24 +117,30 @@ namespace KetCat
         /// @param rawBasis A new basis set (must follow the same ordering as learn()).
         /// @return A transformed, orthonormalized BasisSet.
         template<hilbert_space_t HilbertSpace>
-        constexpr BasisSet<HilbertSpace, Dim> apply(const BasisSet<HilbertSpace, Dim>& rawBasis) const
+        constexpr basis_set_t<HilbertSpace, Dim> apply(const basis_set_t<HilbertSpace, Dim>& rawBasis) const
         {
             if (!m_isTrained) 
             {
                 [] { throw "Orthonormalizer: learn() must be called before apply()!"; }();
             }
 
-            BasisSet<HilbertSpace, Dim> Transformed;
+            basis_set_t<HilbertSpace, Dim> Transformed;
 
-            for (size_t i = 0; i < N; ++i)
+            for (size_t i = 0; i < Dim; ++i)
             {
                 Transformed[i].m_Psi = {};
-                Transformed[i].m_Energy = rawBasis[i].m_Energy;
+                real_t WeightedEnergy = 0.0;
 
                 for (size_t j = 0; j <= i; ++j)
                 {
-                    axpy(m_Coefficients[i][j], rawBasis[j], Transformed[i].m_Psi)
+                    axpy(m_Coefficients[i][j], rawBasis[j].m_Psi.m_StateVector, Transformed[i].m_Psi.m_StateVector);
+
+                    // Weighting eigen values: | L_ij | ^ 2 * E_j
+                    real_t CoeffMagnitudeSquared = (m_Coefficients[i][j] * m_Coefficients[i][j].conj()).re;
+                    WeightedEnergy += CoeffMagnitudeSquared * rawBasis[j].m_Energy;
                 }
+
+                Transformed[i].m_Energy = WeightedEnergy;
             }
 
             return Transformed;

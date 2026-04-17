@@ -56,4 +56,10 @@ namespace KetCat
         { std::apply(g, t) } -> std::same_as<Wavefunction<HilbertSpace>>;
     };
 
+
+	/// @brief Type alias for a fixed-size array of wavefunctions forming a basis set.
+	/// @tparam HilbertSpace The type of the underlying Hilbert space for each wavefunction.
+	/// @tparam NumStates    The number of wavefunctions in the basis set.
+    template<hilbert_space_t HilbertSpace, natural_t NumStates>
+    using basis_set_t = std::array<Wavefunction<HilbertSpace>, NumStates>;
 }

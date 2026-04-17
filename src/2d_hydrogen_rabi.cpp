@@ -2,14 +2,13 @@
 #include <iomanip>
 #include <memory>
 
-#include "hilbert_space/basis_set.h"
+#include "hilbert_space/gram_schmidt_orthonorm.h"
 #include "wavefunction/atomic/2d_hydrogenic.h"
 #include "visu/file_exporter.h"
 
 using namespace KetCat;
 
-/// This demo program is a smoke test of new 2D functionality.
-/// It simulates and visualizes Rabi oscillations between two hydrogenic eigenstates (|3p₋₁⟩ and |4d₀⟩) in a 2D Hilbert space. 
+/// Smoke test of hydrogenic wavefunctions (STO and QDT) in 2D, simulating faux Rabi oscillations between adjacent states
 
 int main() 
 {
@@ -25,26 +24,25 @@ int main()
     constexpr auto q4 = QuantumNumber<9, f, 0>();
     constexpr auto q5 = QuantumNumber<10, g, 0>();
 
-    
-    auto Wavefunctions =
-        BasisSet<HilbertSpace, 5>(
-            std::array<Wavefunction<HilbertSpace>, 5>{{
-                Hydrogenic2D<HilbertSpace, Element::Cs>()(q0),
-                Hydrogenic2D<HilbertSpace, Element::Cs>()(q1),
-                Hydrogenic2D<HilbertSpace, Element::Cs>()(q2),
-                Hydrogenic2D<HilbertSpace, Element::Cs>()(q4),
-                Hydrogenic2D<HilbertSpace, Element::Cs>()(q5)
-            }}
-        );
+    basis_set_t<HilbertSpace, 5> Seed =   
+    {{
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q0),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q1),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q2),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q4),
+        Hydrogenic2D<HilbertSpace, Element::Cs>()(q5)
+     }};
 
-
+	Orthonormalizer<5, true> Ortho;
+	Ortho.learn(Seed);
+	auto Basis = Ortho.apply(Seed);
 
     std::array<std::string, 4> Captions =
     {
-		"Cesium 6s -> 7p",
-		"Cesium 7p -> 8d",
-		"Cesium 8d -> 9f",
-		"Cesium 9f -> 10g",
+		"Cesium (Z=55) 6s (STO) -> 7p (STO)",
+		"Cesium (Z=55) 7p (STO) -> 8d (STO)",
+		"Cesium (Z=55) 8d (STO) -> 9f (QDT)",
+		"Cesium (Z=55) 9f (STO) -> 10g (QDT)",
     };
 
     KetCat::StateVectorCsvExporter<HilbertSpace> exporter
@@ -59,16 +57,16 @@ int main()
     // Time step Δt
     const real_t dt = 0.5;
 
-    auto Psi0 = Wavefunctions[0].m_Psi;
+    auto Psi0 = Basis[0].m_Psi;
 
-    for (natural_t i = 0; i < Wavefunctions.size() - 1; ++i)
+    for (natural_t i = 0; i < Basis.size() - 1; ++i)
     {
         int Frame = 0;
 
-        real_t E0 = Wavefunctions[i].m_Energy;
-        real_t E1 = Wavefunctions[i + 1].m_Energy;
+        real_t E0 = Basis[i].m_Energy;
+        real_t E1 = Basis[i + 1].m_Energy;
         
-        auto Psi1 = Wavefunctions[i + 1].m_Psi;
+        auto Psi1 = Basis[i + 1].m_Psi;
 
         // Initialize probabilities and the state vector
         real_t Palpha = 0.0; // Occupation probability P(t) = |α|²
@@ -124,7 +122,7 @@ int main()
             Pbeta = Psi.probabilityOf(Psi1);
 
             std::cout << Captions[i] << std::endl;
-            if (Frame % 5 == 0) exporter.writeTimestep(t, Psi, Captions[i]);
+            if (Frame % 3 == 0) exporter.writeTimestep(t, Psi, Captions[i]);
         }
 
 		Psi0 = Psi1; // Prepare for next transition

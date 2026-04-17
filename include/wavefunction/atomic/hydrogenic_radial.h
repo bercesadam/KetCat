@@ -142,12 +142,12 @@ namespace KetCat
 				// exp(−r / (n·a_eff))
 				const real_t Exponential = ConstexprMath::exp(-r / (N_star * A_eff));
 
-				// Associated Laguerre: L_{n−ℓ−1}^(2ℓ+1)(x)
-				const natural_t p = N_star - l - 1;
-				const natural_t alpha = 2 * l + 1;
-				const real_t Laguerre = laguerre(p, alpha, x);
+				// Hypergeometric term generalizing the associated Laguerre polynomial:
+				const real_t a = -(N_star - static_cast<real_t>(l) - 1.0);
+				const real_t b = static_cast<real_t>(2 * l + 2);
+				const real_t HypergeometricTerm = kummerHypergeometric1F1(a, b, x);
 
-				const real_t Value = rPow * Exponential * Laguerre;
+				const real_t Value = rPow * Exponential * HypergeometricTerm;
 				Psi[i] = complex_t::fromReal(Value);
 			}
 
