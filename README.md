@@ -22,7 +22,7 @@ $$
 i\hbar \frac{\partial \psi(t)}{\partial t} = H(t)\psi(t)
 $$
 
-As a result, the project evolved from a quantum circuit simulator into a unified quantum simulation framework and capable of modeling both logical and physical quantum systems - currently supporting discretized, 1D cases. I have kept the original repo for historical purposes - the original |ψ⟩CC source code can be found under the tag v1.0, and hence I've kept also the original repo name even after the rebranding of the project.
+As a result, the project evolved from a quantum circuit simulator into a unified quantum simulation framework and capable of modeling both logical and physical quantum systems - currently supporting discretized, 1D cases. 
 
 ## Conceptual Framework
 
