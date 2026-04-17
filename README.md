@@ -1,4 +1,7 @@
 # Ket Cat - constexpr quantum emulator
+
+<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/logo.png" alt="The project logo" width="300" style="text-align:center">
+
 ## Bleeding edge version and future plans
 
 From the initial ideas, the project is currently being developed to be a C++ library designed for the first-principles simulation of neutral atom quantum processors. Focusing on Coherent Dynamics, enabling the precise modeling of laser-atom interactions and population transfer without the overhead of decoherence. By utilizing a hybrid basis of Slater-Type Orbitals (STO) for core-electron interactions and Quantum Defect Theory (QDT) for high-lying Rydberg states, it provides a high-fidelity emulation environment for pulse shaping and gate design in alkali-based qubit systems. 
@@ -7,10 +10,7 @@ This will create the bridge between the two "worlds", which was represented in t
 
 ## Readme for v2.0
 
-<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/logo.png" alt="The project logo" width="300" style="text-align:center">
-
-|😾⟩, pronounced as “Ket Cat”, is fully `constexpr` C++ framework for simulating quantum systems: **logical quantum circuits** and **physical quantum mechanics** under a shared mathematical foundation.
-The project was originally named *'|Ψ⟩CC — Quantum Circuits in Compiler'* and began as a quantum circuit simulator: the original goal was to compute the evolution of quantum state vectors in constexpr time using unitary gate operations. Formally, this corresponds to solving the Schrödinger equation in a finite-dimensional Hilbert space using discrete unitary operators:
+|😾⟩, pronounced as “Ket Cat”, is fully `constexpr` C++ framework for simulating quantum systems: **logical quantum circuits** and **physical quantum mechanics** under a shared mathematical foundation. The project was originally named *'|Ψ⟩CC — Quantum Circuits in Compiler'* and began as a quantum circuit simulator: the original goal was to compute the evolution of quantum state vectors in constexpr time using unitary gate operations. Formally, this corresponds to solving the Schrödinger equation in a finite-dimensional Hilbert space using discrete unitary operators:
 
 $$
 |\psi_{n+1}\rangle = U_n |\psi_n\rangle
