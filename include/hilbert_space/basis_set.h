@@ -2,7 +2,6 @@
 #include "core_types.h"
 #include "hilbert_space/state_vector.h"
 #include "wavefunction/wavefunction.h"
-#include "gram_schmidt_orthonorm.h"
 
 
 namespace KetCat
@@ -140,7 +139,13 @@ namespace KetCat
         }
 
         /// @brief Access a specific wavefunction in the basis
-        constexpr Wavefunction<HilbertSpace>& operator[](natural_t i) const
+        constexpr Wavefunction<HilbertSpace>& operator[](natural_t i)
+        {
+            return m_basisStates[i];
+        }
+
+        /// @brief Access a specific wavefunction in the basis
+        constexpr const Wavefunction<HilbertSpace>& operator[](natural_t i) const
         {
             return m_basisStates[i];
         }

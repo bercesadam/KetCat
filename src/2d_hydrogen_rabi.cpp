@@ -25,14 +25,18 @@ int main()
     constexpr auto q4 = QuantumNumber<9, f, 0>();
     constexpr auto q5 = QuantumNumber<10, g, 0>();
 
-    auto Wavefunctions = BasisSet<HilbertSpace, 5>(
-    {{
-        Hydrogenic2D<HilbertSpace, Element::Cs>()(q0),
-        Hydrogenic2D<HilbertSpace, Element::Cs>()(q1),
-        Hydrogenic2D<HilbertSpace, Element::Cs>()(q2),
-        Hydrogenic2D<HilbertSpace, Element::Cs>()(q4),
-        Hydrogenic2D<HilbertSpace, Element::Cs>()(q5)
-	}});
+    
+    auto Wavefunctions =
+        BasisSet<HilbertSpace, 5>(
+            std::array<Wavefunction<HilbertSpace>, 5>{{
+                Hydrogenic2D<HilbertSpace, Element::Cs>()(q0),
+                Hydrogenic2D<HilbertSpace, Element::Cs>()(q1),
+                Hydrogenic2D<HilbertSpace, Element::Cs>()(q2),
+                Hydrogenic2D<HilbertSpace, Element::Cs>()(q4),
+                Hydrogenic2D<HilbertSpace, Element::Cs>()(q5)
+            }}
+        );
+
 
 
     std::array<std::string, 4> Captions =

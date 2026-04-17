@@ -29,6 +29,7 @@ namespace KetCat
 	template<natural_t Dim, bool UseTwoPass = false>
     class Orthonormalizer
     {
+    private:
         /// @brief Transformation recipe: orthonormal[i] = Σ L[i][j] * raw[j].
         matrix_t<Dim> m_Coefficients{};
 
@@ -44,12 +45,12 @@ namespace KetCat
         /// (Current) instead of the raw input, we minimize the accumulation of 
         /// rounding errors.
         template<hilbert_space_t HilbertSpace>
-        constexpr void learn(const BasisSet<HilbertSpace>& rawBasis)
+        constexpr void learn(const BasisSet<HilbertSpace, Dim>& rawBasis)
         {
             auto StateVectors = rawBasis.getStateVectors();
 
             // Temporary buffer for orthonormalized vectors used during the j-loop projections.
-            BasisSet<HilbertSpace> Temp;
+            BasisSet<HilbertSpace, Dim> Temp;
             
             // Zero-initialize matrix and temporary basis
             m_Coefficients = {};
@@ -117,14 +118,14 @@ namespace KetCat
         /// @param rawBasis A new basis set (must follow the same ordering as learn()).
         /// @return A transformed, orthonormalized BasisSet.
         template<hilbert_space_t HilbertSpace>
-        constexpr BasisSet<HilbertSpace> apply(const const BasisSet<HilbertSpace>& rawBasis) const
+        constexpr BasisSet<HilbertSpace, Dim> apply(const BasisSet<HilbertSpace, Dim>& rawBasis) const
         {
             if (!m_isTrained) 
             {
                 [] { throw "Orthonormalizer: learn() must be called before apply()!"; }();
             }
 
-            BasisSet<HilbertSpace> Transformed;
+            BasisSet<HilbertSpace, Dim> Transformed;
 
             for (size_t i = 0; i < N; ++i)
             {
