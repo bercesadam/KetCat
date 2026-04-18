@@ -1,4 +1,5 @@
 #pragma once
+#include "hartree.h"
 #include "hydrogenic_radial.h"
 #include "slater_type_radial.h"
 
@@ -32,8 +33,7 @@ namespace KetCat
 		///
 		/// @return Normalized quantum state vector representing the orbital
 		template <quantum_number_t QuantumNumberType>
-		constexpr StateVector<HilbertSpace>
-			operator()(QuantumNumberType q) const noexcept
+		constexpr Wavefunction<HilbertSpace> operator()(QuantumNumberType q) const noexcept
 		{
 			const natural_t l = q.l();
 			const real_t QuantumDefect = RydbergQuantumDefect::value(element, q);
@@ -71,7 +71,8 @@ namespace KetCat
 				Psi = SlaterOrbitalRadial<HilbertSpace, element>{}(q);
 			}
 
-			return Psi;
+			constexpr real_t HartreeEnergy = calculateHartreeEnergy(element, q);
+			return { Psi, HartreeEnergy };
 		}
 	};
 }

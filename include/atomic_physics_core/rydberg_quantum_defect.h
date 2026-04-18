@@ -33,7 +33,7 @@ namespace KetCat
         template <quantum_number_t QuantumNumberType>
 		static constexpr real_t value(Element element, QuantumNumberType q) noexcept
         {
-            const natural_t l = q.l();
+            constexpr natural_t l = q.l();
 
             // For l >= 4, quantum defect is negligible
             if (l >= 4)

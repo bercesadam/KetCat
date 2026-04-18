@@ -6,76 +6,12 @@
 
 namespace KetCat
 {
-    /// @brief Helper function which computes the dipole matrix element ⟨ψ| x_axis |φ⟩
-    ///
-    /// Continuous definition:
-    ///     ⟨ψ|x|φ⟩ = ∫ ψ*(r) · x · φ(r) dV
-    ///
-    /// Discrete approximation on a uniform grid:
-    ///     Σ_i ψ_i* · x_i · φ_i · ΔV
-    ///
-    /// where:
-    ///     x_i = physical coordinate of grid point i along selected axis,
-    ///           centered such that the grid spans [-Extent/2, Extent/2].
-    ///
-    /// @tparam HilbertSpace Spatial Hilbert space (Uniform grid required)
-    /// @param bra  ⟨ψ|
-    /// @param ket  |φ⟩
-    /// @param axis_index 0=x, 1=y, 2=z
-    template<hilbert_space_t HilbertSpace>
-    static complex_t dipoleElement(
-        const StateVector<HilbertSpace>& bra,
-        const StateVector<HilbertSpace>& ket,
-        natural_t axis_index) noexcept
-        requires (spatial_hilbert_space_t<HilbertSpace>)
-    {
-        constexpr natural_t Size = HilbertSpace::Dim;
-        constexpr natural_t Steps = HilbertSpace::Steps;
-        constexpr real_t dx = HilbertSpace::dx();
-        
-        // --- Pre-compute physical coordinates for the selected axis ---
-        // This optimization avoids repeated floating-point divisions and subtractions 
-        // inside the high-frequency loop.
-        real_t CoordinateLookup[Steps];
-        const real_t GridCenterIndex = static_cast<real_t>(Steps - 1) / 2.0;
-
-        for (natural_t s = 0; s < Steps; ++s)
-        {
-            CoordinateLookup[s] = (static_cast<real_t>(s) - GridCenterIndex) * dx;
-        }
-
-        // --- Pre-calculate constant stride for the selected axis ---
-        // Based on getIndex: Index = c[0]*1 + c[1]*Steps + c[2]*Steps^2 ...
-        natural_t Stride = 1;
-        for (natural_t d = 0; d < axis_index; ++d)
-        {
-            Stride *= Steps;
-        }
-
-        complex_t Result = complex_t::zero();
-
-        // --- Main integration loop ---
-        for (natural_t i = 0; i < Size; ++i)
-        {
-            // Extract the 1D grid index for the specific axis from the flat index
-            const natural_t AxisGridIndex = (i / Stride) % Steps;
-            const real_t Position = CoordinateLookup[AxisGridIndex];
-
-            // Accumulate ψ*_i · x_i · φ_i
-            Result = Result + bra[i].conj() * Position * ket[i];
-        }
-
-        // --- Final scaling by the uniform cell volume ---
-        // For uniform grids, ΔV = dx^D is constant across all points.
-        return (Result * HilbertSpace::cellVolume(0));
-    }
-
-    /// @brief Computes the full dipole matrix D_ij = ⟨ψ_i| x_axis |ψ_j⟩ for the basis set.
+    /// @brief Computes the full dipole matrix D_ij = ⟨ψ_i| x_axis |ψ_j⟩ for a basis set.
     /// 
     /// @param axis_index The spatial axis (0=x, 1=y, 2=z).
     /// @return A square matrix of size NumStates x NumStates.
     template<hilbert_space_t HilbertSpace, natural_t NumStates>
-    constexpr matrix_t<NumStates> buildDipoleMatrix(natural_t axis_index) noexcept
+    constexpr matrix_t<NumStates> buildDipoleMatrix(const basis_set_t<HilbertSpace, NumStates>& basisStates, natural_t axis_index) noexcept
         requires (spatial_hilbert_space_t<HilbertSpace>)
     {
         constexpr natural_t GridSize = HilbertSpace::Dim;
@@ -109,8 +45,8 @@ namespace KetCat
             for (natural_t col = 0; col < NumStates; ++col)
             {
                 complex_t Integral = complex_t::zero();
-                const auto& bra = m_basisStates[row].m_Psi;
-                const auto& ket = m_basisStates[col].m_Psi;
+                const auto& Bra = basisStates[row].m_Psi;
+                const auto& Ket = basisStates[col].m_Psi;
 
                 for (natural_t i = 0; i < GridSize; ++i)
                 {
@@ -118,7 +54,7 @@ namespace KetCat
                     const real_t Position = CoordinateLookup[AxisIdx];
 
                     // Standard dipole integrand: ψ*_i * x * ψ_j
-                    Integral = Integral + bra[i].conj() * Position * ket[i];
+                    Integral = Integral + Bra[i].conj() * Position * Ket[i];
                 }
 
                 DipoleMatrix[row][col] = Integral * dV;
@@ -127,6 +63,4 @@ namespace KetCat
 
         return DipoleMatrix;
     }
-
-
 }

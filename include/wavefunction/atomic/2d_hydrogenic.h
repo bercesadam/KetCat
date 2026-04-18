@@ -110,43 +110,7 @@ namespace KetCat
     template<spatial_hilbert_space_with_dim_t<2_D> HilbertSpace, Element element>
     struct Hydrogenic2D
     {
-        /// @brief Calculates the energy eigenvalue (Hartree energy) for the orbital.
-        ///
-        /// This computes the binding energy of the state, accounting for the 
-        /// quantum defect effects in alkali-metal atoms. The energy is given 
-        /// in atomic units (Hartree).
-        ///
-        /// The formula utilizes the Rydberg formula generalized with the effective 
-        /// principal quantum number n* = n - δ_l:
-        ///
-        ///     E_n = - Z_eff² / (2 · (n - δ_l)²) = - Z_eff² / (2 · n*²)
-        ///
-        /// For Rydberg states of alkali metals, the effective nuclear charge Z_eff 
-        /// is taken as 1, as the inner shell electrons screen the nucleus. For 
-        /// pure hydrogenic systems, the quantum defect δ_l is zero, and the 
-        /// formula reverts to the standard Bohr model energy levels.
-        ///
-        /// @param QNumbers 
-        ///   QuantumNumber object containing the principal (n) and orbital (l) 
-        ///   quantum numbers.
-        /// @return 
-        ///   The energy eigenvalue in Hartree units. Returns 0.0 if the effective 
-        ///   principal quantum number is non-physical.
-        template <quantum_number_t QuantumNumberType>
-        constexpr real_t calculateHartreeEnergy(QuantumNumberType q) const noexcept
-        {
-            const real_t QuantumDefect = RydbergQuantumDefect::value(element, q);
-            const real_t N_star = static_cast<real_t>(q.n()) - QuantumDefect;
-
-            if (N_star <= 0.0)
-            {
-                return 0.0;
-            }
-
-            const real_t Z_eff = BohrRadius;
-            return -(Z_eff * Z_eff) / (2.0 * N_star * N_star);
-        }
-
+        
         /// @brief Generate a 2D hydrogenic orbital for (n,l,m).
         /// @param QNumbers QuantumNumber object containing (n,l,m).
         /// @return StateVector<HilbertSpace> containing Ψ(x,z) values.
@@ -162,7 +126,8 @@ namespace KetCat
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
             using RadialSpace = InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent, HilbertSpace::Grid>;
-            auto RadialArray = EffectiveRadialOrbital<RadialSpace, element>{}(QNumbers);
+            auto RadialWavefunction = EffectiveRadialOrbital<RadialSpace, element>{}(QNumbers);
+            auto RadialArray = RadialWavefunction.m_Psi;
 
             for (natural_t ix = 0; ix < Steps; ++ix)
             {
@@ -239,7 +204,7 @@ namespace KetCat
             }
 
             Psi.normalize();
-            return { Psi, calculateHartreeEnergy(QNumbers) };
+            return { Psi, RadialWavefunction.m_Energy };
         }
     };
 }

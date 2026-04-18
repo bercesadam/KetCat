@@ -2,7 +2,7 @@
 #include "core_types.h"
 
 
-namespace KetCat
+namespace KetCat::Constants
 {
     constexpr real_t Hbar = 1.0; // Planck's constant divided by 2π, in atomic units
     constexpr real_t ElectronMass = 1.0; // Electron mass, in atomic units
