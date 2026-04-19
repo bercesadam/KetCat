@@ -41,7 +41,6 @@ namespace KetCat
 		{
 			return m_hamiltonianMatrix;
 		}
-
 		
 		/// @param m   Particle mass.
 		/// @param dx  Spatial discretization step Δx.

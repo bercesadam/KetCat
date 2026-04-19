@@ -214,7 +214,7 @@ namespace KetCat
 
             for (natural_t i = Dim - 1; i-- > 0;)
             {
-                Result[i] = (psi[i] - M[SUBDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
+                Result[i] = (psi[i] - M[SUPERDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
             }
 
             return Result;

@@ -60,10 +60,7 @@ namespace KetCat
     
     private:
         /// Embedded basis states |φ_i⟩ represented in the full grid space
-        std::array<StateVector<FullHilbertSpace>, LevelCount> m_Basis;
-
-        /// Energies of the basis states, computed as ⟨φ_i|Ĥ|φ_i⟩
-        std::array<real_t, LevelCount> m_Energies;
+        basis_set_t<FullHilbertSpace, LevelCount> m_Basis;
 
     public:
         /// @brief Construct the reduced space from an arbitrary wavefunction generator.
@@ -73,20 +70,10 @@ namespace KetCat
         ///
         /// @param generator Callable that produces a wavefunction from a parameter tuple
         /// @param params    Array of LevelCount parameter tuples for the generator
-        template<typename Generator, typename ParamTuple>
-            requires wavefunction_generator_t<Generator, ParamTuple>
-        ReducedEnergySpace(Generator&& generator, const std::array<ParamTuple, LevelCount>& params)
+        ReducedEnergySpace(basis_set_t<FullHilbertSpace, LevelCount> bases)
+			: m_Basis(bases)
         {
-            for (natural_t i = 0; i < LevelCount; ++i)
-            {
-               auto w = std::apply(generator, params[i]);
-               m_Basis[i] = w.m_Psi;
-               m_Energies[i] = w.m_Energy;
-            }
-
-            orthonormalize();
         }
-
 
         /// @brief Project a full spatial state into the reduced subspace.
         ///
@@ -104,7 +91,7 @@ namespace KetCat
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                Coeffs[i] = m_Basis[i].innerProduct(psi);
+                Coeffs[i] = m_Basis[i].m_Psi.innerProduct(psi);
             }
 
             return Coeffs;
@@ -124,7 +111,7 @@ namespace KetCat
             {
                 for (natural_t k = 0; k < FullHilbertSpace::Dim; ++k)
                 {
-                    Psi[k] += coeffs[i] * m_Basis[i][k];
+                    Psi[k] += coeffs[i] * m_Basis[i].m_Psi[k];
                 }
             }
 
@@ -135,29 +122,13 @@ namespace KetCat
         /// @return Array of energies corresponding to the basis states |φ_i⟩
         constexpr std::array<real_t, LevelCount> getEnergies() const noexcept
         {
-            return m_Energies;
-        }
+			std::array<real_t, LevelCount> Eigenvalues{};
 
-    private:
-        /// @brief Orthonormalize the basis using Gram–Schmidt.
-        ///
-        /// Ensures the basis satisfies:
-        ///
-        ///      ⟨φ_i | φ_j⟩ = δ_ij
-        constexpr void orthonormalize() noexcept
-        {
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                for (natural_t j = 0; j < i; ++j)
-                {
-                    auto Proj = m_Basis[j].innerProduct(m_Basis[i]);
-                    for (natural_t k = 0; k < FullHilbertSpace::Dim; ++k)
-                    {
-                        m_Basis[i][k] = m_Basis[i][k] - Proj * m_Basis[j][k];
-                    }
-                }
-                m_Basis[i].normalize();
+				Eigenvalues[i] = m_Basis[i].m_Energy;
             }
+            return Eigenvalues;
         }
     };
 
