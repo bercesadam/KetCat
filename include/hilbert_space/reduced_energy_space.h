@@ -70,7 +70,7 @@ namespace KetCat
         ///
         /// @param generator Callable that produces a wavefunction from a parameter tuple
         /// @param params    Array of LevelCount parameter tuples for the generator
-        ReducedEnergySpace(basis_set_t<FullHilbertSpace, LevelCount> bases)
+        constexpr ReducedEnergySpace(basis_set_t<FullHilbertSpace, LevelCount>& bases)
 			: m_Basis(bases)
         {
         }
