@@ -14,6 +14,7 @@ class QuditSubspaceHelper
     static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2");
     static_assert(_QuditCount >= 1, "Qudit count must be >= 1");
 
+public:
     static constexpr natural_t LocalDim = _LocalQditDim;      // d
     static constexpr natural_t QuditCount = _QuditCount;    // C
     static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QuditCount);
@@ -21,7 +22,10 @@ class QuditSubspaceHelper
     using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
     using OneQuditSpace   = FiniteHilbertSpace<LocalDim>;
 
+    template<natural_t TargetQdits>
+    using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits)>;
 
+private:
     /// @brief Determine a basis state from a flat global state vector index, little-endian digit order.
     /// @details It's a mixed-radix (base-d) decoding to get the qudit values at each position.
     ///          Example: For d=3, C=2, index 5 corresponds to basis state |2,1⟩ because 5 in base 3 is "21"
@@ -494,21 +498,19 @@ public:
     ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
     ///    c. Scatters the updated tile amplitudes back into the global state vector.
     template <natural_t K>
-    static constexpr void applyHamiltonian(StateVector<FullHilbertSpace>&   psi,
+    static constexpr void applyHamiltonian(CrankNicolsonSolver<OperationSpace<K>>& solver,
+                                        StateVector<FullHilbertSpace>& psi,
                                         qdit_list_t<K> targetQdits,
-                                        const tridiagonal_matrix_t<ConstexprMath::pow(LocalDim, K)>& hamiltonian,
-                                        real_t dt) noexcept
+                                        const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
     {
-        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>;
-        CrankNicolsonSolver<OperationSpace> solver(hamiltonian, dt);
         const natural_t BlockCount = blockCount<K>();
 
-        StateVector<OperationSpace> local{};
+        StateVector<OperationSpace<K>> local{};
         StateVector<FullHilbertSpace> psiUpdated = psi;
 
         for (natural_t b = 0; b < BlockCount; ++b)
         {
-            gatherTile<K>(psi, targetQdits, b, local);     // mindig a régi psi-ből
+            gatherTile<K>(psi, targetQdits, b, local);
             auto updatedLocal = solver(local);
             scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
         }
