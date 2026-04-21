@@ -140,7 +140,7 @@ namespace KetCat
                     WeightedEnergy += CoeffMagnitudeSquared * rawBasis[j].m_Energy;
                 }
 
-                Transformed[i].m_Energy = WeightedEnergy;
+                Transformed[i].m_Energy = rawBasis[i].m_Energy;
             }
 
             return Transformed;
