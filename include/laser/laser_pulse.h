@@ -32,7 +32,7 @@ namespace KetCat
         /// @details
         /// 1. Frequency: ω_si = 2πc / λ
         /// 2. Field:     ε₀ = √(I / I_au)
-        static constexpr SiLaserPulse fromSi(real_t wavelength_nm, real_t intensity_Wcm2) noexcept
+        static /*constexpr*/ SiLaserPulse fromSi(real_t wavelength_nm, real_t intensity_Wcm2) noexcept
         {
             SiLaserPulse pulse{};
 
@@ -48,6 +48,10 @@ namespace KetCat
             // 3. Intensity -> Amplitude (AU)
             // Since I ∝ |ε|², in atomic units ε₀ = √(I / I_au)
             pulse.amplitude_au = ConstexprMath::sqrt(intensity_Wcm2 / AU_INTENSITY);
+
+			std::cout << "Converted SI parameters to AU: " << std::endl;
+			std::cout << "  Wavelength (nm): " << wavelength_nm << " -> Angular Frequency (a.u.): " << pulse.omega_au << std::endl;
+			std::cout << "  Intensity (W/cm²): " << intensity_Wcm2 << " -> Field Amplitude (a.u.): " << pulse.amplitude_au << std::endl;
 
             return pulse;
         }

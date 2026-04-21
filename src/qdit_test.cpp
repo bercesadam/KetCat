@@ -93,8 +93,8 @@ int main()
     auto H = LaserHamiltonianBuilder<NumBases>::build(
         ReducedSpace->getEnergies(),
         DipoleMatrix,
-        459.3,     // Wavelength in nm
-        5e10,       // Intensity in W/cm²
+        514.8,     // Wavelength in nm
+        5e12,       // Intensity in W/cm²
         Ket0Level  // Reference level for rotating frame
 	);
     tridiagonal_matrix_t<NumBases> Hmat = H.getMatrix();
@@ -112,7 +112,8 @@ int main()
         KetCat::ExportMode::RealImag
     );
 
-    while (Frame < 35000)
+
+    while (Frame < 1000)
     {
         //Psi = solver(Psi);
 
@@ -125,7 +126,9 @@ int main()
         auto Psi_ = ReducedSpace->embed(Psi0); 
 
         std::ostringstream Title;
-        Title << "Cesium (Z=55) | Populations [";
+        Title << "Cesium (Z=55) | ";
+		Title << "Laser: 514.8 nm; 5E12 W/cm² | ";
+        Title << "Populations[";
 		Title << std::fixed << std::setprecision(2);
 		Title << "6s: " << Psi0[0].normSquared() * 100.0 << "% ";
 		Title << "7p: " << Psi0[1].normSquared() * 100.0 << "% ";
@@ -133,7 +136,7 @@ int main()
 		Title << "9f: " << Psi0[3].normSquared() * 100.0 << "% ";
 		Title << "10g: " << Psi0[4].normSquared() * 100.0 << "%]";
 
-        if (Frame % 100 == 0)
+        if (Frame % 10 == 0)
         {
             // Print all reduced space probabilities
             for (natural_t i = 0; i < NumBases; ++i)

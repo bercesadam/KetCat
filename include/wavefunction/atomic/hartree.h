@@ -41,7 +41,8 @@ namespace KetCat
             return 0.0;
         }
 
-        const real_t Z_eff = Constants::BohrRadius;
+		// For alkali metals, the effective nuclear charge Z_eff is approximately 1 due to screening by inner electrons.
+        const real_t Z_eff = 1.0;
         return -(Z_eff * Z_eff) / (2.0 * N_star * N_star);
     }
 }
