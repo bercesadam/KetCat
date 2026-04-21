@@ -17,7 +17,7 @@ namespace KetCat
 	///   For alkali atoms, the valence electron experiences a Coulomb-like potential at long range, but the inner electrons cause significant screening and deviations from hydrogenic behavior.
 	///   This generator uses quantum numbers and quantum defects to decide whether to use a hydrogenic orbital seed or a Slater-type orbital (STO) seed for the radial part of the wavefunction.
 	///	  The decision is based on:
-	///   - For high angular momentum (l >= 4) and sufficiently high principal quantum number (n >= 6), the valence electron is mostly outside the core and can be approximated by a hydrogenic orbital.
+	///   - For high angular momentum (l >= 4) and sufficiently high principal quantum number (n >= 6), the valence electron is mostly outside the core and can be approximated by a hydrogenic/QDT orbital.
 	///   - For d orbitals (l = 2) with n >= 6, if the quantum defect is small (< 0.1), it indicates near-hydrogenic behavior, so a hydrogenic seed is used.
 	///   For all other cases, a Slater-type orbital seed is generated using an effective nuclear charge calculated from Slater's rules.
 	///

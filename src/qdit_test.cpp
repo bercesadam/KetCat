@@ -45,7 +45,12 @@ int main()
         EffectiveRadialOrbital<HilbertSpace1D, E>()(q4)
      } };
 
+
+
+
     auto DipoleMatrix = buildRadialDipoleMatrix(Bases);
+
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     
@@ -60,6 +65,9 @@ int main()
             Hydrogenic2D<HilbertSpace, E>()(q4)
         }}
     );
+    auto Ortho = std::make_unique<Orthonormalizer<NumBases>>();
+    Ortho->learn(*Bases2D);
+    *Bases2D = Ortho->apply(*Bases2D);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -85,8 +93,8 @@ int main()
     auto H = LaserHamiltonianBuilder<NumBases>::build(
         ReducedSpace->getEnergies(),
         DipoleMatrix,
-        852.0,     // Wavelength in nm (Cs D2 line)
-        1e6,       // Intensity in W/cm²
+        459.3,     // Wavelength in nm
+        5e10,       // Intensity in W/cm²
         Ket0Level  // Reference level for rotating frame
 	);
     tridiagonal_matrix_t<NumBases> Hmat = H.getMatrix();
@@ -125,7 +133,7 @@ int main()
 		Title << "9f: " << Psi0[3].normSquared() * 100.0 << "% ";
 		Title << "10g: " << Psi0[4].normSquared() * 100.0 << "%]";
 
-        if (Frame % 20 == 0)
+        if (Frame % 100 == 0)
         {
             // Print all reduced space probabilities
             for (natural_t i = 0; i < NumBases; ++i)
