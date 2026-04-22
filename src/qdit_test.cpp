@@ -10,7 +10,7 @@
 #include "systems/qdit_register.h"
 #include "hilbert_space/gram_schmidt_orthonorm.h"
 #include "hilbert_space/dipole_operator.h"
-#include "visu/file_exporter.h"
+#include "kwf_exporter/kwf_exporter.h"
 #include "laser/laser_pulse.h"
 
 
@@ -21,7 +21,7 @@ int main()
 	constexpr natural_t NumBases = 5;
     constexpr natural_t NumQubits = 1;
     constexpr natural_t DiscretizationSteps = 256;
-    constexpr real_t PhysicalExtent = 150.0;
+    constexpr real_t PhysicalExtent = 50.0;
     using HilbertSpace = InfiniteHilbertSpace<2_D, DiscretizationSteps, PhysicalExtent>;
     using HilbertSpace1D = InfiniteHilbertSpace<1_D, DiscretizationSteps, PhysicalExtent>;
 
@@ -45,12 +45,8 @@ int main()
         EffectiveRadialOrbital<HilbertSpace1D, E>()(q4)
      } };
 
-
-
-
     auto DipoleMatrix = buildRadialDipoleMatrix(Bases);
 
-    
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     
@@ -83,9 +79,10 @@ int main()
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const real_t dt = 0.01;
+    real_t Time = 0.0;
     natural_t Frame = 0;
 
-    const real_t HartreeEnergyDiff = (*Bases2D)[Ket1Level].m_Energy - (*Bases2D)[Ket0Level].m_Energy;
+    const real_t HartreeEnergyDiff = (*Bases2D)[3].m_Energy - (*Bases2D)[2].m_Energy;
     std::cout << "Hartree energy difference between |0> and |1>: " << HartreeEnergyDiff << std::endl;
     //RwaRabiHamiltonian<NumBases> H(ReducedSpace->getEnergies(), DipoleMatrix, HartreeEnergyDiff, 0.01, 0.0);
 	
@@ -95,9 +92,18 @@ int main()
         DipoleMatrix,
         514.8,     // Wavelength in nm
         5e12,       // Intensity in W/cm²
-        Ket0Level  // Reference level for rotating frame
+        (*Bases2D)[0].m_Energy  // Reference level for rotating frame
 	);
     tridiagonal_matrix_t<NumBases> Hmat = H.getMatrix();
+
+    auto H2 = LaserHamiltonianBuilder<NumBases>::build(
+        ReducedSpace->getEnergies(),
+        DipoleMatrix,
+        4500.0,     // Wavelength in nm
+        5e10,       // Intensity in W/cm²
+        (*Bases2D)[2].m_Energy  // Reference level for rotating frame
+	);
+    tridiagonal_matrix_t<NumBases> Hmat2 = H2.getMatrix();
     
     QuditSubspaceHelper<NumBases, NumQubits> Register;
     auto Psi = Register.productStateFromSeed(SeedReducedSpace);
@@ -106,14 +112,15 @@ int main()
     using Solver = CrankNicolsonSolver<OpSpace>;
     Solver solver(Hmat, dt);
 
-    KetCat::StateVectorCsvExporter<HilbertSpace> Exporter
+    StateVectorExporter<HilbertSpace> Exporter
     (
-        "simulation.csv",
+        "simulation.kwf",
         KetCat::ExportMode::RealImag
     );
 
-
-    while (Frame < 1000)
+    real_t LaserNm = 514.8;
+    natural_t Skip = 50;
+    while (Frame < 100000)
     {
         //Psi = solver(Psi);
 
@@ -125,19 +132,31 @@ int main()
 
         auto Psi_ = ReducedSpace->embed(Psi0); 
 
+        
         std::ostringstream Title;
-        Title << "Cesium (Z=55) | ";
-		Title << "Laser: 514.8 nm; 5E12 W/cm² | ";
-        Title << "Populations[";
-		Title << std::fixed << std::setprecision(2);
+        Title << std::fixed << std::setprecision(2);
+        Title << "Cesium (Z=55)|";
+		Title << "Laser: " << LaserNm << " nm; 5E12 W/cm²|";
+        Title << "Time: " << Time << " a.u.|";
+        Title << "Populations: ";
 		Title << "6s: " << Psi0[0].normSquared() * 100.0 << "% ";
 		Title << "7p: " << Psi0[1].normSquared() * 100.0 << "% ";
 		Title << "8d: " << Psi0[2].normSquared() * 100.0 << "% ";
 		Title << "9f: " << Psi0[3].normSquared() * 100.0 << "% ";
-		Title << "10g: " << Psi0[4].normSquared() * 100.0 << "%]";
+		Title << "10g: " << Psi0[4].normSquared() * 100.0 << "%";
 
-        if (Frame % 10 == 0)
+        if (Psi0[2].normSquared() >= 0.7)
         {
+            Hmat = Hmat2;
+            LaserNm = 4500.0;
+            Skip = 200;
+            solver = Solver(Hmat, dt);
+        }
+
+        if (Frame % Skip == 0)
+        {
+            std::cout << Frame << std::endl;
+
             // Print all reduced space probabilities
             for (natural_t i = 0; i < NumBases; ++i)
             {
@@ -151,9 +170,10 @@ int main()
             }*/
             std::cout << "------------------------" << std::endl;
 
-            Exporter.writeTimestep(Frame, Psi_, Title.str());
+            Exporter.writeTimestep(Time, Psi_, Title.str());
          }
-
+        
+        Time += dt;
         Frame++;
     }
 }

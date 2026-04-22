@@ -3,6 +3,15 @@
 
 namespace KetCat
 {
+
+    
+    real_t safeDetuning(real_t delta) noexcept
+    {
+        constexpr real_t eps = 1e-10;
+        return (ConstexprMath::abs(delta) > eps) ? delta : (delta >= 0 ? eps : -eps);
+    }
+
+
     /// @brief Tridiagonal Hamiltonian generator for Rabi drive in RWA frame
     ///
     /// @details
@@ -67,31 +76,62 @@ namespace KetCat
         /// @tparam DriveFunctor  Functor for the electric field envelope ε(t).
         /// @param time           Current simulation time.
         /// @param drive          Field envelope function.
+        
         constexpr void calculateMatrix() noexcept
         {
             m_hamiltonianMatrix = {};
 
-            /// 1. Populate the Main Diagonal (Detunings + optional DC Stark shifts)
+            const real_t E2 = m_DriveAmplitude * m_DriveAmplitude;
+
+            // ------------------------------------------------------------
+            // 1. Main diagonal: rotating-frame detuning + AC Stark shift
+            // ------------------------------------------------------------
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                /// Energy in the rotating frame: Δᵢ = Eᵢ - (i - i_ref)·ω
-                const real_t detuning =
-                    m_Energies[i] - static_cast<real_t>(i - m_ReferenceLevel) * m_DriveOmega;
+                // Bare rotating-frame detuning
+                real_t detuning = m_Energies[i] - static_cast<real_t>(i) * m_DriveOmega;
 
-                /// If the diagonal dipole element μᵢᵢ is non-zero, include the DC Stark shift
-                const real_t dcShift = 0.0; // -m_DipoleMatrix[i][i].re * m_DriveAmplitude;
+                // AC Stark shift (second order, nearest neighbours only)
+                real_t acStark = 0.0;
 
-                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(detuning + dcShift);
+                // Coupling to upper neighbour (i -> i+1)
+                if (i + 1 < LevelCount)
+                {
+                    const real_t delta =
+                        (m_Energies[i + 1] - m_Energies[i]) - m_DriveOmega;
+
+                    const real_t OmegaSq =
+                        m_DipoleMatrix[i][i + 1].normSquared() * E2;
+
+                    acStark -= OmegaSq / (4.0 * safeDetuning(delta));
+                }
+
+                // Coupling to lower neighbour (i -> i-1)
+                if (i > 0)
+                {
+                    const real_t delta =
+                        (m_Energies[i - 1] - m_Energies[i]) + m_DriveOmega;
+
+                    const real_t OmegaSq =
+                        m_DipoleMatrix[i][i - 1].normSquared() * E2;
+
+                    acStark -= OmegaSq / (4.0 * safeDetuning(delta));
+                }
+
+                m_hamiltonianMatrix[MAINDIAGONAL][i] =
+                    complex_t::fromReal(detuning);// + acStark);
             }
 
-            /// 2. Populate the Off-Diagonals (Nearest-neighbor couplings)
+            // ------------------------------------------------------------
+            // 2. Off-diagonals: Rabi couplings (unchanged)
+            // ------------------------------------------------------------
             if constexpr (LevelCount > 1)
             {
                 for (natural_t i = 0; i < LevelCount - 1; ++i)
                 {
-                    /// Coupling: Ω = -1/2 · μ_{i, i+1} · ε(t)
-                    /// We extract μ from the full matrix row i and column i+1
-                    const complex_t coupling = m_DipoleMatrix[i][i + 1] * (-0.5 * m_DriveAmplitude);
+                    const complex_t coupling =
+                        m_DipoleMatrix[i][i + 1]
+                        * (-0.5 * m_DriveAmplitude);
 
                     m_hamiltonianMatrix[SUPERDIAGONAL][i] = coupling;
                     m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = coupling.conj();
