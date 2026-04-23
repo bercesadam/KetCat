@@ -35,19 +35,8 @@ namespace KetCat
         static /*constexpr*/ SiLaserPulse fromSi(real_t wavelength_nm, real_t intensity_Wcm2) noexcept
         {
             SiLaserPulse pulse{};
-
-            // 1. Wavelength -> Angular Frequency (SI)
-            // ω = 2πc / λ
-            const real_t wavelength_m = wavelength_nm * 1e-9;
-            const real_t omega_si = (2.0 * ConstexprMath::Pi * SPEED_OF_LIGHT_SI) / wavelength_m;
-
-            // 2. Frequency SI -> AU
-            // ω_au = ω_si * τ_au
-            pulse.omega_au = omega_si * AU_TIME;
-
-            // 3. Intensity -> Amplitude (AU)
-            // Since I ∝ |ε|², in atomic units ε₀ = √(I / I_au)
-            pulse.amplitude_au = ConstexprMath::sqrt(intensity_Wcm2 / AU_INTENSITY);
+            pulse.omega_au = KetCat::Units::omegaAuFromWavelengthNm(wavelength_nm);
+            pulse.amplitude_au = KetCat::Units::fieldAuFromIntensityWcm2(intensity_Wcm2);
 
 			std::cout << "Converted SI parameters to AU: " << std::endl;
 			std::cout << "  Wavelength (nm): " << wavelength_nm << " -> Angular Frequency (a.u.): " << pulse.omega_au << std::endl;

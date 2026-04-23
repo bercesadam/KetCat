@@ -88,38 +88,11 @@ namespace KetCat
             // ------------------------------------------------------------
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                // Bare rotating-frame detuning
-                real_t detuning = m_Energies[i] - static_cast<real_t>(i) * m_DriveOmega;
+                // 
+                real_t relativeEnergy = m_Energies[i] - m_Energies[0];
+                real_t rwaShift = static_cast<real_t>(i) * m_DriveOmega;
 
-                // AC Stark shift (second order, nearest neighbours only)
-                real_t acStark = 0.0;
-
-                // Coupling to upper neighbour (i -> i+1)
-                if (i + 1 < LevelCount)
-                {
-                    const real_t delta =
-                        (m_Energies[i + 1] - m_Energies[i]) - m_DriveOmega;
-
-                    const real_t OmegaSq =
-                        m_DipoleMatrix[i][i + 1].normSquared() * E2;
-
-                    acStark -= OmegaSq / (4.0 * safeDetuning(delta));
-                }
-
-                // Coupling to lower neighbour (i -> i-1)
-                if (i > 0)
-                {
-                    const real_t delta =
-                        (m_Energies[i - 1] - m_Energies[i]) + m_DriveOmega;
-
-                    const real_t OmegaSq =
-                        m_DipoleMatrix[i][i - 1].normSquared() * E2;
-
-                    acStark -= OmegaSq / (4.0 * safeDetuning(delta));
-                }
-
-                m_hamiltonianMatrix[MAINDIAGONAL][i] =
-                    complex_t::fromReal(detuning);// + acStark);
+                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(relativeEnergy - rwaShift);
             }
 
             // ------------------------------------------------------------

@@ -7,14 +7,14 @@
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "solvers/crank_nicolson_solver.h"
 #include "visu/visu_oscilloscope.h"
-#include "systems/qdit_register.h"
+#include "hilbert_space/qdit_subspace_helper.h"
 #include "hilbert_space/gram_schmidt_orthonorm.h"
-#include "hilbert_space/dipole_operator.h"
+#include "hamiltonian/dipole_operator.h"
 #include "kwf_exporter/kwf_exporter.h"
 #include "laser/laser_pulse.h"
 
-
 using namespace KetCat;
+
 
 int main() 
 {
@@ -56,7 +56,6 @@ int main()
         }
 	}
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     
     using Basis2D = basis_set_t<HilbertSpace, NumBases>;
@@ -87,33 +86,39 @@ int main()
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const real_t dt = 0.01;
+    const real_t dt = 0.05;
     real_t Time = 0.0;
     natural_t Frame = 0;
 
-    const real_t HartreeEnergyDiff = (*Bases2D)[3].m_Energy - (*Bases2D)[2].m_Energy;
-    std::cout << "Hartree energy difference between |0> and |1>: " << HartreeEnergyDiff << std::endl;
-    //RwaRabiHamiltonian<NumBases> H(ReducedSpace->getEnergies(), DipoleMatrix, HartreeEnergyDiff, 0.01, 0.0);
-	
+    for (natural_t i = 0; i < NumBases; ++i)
+    {
+        std::cout << "Hartree energy for level " << i << ": " << (*Bases2D)[i].m_Energy << std::endl;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const real_t dipoleAbs_au  = ConstexprMath::abs(DipoleMatrix[0][1].re); // vagy norm
+    const real_t targetRabiOver2Pi_Hz = 1e13; // 1 THz
+    const real_t targetRabiOmega_au = Units::omegaAuFromHz(targetRabiOver2Pi_Hz);
+    const real_t requiredFieldAmplitude_au = targetRabiOmega_au / dipoleAbs_au;
+    const real_t requiredIntensity_Wcm2 = Units::intensityWcm2FromFieldAu(requiredFieldAmplitude_au);
+
+    const real_t energyDiff_au = (*Bases2D)[1].m_Energy - (*Bases2D)[0].m_Energy;
+    std::cout << energyDiff_au << std::endl;
+    const real_t driveOmega_au = energyDiff_au;// + detuning_au; // rezonáns + Δ
+    std::cout << driveOmega_au << std::endl;
+    const real_t wavelength_nm = Units::wavelengthNmFromOmegaAu(driveOmega_au);
+    std::cout << wavelength_nm << std::endl;
 
     auto H = LaserHamiltonianBuilder<NumBases>::build(
         ReducedSpace->getEnergies(),
         DipoleMatrix,
-        514.8,     // Wavelength in nm
-        5e12,       // Intensity in W/cm²
+        wavelength_nm,     // Wavelength in nm
+        requiredIntensity_Wcm2,       // Intensity in W/cm²
         (*Bases2D)[0].m_Energy  // Reference level for rotating frame
 	);
     tridiagonal_matrix_t<NumBases> Hmat = H.getMatrix();
 
-    auto H2 = LaserHamiltonianBuilder<NumBases>::build(
-        ReducedSpace->getEnergies(),
-        DipoleMatrix,
-        4500.0,     // Wavelength in nm
-        5e12,       // Intensity in W/cm²
-        (*Bases2D)[2].m_Energy  // Reference level for rotating frame
-	);
-    tridiagonal_matrix_t<NumBases> Hmat2 = H2.getMatrix();
-    
     QuditSubspaceHelper<NumBases, NumQubits> Register;
     auto Psi = Register.productStateFromSeed(SeedReducedSpace);
 
@@ -127,12 +132,9 @@ int main()
         KetCat::ExportMode::RealImag
     );
 
-    real_t LaserNm = 514.8;
-    natural_t Skip = 10;
-    while (Frame < 2000000)
+    natural_t Skip = 1000;
+    while (Frame < 1E5)
     {
-        //Psi = solver(Psi);
-
        Register.applyHamiltonian<1>(solver, Psi, {0}, Hmat);
        //Register.applyHamiltonian<1>(solver, Psi, {1}, Hmat);
 
@@ -142,7 +144,7 @@ int main()
         std::ostringstream Title;
         Title << std::fixed << std::setprecision(2);
         Title << "Cesium (Z=55)|";
-		Title << "Laser: " << LaserNm << " nm; 5E12 W/cm²|";
+		Title << "Laser: " << wavelength_nm << " nm; " << requiredIntensity_Wcm2 <<  " W/cm²|";
         Title << "Time: " << Time << " a.u.|";
         Title << "Populations: ";
 		Title << "6s: " << Psi0[0].normSquared() * 100.0 << "% ";
@@ -150,30 +152,16 @@ int main()
 		Title << "8d: " << Psi0[2].normSquared() * 100.0 << "% ";
 		Title << "9f: " << Psi0[3].normSquared() * 100.0 << "% ";
 		Title << "10g: " << Psi0[4].normSquared() * 100.0 << "%";
-        /*
-        if (Psi0[2].normSquared() >= 0.7)
-        {
-            Hmat = Hmat2;
-            LaserNm = 4500.0;
-            Skip = 1000;
-            solver = Solver(Hmat, dt);
-        }*/
 
         if (Frame % Skip == 0)
         {
             std::cout << Frame << std::endl;
 
-            // Print all reduced space probabilities
             for (natural_t i = 0; i < NumBases; ++i)
             {
                 std::cout << "Probability of basis state Qbit 0 " << i << ": " << Psi0[i].normSquared() * 100.0 << "%" << std::endl;
 
-            }/*
-            for (natural_t i = 0; i < NumBases; ++i)
-            {
-                std::cout << "Probability of basis state QBit 1 " << i << ": " << Psi1[i].normSquared() * 100.0 << "%" << std::endl;
-
-            }*/
+            }
             std::cout << "------------------------" << std::endl;
 
             auto Psi_ = ReducedSpace->embed(Psi0);
