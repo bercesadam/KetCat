@@ -28,6 +28,8 @@
 ///     4 bytes  – magic bytes "KWF\x01"  (format version 1)
 ///     1 byte   – ExportMode: 0 = RealImag, 1 = Probability
 ///     8 bytes  – uint64 : number of basis states (Size)
+///     8 bytes  – uint64 : Spatial discretization steps of the underlying Hilbert space
+///     8 bytes  – double : Physical extent of the underlying Hilbert space in AU
 ///
 ///   [FRAME]  (repeated once per writeTimestep call)
 ///     2 bytes  – uint16 : byte-length N of the caption string
@@ -178,9 +180,11 @@ namespace KetCat
 
         /// @brief Writes the 13-byte file header exactly once at construction time.
         /// @details Header layout:
-        ///   [0..3]  magic "KWF\x01"
-        ///   [4]     uint8  ExportMode  (0 = RealImag, 1 = Probability)
-        ///   [5..12] uint64 Size        (number of basis states)
+        ///   [0..3]   magic "KWF\x01"
+        ///   [4]      uint8  ExportMode  (0 = RealImag, 1 = Probability)
+        ///   [5..12]  uint64 Size        (number of basis states)
+        ///   [13..20] uint64 Steps       (spatial discretization steps of the underlying Hilbert space)
+        ///   [21..28] double Extent      (physical extent of the Hilbert space in AU)
         void writeFileHeader()
         {
             // Magic bytes identify the format and encode the format version
