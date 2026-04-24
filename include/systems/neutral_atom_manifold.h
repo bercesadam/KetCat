@@ -120,6 +120,9 @@ namespace KetCat
         /// approximation.
         matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
 
+		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
+        std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
+
         /// @brief Orthonormalized full spatial basis states (2D).
         ///
         /// @details
@@ -186,36 +189,6 @@ namespace KetCat
                 >()...
             }};
         }
-        
-        /// @brief Compile-time helper to compute Hartree energies for all eigenstates.
-        ///
-        /// @details
-        /// This function expands the list of quantum-number *types* provided by the
-        /// NeutralAtomTypeConfig using a compile-time index sequence. For each quantum
-        /// number, it evaluates the corresponding Hartree energy via
-        /// `calculateHartreeEnergy`.
-        ///
-        /// @tparam IndexSequence
-        ///   Compile-time indices used to expand the quantum-number tuple.
-        /// @param std::index_sequence<Is...>
-        ///   Tag used to trigger parameter-pack expansion.
-        /// @return
-        ///   Fixed-size array of Hartree energies, one per eigenstates, in Hartree
-        ///   atomic units.
-        template<std::size_t... IndexSequence>
-        static constexpr std::array<real_t, ConfigType::LevelCount>
-        getHartreeEnergiesImpl(std::index_sequence<IndexSequence...>) noexcept
-        {
-            return {
-                calculateHartreeEnergy(
-                    ConfigType::ChemicalElement,
-                    std::tuple_element_t<
-                        IndexSequence,
-                        typename ConfigType::QuantumNumbers
-                    >{}
-                )...
-            };
-        }
 
         /// @brief Compute the radial electric dipole transition matrix.
         ///
@@ -268,6 +241,45 @@ namespace KetCat
             m_operationSpace =
                 std::make_unique<ReducedEnergySpaceType>(*m_basisStates);
         }
+        
+
+        /// @brief Compile-time helper to compute Hartree energies for all eigenstates.
+        ///
+        /// @details
+        /// This function expands the list of quantum-number *types* provided by the
+        /// NeutralAtomTypeConfig using a compile-time index sequence. For each quantum
+        /// number, it evaluates the corresponding Hartree energy via
+        /// `calculateHartreeEnergy`.
+        ///
+        /// @tparam IndexSequence
+        ///   Compile-time indices used to expand the quantum-number tuple.
+        /// @param std::index_sequence<Is...>
+        ///   Tag used to trigger parameter-pack expansion.
+        /// @return
+        ///   Fixed-size array of Hartree energies, one per eigenstates, in Hartree
+        ///   atomic units.
+        template<std::size_t... IndexSequence>
+        static constexpr std::array<real_t, ConfigType::LevelCount>
+            calculateHartreeEnergiesImpl(std::index_sequence<IndexSequence...>) noexcept
+        {
+            return {
+                calculateHartreeEnergy(
+                    ConfigType::ChemicalElement,
+                    std::tuple_element_t<
+                        IndexSequence,
+                        typename ConfigType::QuantumNumbers
+                    >{}
+                )...
+            };
+        }
+
+		/// @brief Calculate Hartree energies for all eigenstates
+        void calculateHartreeEnergies() noexcept
+        {
+            m_hartreeEnergies = calculateHartreeEnergiesImpl(
+                std::make_index_sequence<ConfigType::LevelCount>{}
+            );
+        }
 
     public:
         /// @brief Retrieve the |0⟩ operation seed state.
@@ -295,10 +307,8 @@ namespace KetCat
         ///   array of Hartree energies
         std::array<real_t, ConfigType::LevelCount> getHartreeEnergies() noexcept
         {
-            return getHartreeEnergiesImpl(
-                    std::make_index_sequence<ConfigType::LevelCount>{}
-                );
-        }
+            return m_hartreeEnergies;
+		}
 
         /// @brief Fully construct the neutral atom manifold.
         ///
@@ -312,6 +322,7 @@ namespace KetCat
             buildDipleMatrix();
             buildFullBasisSet();
             buildOperationSpace();
+			calculateHartreeEnergies();
         }
     };
 }
