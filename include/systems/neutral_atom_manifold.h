@@ -222,7 +222,7 @@ namespace KetCat
         /// @details
         /// Uses effective radial orbitals to compute dipole matrix elements
         /// under the electric-dipole approximation.
-        constexpr void buildDipleMatrix() noexcept
+        void buildDipleMatrix() noexcept
         {
             BasesSetHandle<1_D> Bases =
                 std::make_unique<BasisSet<1_D>>(
@@ -239,7 +239,7 @@ namespace KetCat
         /// @details
         /// The basis is generated using hydrogenic wavefunctions and
         /// orthonormalized using a two-pass Modified Gram-Schmidt.
-        constexpr void buildFullBasisSet() noexcept
+        void buildFullBasisSet() noexcept
         {
             BasesSetHandle<2_D> Bases2D =
                 std::make_unique<BasisSet<2_D>>(
@@ -263,7 +263,7 @@ namespace KetCat
         ///
         /// @details
         /// This space is used for actual time evolution and control dynamics.
-        constexpr void buildOperationSpace() noexcept
+        void buildOperationSpace() noexcept
         {
             m_operationSpace =
                 std::make_unique<ReducedEnergySpaceType>(*m_basisStates);
@@ -274,7 +274,7 @@ namespace KetCat
         ///
         /// @return
         ///   State vector representing the logical |0⟩ state in the reduced space for one qubit
-        constexpr StateVector<SingleAtomOperationHilbertSpace> getOperationSeed() noexcept
+        StateVector<SingleAtomOperationHilbertSpace> getOperationSeed() noexcept
         {
             return m_operationSpace->project((*m_basisStates)[ConfigType::Logical0Level].m_Psi);
         }
@@ -284,7 +284,7 @@ namespace KetCat
         /// @return
         ///   Dipole matrix (radial part only, assuming no variations in laser polarizationm
         ///   hence no access to states with different 'm' quantum numbers)
-        constexpr matrix_t<ConfigType::LevelCount> getDipoleMatrix() noexcept
+        matrix_t<ConfigType::LevelCount> getDipoleMatrix() noexcept
         {
             return m_dipoleMatrix;
         }
@@ -293,7 +293,7 @@ namespace KetCat
         ///
         /// @return
         ///   array of Hartree energies
-        constexpr std::array<real_t, ConfigType::LevelCount> getHartreeEnergies() noexcept
+        std::array<real_t, ConfigType::LevelCount> getHartreeEnergies() noexcept
         {
             return getHartreeEnergiesImpl(
                     std::make_index_sequence<ConfigType::LevelCount>{}
@@ -307,7 +307,7 @@ namespace KetCat
         ///   1. Build the dipole transition matrix
         ///   2. Construct and orthonormalize full spatial basis states
         ///   3. Build the reduced energy space used for time evolution
-        constexpr NeutralAtomManifold()
+        NeutralAtomManifold()
         {
             buildDipleMatrix();
             buildFullBasisSet();
