@@ -72,7 +72,7 @@ namespace KetCat
         ///
         /// @details
         /// A basis set is represented as a fixed-size array of wavefunctions,
-        /// one for each atomic level defined in the configuration.
+        /// one for each eigenstate defined in the configuration.
         template <DimensionTag SpatialDimensions>
         using BasisSet =
             basis_set_t<
@@ -112,7 +112,7 @@ namespace KetCat
             typename ReducedEnergySpaceType::ReducedHilbertSpace;
 
     private:
-        /// @brief Electric dipole transition matrix between atomic levels.
+        /// @brief Electric dipole transition matrix between eigenstates.
         ///
         /// @details
         /// This matrix is computed from the radial parts of the wavefunctions
@@ -137,7 +137,7 @@ namespace KetCat
         /// @tparam WaveFunctionGenerator
         ///   Wavefunction generator class template.
         /// @tparam QuantumNumber
-        ///   Quantum number type specifying the atomic state.
+        ///   Quantum number type n, l, [m]
         ///
         /// @return
         ///   A fully constructed wavefunction corresponding to the given quantum numbers.
@@ -187,7 +187,7 @@ namespace KetCat
             }};
         }
         
-        /// @brief Compile-time helper to compute Hartree energies for all atomic levels.
+        /// @brief Compile-time helper to compute Hartree energies for all eigenstates.
         ///
         /// @details
         /// This function expands the list of quantum-number *types* provided by the
@@ -200,7 +200,7 @@ namespace KetCat
         /// @param std::index_sequence<Is...>
         ///   Tag used to trigger parameter-pack expansion.
         /// @return
-        ///   Fixed-size array of Hartree energies, one per atomic level, in Hartree
+        ///   Fixed-size array of Hartree energies, one per eigenstates, in Hartree
         ///   atomic units.
         template<std::size_t... IndexSequence>
         static constexpr std::array<real_t, ConfigType::LevelCount>
