@@ -273,10 +273,10 @@ namespace KetCat
         /// @brief Retrieve the |0⟩ operation seed state.
         ///
         /// @return
-        ///   State vector representing the logical |0⟩ state in the reduced space.
+        ///   State vector representing the logical |0⟩ state in the reduced space for one qubit
         constexpr StateVector<SingleAtomOperationHilbertSpace> getOperationSeed() noexcept
         {
-            auto SeedReducedSpace = m_operationSpace->project((*m_basisStates)[ConfigType::Logical0Level].m_Psi);
+            return m_operationSpace->project((*m_basisStates)[ConfigType::Logical0Level].m_Psi);
         }
 
         /// @brief Provide the dipole matrix
