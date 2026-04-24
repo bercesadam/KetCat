@@ -1,5 +1,4 @@
 #pragma once
-#include "constants.h"
 #include "atomic_physics_core/elements.h"
 #include "atomic_physics_core/quantum_number.h"
 #include "atomic_physics_core/rydberg_quantum_defect.h"

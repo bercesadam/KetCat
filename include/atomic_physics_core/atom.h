@@ -1,6 +1,5 @@
 #pragma once
 #include <utility>
-#include "constants.h"
 #include "elements.h"
 
 
@@ -55,7 +54,7 @@ namespace KetCat
 			// WARNING! Defining it as equal to the Bohr radius as currently this is used only
 			// for the calculation of Hydrogenic like radial orbitals in Rydberg states,
 			// where the effective Bohr radius is close to the actual Bohr radius.
-			Data.m_Aeff = Constants::BohrRadius;
+			Data.m_Aeff = 1.0;
 
 			// Temporary struct to represent a subshell with its quantum numbers (n, l).
 			struct SubshellStub { natural_t n, l; };
