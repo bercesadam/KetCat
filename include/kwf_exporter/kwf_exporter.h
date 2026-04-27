@@ -124,7 +124,8 @@ namespace KetCat
         ///   float64 re[0], float64 im[0], ...  (RealImag mode)
         ///   -- or --
         ///   float64 |psi[0]|^2, ...             (Probability mode)
-        void writeTimestep(real_t time, const State& state, const std::string& title)
+        void writeTimestep(real_t time, const State& state, const std::string& title,
+            const complex_t alpha, const complex_t beta)
         {
             // Caption: 2-byte length prefix + raw UTF-8 bytes (no null terminator)
             const auto captionLen = static_cast<uint16_t>(title.size());
@@ -134,6 +135,12 @@ namespace KetCat
             // Simulation time as a 64-bit IEEE-754 double
             const double t = static_cast<double>(time);
             writeRaw(t);
+
+            // Write Bloch vectors for Bloch sphere visu
+            writeRaw(alpha.re);
+			writeRaw(alpha.im);
+			writeRaw(beta.re);
+			writeRaw(beta.im);
 
             // Wavefunction payload
             for (natural_t i = 0; i < Size; ++i)
