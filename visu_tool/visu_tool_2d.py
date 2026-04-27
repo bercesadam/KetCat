@@ -134,7 +134,7 @@ def setup_bloch(axis):
     x = np.cos(u)*np.sin(v)
     y = np.sin(u)*np.sin(v)
     z = np.cos(v)
-    axis.plot_wireframe(x, y, z, color="gray", alpha=0.1, linewidth=0.5)
+    axis.plot_wireframe(x, y, z, color="gray", alpha=0.3, linewidth=0.5)
     
     # Axes
     axis.plot([-1.1, 1.1], [0, 0], [0, 0], color="white", alpha=0.05) # X
