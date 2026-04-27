@@ -3,111 +3,153 @@
 
 namespace KetCat
 {
-
-    
-    real_t safeDetuning(real_t delta) noexcept
+    /// @brief Encapsulates the physical parameters of a driving laser field.
+    struct Laser
     {
-        constexpr real_t eps = 1e-10;
-        return (ConstexprMath::abs(delta) > eps) ? delta : (delta >= 0 ? eps : -eps);
-    }
+        real_t omega;     ///< Angular frequency of the light field (rad/s or a.u.).
+        real_t amplitude; ///< Electric field amplitude ε₀.
+        real_t phase;     ///< Temporal phase offset φ in radians.
+    };
 
-
-    /// @brief Tridiagonal Hamiltonian generator for Rabi drive in RWA frame
+    /// @brief Multi-laser Tridiagonal Hamiltonian generator in the Rotating Wave Approximation (RWA).
     ///
     /// @details
-    ///   This class constructs a tridiagonal Hamiltonian matrix in the rotating frame.
-    ///   It extracts only the nearest-neighbor couplings from a full dipole matrix to 
-    ///   remain compatible with Thomas-algorithm (TDMA) based solvers.
+    /// This class constructs the Hamiltonian for an N-level "ladder" system (e.g., Cs 6s → 7p → 7s).
+    /// The Hamiltonian is represented in a rotating frame, transforming the time-dependent
+    /// Schrödinger equation into a time-independent (or slowly varying) eigenvalue problem.
     ///
-    ///   H_tridiag = 
-    ///   [ Δ₀   Ω₀₁  0   ]
-    ///   [ Ω₁₀  Δ₁   Ω₁₂ ]
-    ///   [ 0    Ω₂₁  Δ₂  ]
+    /// The matrix structure is tridiagonal:
+    /// - **Main Diagonal:** Cumulative detunings and second-order AC Stark shifts.
+    /// - **Off-Diagonals:** Coherent Rabi couplings between adjacent levels.
     ///
-    /// @tparam LevelCount The number of levels in the reduced energy space.
+    /// @tparam LevelCount Total number of energy levels in the simulation manifold.
     template<natural_t LevelCount>
-    class RwaRabiHamiltonian
+    class MultiRwaRabiHamiltonian
     {
     public:
-        /// The reduced matrix type required by the Crank-Nicolson solver.
         using ReducedMatrix = tridiagonal_matrix_t<LevelCount>;
         using FullDipoleMatrix = matrix_t<LevelCount>;
 
     private:
         std::array<real_t, LevelCount> m_Energies{};
         FullDipoleMatrix m_DipoleMatrix{};
-        real_t m_DriveOmega{};
-        real_t m_DriveAmplitude{};
-        real_t m_ReferenceLevel{};
+        std::array<Laser, LevelCount - 1> m_Lasers{};
 
         tridiagonal_matrix_t<LevelCount> m_hamiltonianMatrix;
 
     public:
-        /// @brief Constructs the tridiagonal RWA generator.
+        /// @brief Constructs and initializes the RWA Hamiltonian.
         ///
-        /// @param energies       Energies from ReducedEnergySpace::getEnergies().
-        /// @param dipoleMatrix   Full dipole matrix from buildRadialDipoleMatrix().
-        /// @param driveOmega     Laser angular frequency.
-        /// @param referenceLevel The state index that defines the rotating frame.
-        constexpr RwaRabiHamiltonian(
+        /// @param energies     Baseline energies of the states (e.g., Hartree).
+        /// @param dipoleMatrix Matrix containing transition dipole moments μ_ij.
+        /// @param lasers       Array of lasers where lasers[i] drives the |i⟩ → |i+1⟩ transition.
+        constexpr MultiRwaRabiHamiltonian(
             const std::array<real_t, LevelCount>& energies,
             const FullDipoleMatrix& dipoleMatrix,
-            const real_t driveOmega,
-            const real_t driveAmplitude,
-            const natural_t referenceLevel = 0) noexcept
+            const std::array<Laser, LevelCount - 1>& lasers) noexcept
             : m_Energies(energies),
             m_DipoleMatrix(dipoleMatrix),
-            m_DriveOmega(driveOmega),
-            m_DriveAmplitude(driveAmplitude),
-            m_ReferenceLevel(referenceLevel)
+            m_Lasers(lasers)
         {
             calculateMatrix();
         }
 
+        /// @return The constructed tridiagonal Hamiltonian matrix.
         constexpr tridiagonal_matrix_t<LevelCount> getMatrix() const noexcept
         {
             return m_hamiltonianMatrix;
         }
 
     private:
-
-        /// @brief Builds a tridiagonal Hamiltonian for the current time step.
+        /// @brief Computes the matrix elements, accounting for detuning and AC Stark shifts.
         ///
-        /// @tparam DriveFunctor  Functor for the electric field envelope ε(t).
-        /// @param time           Current simulation time.
-        /// @param drive          Field envelope function.
-        
+        /// @details
+        /// The diagonal elements are calculated as:
+        ///     H_ii = Δ_i + Σ ΔE_Stark
+        /// where Δ_i is the cumulative multi-photon detuning.
+        ///
+        /// The off-diagonal elements (Rabi coupling) are:
+        ///     Ω_i / 2 = -0.5 * μ_i,i+1 * ε * exp(iφ)
         constexpr void calculateMatrix() noexcept
         {
             m_hamiltonianMatrix = {};
 
-            const real_t E2 = m_DriveAmplitude * m_DriveAmplitude;
+            // --- 1. Diagonal Elements: Detuning + AC Stark-shift ---
+            real_t cumulative_omega = 0.0;
 
-            // ------------------------------------------------------------
-            // 1. Main diagonal: rotating-frame detuning + AC Stark shift
-            // ------------------------------------------------------------
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                // 
-                real_t relativeEnergy = m_Energies[i] - m_Energies[0];
-                real_t rwaShift = static_cast<real_t>(i) * m_DriveOmega;
+                // To transform to the RWA frame, each level 'i' is shifted by the 
+                // sum of the frequencies of the lasers used to reach it.
+                if (i > 0)
+                {
+                    cumulative_omega += m_Lasers[i - 1].omega;
+                }
 
-                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(relativeEnergy - rwaShift);
+                const real_t relative_energy = m_Energies[i] - m_Energies[0];
+                const real_t detuning = relative_energy - cumulative_omega;
+
+                // --- AC Stark-shift calculation (Second-order Perturbation) ---
+                // We account for non-resonant couplings from all lasers to all levels,
+                // including the counter-rotating terms.
+                real_t stark_shift = 0.0;
+                for (natural_t l_idx = 0; l_idx < LevelCount - 1; ++l_idx)
+                {
+                    const auto& L = m_Lasers[l_idx];
+
+                    for (natural_t j = 0; j < LevelCount; ++j)
+                    {
+                        if (i == j) continue;
+
+                        const real_t mu_ij = m_DipoleMatrix[i][j].re;
+                        const real_t omega_rabi_half = -0.5 * mu_ij * L.amplitude;
+                        const real_t delta_e = m_Energies[i] - m_Energies[j];
+
+                        // A. Resonant (Rotating) term:
+                        // If the laser is resonant with the i-j transition, this term 
+                        // is already handled by the off-diagonal coupling. We only 
+                        // add the shift for non-resonant (far-detuned) transitions.
+                        const real_t resonant_denom = delta_e - L.omega;
+                        if (std::abs(resonant_denom) > 1e-9)
+                        {
+                            stark_shift += (omega_rabi_half * omega_rabi_half) / resonant_denom;
+                        }
+
+                        // B. Anti-resonant (Counter-rotating) term:
+                        // This accounts for the Bloch-Siegert shift contribution.
+                        const real_t anti_resonant_denom = delta_e + L.omega;
+                        if (std::abs(anti_resonant_denom) > 1e-9)
+                        {
+                            stark_shift += (omega_rabi_half * omega_rabi_half) / anti_resonant_denom;
+                        }
+                    }
+                }
+
+                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(detuning + stark_shift);
             }
 
-            // ------------------------------------------------------------
-            // 2. Off-diagonals: Rabi couplings (unchanged)
-            // ------------------------------------------------------------
+            // --- 2. Off-Diagonal Elements: Direct Rabi Couplings ---
             if constexpr (LevelCount > 1)
             {
                 for (natural_t i = 0; i < LevelCount - 1; ++i)
                 {
-                    const complex_t coupling =
-                        m_DipoleMatrix[i][i + 1]
-                        * (-0.5 * m_DriveAmplitude);
+                    const Laser& L = m_Lasers[i];
+
+                    // Complex phase factor for the i -> i+1 driving field.
+                    const complex_t phase_factor =
+                    {
+                        std::cos(L.phase),
+                        std::sin(L.phase)
+                    };
+
+                    // The coupling term (half-Rabi frequency) including the transition phase.
+                    // H_i,i+1 = -0.5 * d * E * e^(iφ)
+                    const complex_t coupling = m_DipoleMatrix[i][i + 1]
+                        * (-0.5 * L.amplitude)
+                        * phase_factor;
 
                     m_hamiltonianMatrix[SUPERDIAGONAL][i] = coupling;
-                    m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = coupling.conj();
+                    m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = coupling.conj(); // Hermiticity
                 }
             }
         }

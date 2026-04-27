@@ -111,6 +111,9 @@ namespace KetCat
         using SingleAtomOperationHilbertSpace =
             typename ReducedEnergySpaceType::ReducedHilbertSpace;
 
+        using SingleAtomFullHilbertSpace =
+            typename ConfigType::template HilbertSpaceStub<2_D>;
+
     private:
         /// @brief Electric dipole transition matrix between eigenstates.
         ///
@@ -118,10 +121,10 @@ namespace KetCat
         /// This matrix is computed from the radial parts of the wavefunctions
         /// and encodes allowed optical transitions under the electric-dipole
         /// approximation.
-        matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
+        inline static matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
 
 		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
-        std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
+        inline static std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
 
         /// @brief Orthonormalized full spatial basis states (2D).
         ///
@@ -291,12 +294,26 @@ namespace KetCat
             return m_operationSpace->project((*m_basisStates)[ConfigType::Logical0Level].m_Psi);
         }
 
-        /// @brief Provide the dipole matrix
+		/// @brief Retrieve the full spatial state vector corresponding to a reduced operation state.
+		///
+		/// @param reducedState State vector in the reduced operation space (e.g. |0⟩ or |1⟩).
+		/// @return
+		///    Full spatial state vector in the original Hilbert space, obtained by embedding the reduced state back into the full basis.
+        /// @detail
+		///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
+        ///    which operate entirely within the reduced space.
+        StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
+            (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) noexcept
+        {
+            return m_operationSpace->embed(reducedState);
+		}
+
+        /// @brief Provide the dipole matrix   
         ///
         /// @return
         ///   Dipole matrix (radial part only, assuming no variations in laser polarizationm
         ///   hence no access to states with different 'm' quantum numbers)
-        matrix_t<ConfigType::LevelCount> getDipoleMatrix() noexcept
+        static const matrix_t<ConfigType::LevelCount>& getDipoleMatrix() noexcept
         {
             return m_dipoleMatrix;
         }
@@ -305,7 +322,7 @@ namespace KetCat
         ///
         /// @return
         ///   array of Hartree energies
-        std::array<real_t, ConfigType::LevelCount> getHartreeEnergies() noexcept
+        static const std::array<real_t, ConfigType::LevelCount>& getHartreeEnergies() noexcept
         {
             return m_hartreeEnergies;
 		}
@@ -317,6 +334,7 @@ namespace KetCat
         ///   1. Build the dipole transition matrix
         ///   2. Construct and orthonormalize full spatial basis states
         ///   3. Build the reduced energy space used for time evolution
+		///   4. Calculate Hartree energies for all states
         NeutralAtomManifold()
         {
             buildDipleMatrix();
