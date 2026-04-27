@@ -9,10 +9,10 @@
 namespace KetCat
 {
     /// @brief Time step for Time-Dependent Schrödinger Equation (TDSE) integration in atomic units (a.u.).
-    static constexpr real_t TimeStepAu = 25;
+    static constexpr real_t TimeStepAu = 50;
 
     /// @brief Physical parameters for a laser pulse interaction.
-    struct LaserPulse
+    struct SiLaserPulse
     {
         real_t m_waveLengthNm;   ///< Wavelength in nanometers (nm).
         real_t m_intensityWCm2;  ///< Peak intensity in Watts per square centimeter (W/cm²).
@@ -48,9 +48,11 @@ namespace KetCat
         using Manifold = NeutralAtomManifold<Config>;
         using HilbertSpace = typename Manifold::SingleAtomOperationHilbertSpace;
 
+        inline static real_t m_PersistentGlobalPhase = 0.0;
+
     public:
         /// @brief Callback for monitoring the state vector evolution during integration.
-        using StepCallback = std::function<void(real_t time, const StateVector<HilbertSpace>&)>;
+        using StepCallback = std::function<void(real_t time, const StateVector<HilbertSpace>&, const SiLaserPulse&, const SiLaserPulse&)>;
 
         /// @brief Simple Gaussian temporal profile for the Rabi frequency.
         ///
@@ -91,6 +93,10 @@ namespace KetCat
             const real_t Omega0 = TargetRabiOmega_Au;
             const real_t Sigma = 50.0 / Omega0;
 
+            // Center-times for the delayed pulse sequence (Stokes precedes Pump).
+            real_t StokesTimeCenter = 4.0 * Sigma;
+            real_t PumpTimeCenter = 6.0 * Sigma;
+
             // Default simulation window for a full STIRAP sequence (approx 10σ).
             real_t FullTransitionTime_Au = 10.0 * Sigma;
             real_t PumpPhase = 0.0;
@@ -101,7 +107,8 @@ namespace KetCat
             {
                 // To rotate around Y, the Pump laser requires a π/2 phase shift 
                 // relative to the Stokes reference.
-                PumpPhase = (command.m_axis == RotationAxis::Y) ? (ConstexprMath::Pi / 2.0) : 0.0;
+                real_t BasePhase = (command.m_axis == RotationAxis::Y) ? (ConstexprMath::Pi / 2.0) : 0.0;
+                PumpPhase = BasePhase + m_PersistentGlobalPhase;
 
                 // For arbitrary rotations (θ ≠ π), we use a "fractional STIRAP" approach.
                 // We truncate the pulse sequence at the point where the mixing angle 
@@ -110,9 +117,6 @@ namespace KetCat
                 {
                     real_t TargetTheta = command.m_rotationAngleRad / 2.0;
 
-                    // Center-times for the delayed pulse sequence (Stokes precedes Pump).
-                    real_t StokesTimeCenter = 4.0 * Sigma;
-                    real_t PumpTimeCenter = 6.0 * Sigma;
 
                     // Calculate the truncation time T_limit by solving the ratio of two Gaussians.
                     // ln(tan(θ)) = ln(exp(-(t-tp)^2/s^2) / exp(-(t-ts)^2/s^2))
@@ -128,18 +132,18 @@ namespace KetCat
                 ZDetuning = command.m_rotationAngleRad / (10.0 * Sigma);
             }
 
-            const real_t t_stokes = 4.0 * Sigma;
-            const real_t t_pump = 6.0 * Sigma;
 
             real_t Time = 0;
+            static real_t GlobalTime = 0;
             natural_t TimeStep = 0;
+			SiLaserPulse Laser1Info{}, Laser2Info{};
 
             // --- TDSE Integration Loop ---
             while (Time < FullTransitionTime_Au)
             {
                 // Calculate time-dependent Rabi frequencies.
-                real_t Omega_stokes = Omega0 * gaussian(Time, t_stokes, Sigma);
-                real_t Omega_pump = Omega0 * gaussian(Time, t_pump, Sigma);
+                real_t Omega_stokes = Omega0 * gaussian(Time, StokesTimeCenter, Sigma);
+                real_t Omega_pump = Omega0 * gaussian(Time, PumpTimeCenter, Sigma);
 
                 // For Z-rotations, disable pulse amplitudes to avoid population transfer.
                 if (command.m_axis == RotationAxis::Z) { Omega_stokes = 0; Omega_pump = 0; }
@@ -164,20 +168,36 @@ namespace KetCat
                 target = solver(target);
 
                 Time += TimeStepAu;
+				GlobalTime += TimeStepAu;
 
-                // Sparse callback invocation to reduce overhead.
+                // Visualization callback
                 if (TimeStep % 1000000 == 0)
                 {
                     if (onStep)
                     {
-                        onStep(Time, target);
+						Laser1Info =
+                        {
+                            Units::wavelengthNmFromOmegaAu(lasers[0].omega),
+							Units::intensityWcm2FromFieldAu(lasers[0].amplitude)
+                        };
+                        Laser2Info =
+                        {
+                            Units::wavelengthNmFromOmegaAu(lasers[1].omega),
+                            Units::intensityWcm2FromFieldAu(lasers[1].amplitude)
+                        };
+                        onStep(GlobalTime, target, Laser1Info, Laser2Info);
                     }
                 }
                 TimeStep++;
             }
 
+            m_PersistentGlobalPhase += ZDetuning * Time;
+
             // Ensure the final state is captured.
-            if (onStep) onStep(Time, target);
+            if (onStep)
+            {
+                onStep(GlobalTime, target, Laser1Info, Laser2Info);
+            }
         }
     };
 }

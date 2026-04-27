@@ -39,7 +39,7 @@ int main()
         KetCat::ExportMode::RealImag
     );
 
-    auto ExporterCallback = [&](real_t time, const auto& currentPsi)
+    auto ExporterCallback = [&](real_t time, const auto& currentPsi, const SiLaserPulse& laser1, const SiLaserPulse& laser2)
     {
 
         std::ostringstream Title;
@@ -54,7 +54,7 @@ int main()
         Title << "7p: " << currentPsi[3].normSquared() * 100.0 << "% ";
 
         auto Psi2D = Manifold.projectToFullHilbertSpace(currentPsi);
-        Exporter.writeTimestep(time, Psi2D, Title.str(), currentPsi[0], currentPsi[2]);
+        Exporter.writeTimestep(time, Psi2D, Title.str(), currentPsi[0], currentPsi[2], laser1, laser2);
 
         for (natural_t i = 0; i < Config.LevelCount; ++i)
         {
