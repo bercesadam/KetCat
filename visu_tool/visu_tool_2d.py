@@ -8,13 +8,12 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import ListedColormap, Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.cm as cm
+import pandas as pd
 
 output_dir = "frames2"
 
 # Hilbert space properties
-# Default values, to be overwritten by the loader
 Nx, Ny = 256, 256
 L = 100.0
 
@@ -54,7 +53,8 @@ def load_kwf(path):
         floats_per_state = 2 if mode == 0 else 1
         frame_floats = floats_per_state * size
         frame_bytes  = frame_floats * 8
-        captions, times, frames, qubits = [], [], [], []
+        captions, times, frames, qubits, stirap = [], [], [], [], []
+        
         while True:
             # Caption length + payload
             raw_len = f.read(2)
@@ -73,8 +73,13 @@ def load_kwf(path):
             q_vals = struct.unpack("<4d", q_raw)
             alpha = complex(q_vals[0], q_vals[1])
             beta = complex(q_vals[2], q_vals[3])
+
+            # STIRAP laser parameters (4 doubles: lambda1, I1, lambda2, I2)
+            s_raw = f.read(32)
+            if len(s_raw) < 32: break
+            s_vals = struct.unpack("<4d", s_raw)
+            # intensities: s_vals[1], s_vals[3], wavelengths: s_vals[0], s_vals[2]
             
-            # State vector
             payload = f.read(frame_bytes)
             if len(payload) < frame_bytes: break
             arr = np.frombuffer(payload, dtype="<f8")
@@ -83,17 +88,29 @@ def load_kwf(path):
             times.append(t)
             frames.append(arr)
             qubits.append((alpha, beta))
+            stirap.append(s_vals)
 
     times  = np.array(times)
     frames = np.array(frames)
+    stirap = np.array(stirap)
     if mode == 0:
         data = (frames[:, 0::2] + 1j * frames[:, 1::2])
     else:
         data = frames
-    return captions, times, data, qubits, mode,
+    return captions, times, data, qubits, mode, stirap
 
-captions, times, raw, qubits, mode = load_kwf(kwf_file)
+captions, times, raw, qubits, mode, stirap_data = load_kwf(kwf_file)
 n_timesteps = raw.shape[0]
+
+# Generate CSV with alpha/beta data
+csv_data = []
+for i in range(n_timesteps):
+    a, b = qubits[i]
+    csv_data.append([times[i], a.real, a.imag, b.real, b.imag])
+
+df_export = pd.DataFrame(csv_data, columns=['Time', 'Alpha_Real', 'Alpha_Imag', 'Beta_Real', 'Beta_Imag'])
+df_export.to_csv("qubit_data.csv", index=False)
+print("CSV exported to qubit_data.csv")
 
 if mode == 0:
     psi_all = raw.reshape(n_timesteps, Ny, Nx)
@@ -107,7 +124,6 @@ def phase_to_rgb(psi):
     if amplitude.max() > 0: amplitude /= amplitude.max()
     amplitude = np.power(amplitude, 0.6)
     r, g, b = np.zeros_like(phase), np.zeros_like(phase), np.zeros_like(phase)
-    # Egyszerűsített színezés a fázishoz
     m1 = (phase < 0.25); f1 = phase[m1]/0.25
     r[m1], g[m1], b[m1] = 1.0, 0.0, f1
     m2 = (phase >= 0.25) & (phase < 0.50); f2 = (phase[m2]-0.25)/0.25
@@ -123,13 +139,35 @@ fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
 im = ax.imshow(phase_to_rgb(psi_all[0]), origin="lower", extent=[-L, L, -L, L], interpolation="bilinear")
 
 # Bloch-sphere Inset
-ax_bloch = fig.add_axes([0.5, 0.00, 0.4, 0.4], projection='3d')
-ax_bloch.set_facecolor((0, 0, 0, 0))  # Teljesen áttetsző háttér
+ax_bloch = fig.add_axes([0.6, 0.02, 0.35, 0.35], projection='3d')
+ax_bloch.set_facecolor((0, 0, 0, 0))
+
+# STIRAP Intensity Plot (Bottom Left)
+ax_stirap = fig.add_axes([0.15, 0.1, 0.3, 0.2])
+ax_stirap.set_facecolor((0, 0, 0, 0.3))
+ax_stirap.tick_params(colors='white', labelsize=8)
+for spine in ax_stirap.spines.values():
+    spine.set_color('white')
+ax_stirap.set_xlabel("Time", color="white", fontsize=6)
+ax_stirap.set_ylabel("Intensity (W/cm2)", color="white", fontsize=6)
+
+# Initial labels for wavelengths
+l1_val = stirap_data[0, 0]
+l2_val = stirap_data[0, 2]
+text_l1 = ax_stirap.text(0.05, 0.9, f"{l1_val:.1f} nm", color="lightgreen", transform=ax_stirap.transAxes, fontsize=8)
+text_l2 = ax_stirap.text(0.05, 0.8, f"{l2_val:.1f} nm", color="cyan", transform=ax_stirap.transAxes, fontsize=8)
+
+# Laser lines
+laser1_line, = ax_stirap.plot([], [], color="lightgreen", linewidth=1.5)
+laser2_line, = ax_stirap.plot([], [], color="cyan", linewidth=1.5)
+time_marker = ax_stirap.axvline(x=times[0], color="white", linestyle="--", alpha=0.5)
+
+ax_stirap.set_xlim(times[0], times[-1])
+print (times[0], times[-1])
+ax_stirap.set_ylim(0, np.max(stirap_data[:, [1, 3]]) * 1.1)
 
 def setup_bloch(axis):
     axis.set_axis_off()
-    
-    # Wireframe sphere
     u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
     x = np.cos(u)*np.sin(v)
     y = np.sin(u)*np.sin(v)
@@ -159,37 +197,74 @@ def setup_bloch(axis):
     # Set up POV
     axis.view_init(elev=20, azim=45)
 
-setup_bloch(ax_bloch)
+bar_samples = 256
+phase_range = np.linspace(-np.pi, np.pi, bar_samples)
+colorbar_input = np.exp(1j * phase_range).reshape(1, -1)
+colorbar_rgb = phase_to_rgb(colorbar_input)
+custom_cmap = ListedColormap(colorbar_rgb[0])
 
-# Set up vector (will be updated in each cycle)
+setup_bloch(ax_bloch)
 bloch_vector, = ax_bloch.plot([0, 0], [0, 0], [0, 0], color="cyan", linewidth=2.5, marker='o', markersize=4)
 
-# Colorbar and captions
+# Colorbar with Greek Pi labels
 divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="3%", pad=0.1)
-cb = fig.colorbar(cm.ScalarMappable(norm=Normalize(-np.pi, np.pi), cmap=ListedColormap(phase_to_rgb(np.exp(1j*np.linspace(-np.pi, np.pi, 256)).reshape(1,-1))[0])), cax=cax)
-cb.set_ticks([-np.pi, 0, np.pi])
 
-caption_text = ax.text(0.01, 0.99, captions[0].replace("|", "\n"), transform=ax.transAxes, fontsize=10, color="white", verticalalignment="top", bbox=dict(facecolor="black", alpha=0.4))
+cax = divider.append_axes("right", size="3%", pad=0.1)
+norm = Normalize(vmin=-np.pi, vmax=np.pi)
+cb = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=custom_cmap), cax=cax)
+cb.set_label("Phase (radians)")
+cb.set_ticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+cb.set_ticklabels([r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"])
+ax.set_xlabel("x (a.u.)")
+ax.set_ylabel("y (a.u.)")
+ax.set_title("")
+
+caption_text = ax.text(
+    0.01, 0.99,
+    captions[0].replace("|", "\n"),
+    transform=ax.transAxes,
+    fontsize=12,
+    color="white",
+    verticalalignment="top",
+    horizontalalignment="left",
+    multialignment="left",
+    bbox=dict(boxstyle="round,pad=0.3", facecolor="black", alpha=0.45, edgecolor="none"),
+)
 
 def update(frame):
+
     im.set_data(phase_to_rgb(psi_all[frame]))
     caption_text.set_text(captions[frame].replace("|", "\n"))
     
-    # Bloch vector calculation
+    # Bloch update
     a, b = qubits[frame]
     bx = 2 * (a.real * b.real + a.imag * b.imag)
     by = 2 * (a.real * b.imag - a.imag * b.real)
     bz = (np.abs(a)**2) - (np.abs(b)**2)
-    
     bloch_vector.set_data_3d([0, bx], [0, by], [0, bz])
+    
+    # STIRAP update
+    window = 200  
+    if frame % window == 0:
+        laser1_line.set_data([], [])
+        laser2_line.set_data([], [])
+    start = max(0, frame - window)
+    print(times[frame], start, frame+1)
+    laser1_line.set_data(times[start:frame+1], stirap_data[start:frame+1, 1])
+    laser2_line.set_data(times[start:frame+1], stirap_data[start:frame+1, 3])
+    time_marker.set_xdata([times[frame], times[frame]])
+    
+    # Update wavelength text if it changes
+    text_l1.set_text(f"{stirap_data[frame, 0]:.1f} nm")
+    text_l2.set_text(f"{stirap_data[frame, 2]:.1f} nm")
     
     if save_frames:
         filename = os.path.join(output_dir, f"{frame:04d}.png")
         plt.savefig(filename, dpi=150)
         if frame % 20 == 0:
             print(f"Exporting: {filename}")
-    return [im, caption_text]
+            
+    return [im, caption_text, laser1_line, laser2_line, time_marker, bloch_vector, text_l1, text_l2]
 
 ani = FuncAnimation(
     fig,

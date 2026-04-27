@@ -125,7 +125,7 @@ namespace KetCat
         ///   -- or --
         ///   float64 |psi[0]|^2, ...             (Probability mode)
         void writeTimestep(real_t time, const State& state, const std::string& title,
-            const complex_t alpha, const complex_t beta)
+            const complex_t alpha, const complex_t beta, const SiLaserPulse& laser1, const SiLaserPulse& laser2)
         {
             // Caption: 2-byte length prefix + raw UTF-8 bytes (no null terminator)
             const auto captionLen = static_cast<uint16_t>(title.size());
@@ -141,6 +141,12 @@ namespace KetCat
 			writeRaw(alpha.im);
 			writeRaw(beta.re);
 			writeRaw(beta.im);
+
+			// Write laser parameters for visualization
+			writeRaw(laser1.m_waveLengthNm);
+			writeRaw(laser1.m_intensityWCm2);
+			writeRaw(laser2.m_waveLengthNm);
+			writeRaw(laser2.m_intensityWCm2);
 
             // Wavefunction payload
             for (natural_t i = 0; i < Size; ++i)
