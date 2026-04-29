@@ -133,6 +133,14 @@ namespace ConstexprMath
         return result;
     }
 
+	/// @brief Constexpr tangent using sin and cos.
+    constexpr double tan(double x) noexcept
+    {
+        double s = sin(x);
+        double c = cos(x);
+        return s / c;
+	}
+
     /// @brief Constexpr arctangent with range reduction.
     constexpr double atan(double z) noexcept
     {
