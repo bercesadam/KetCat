@@ -42,4 +42,21 @@ namespace KetCat
     /// @brief Concept to constrain template parameters to be valid atomic number types (i.e., specializations of AtomicNumber)
     template<typename T>
     concept atomic_number_t = is_atomic_number<T>::value;
+
+	/// @brief Helper function to element type to a string for visualization reasons
+    /// @param element Element value
+    /// @return The spectroscopic letter in char
+    std::string getElementName(Element element)
+    {
+        switch (element)
+        {
+            case Element::H: return "H";
+            case Element::Li: return "Li";
+            case Element::Na: return "Na";
+            case Element::K: return "K";
+            case Element::Rb: return "Rb";
+            case Element::Cs: return "Cs";
+            default: return "Unk";
+        }
+    }
 }

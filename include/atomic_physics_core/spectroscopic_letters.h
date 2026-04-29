@@ -52,4 +52,20 @@ namespace KetCat
     template<typename T>
     concept azimuthal_quantum_number_t = is_azimuthal_quantum_number<T>::value;
 
+    /// @brief Helper function to convert azimuthal quantum letter type
+    /// to the corresponding spectroscopic letter for visualization reasons
+    /// @param l AzimuthalQuantumNumber value
+    /// @return The spectroscopic letter in char
+    constexpr char getSpectroscopicLetter(natural_t l)
+    {
+        switch (l)
+        {
+            case 0: return 's';
+            case 1: return 'p';
+            case 2: return 'd';
+            case 3: return 'f';
+            case 4: return 'g';
+            default: return '?';
+        }
+    }
 }

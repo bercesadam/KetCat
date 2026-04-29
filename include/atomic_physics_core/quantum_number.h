@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include <string>
 #include "core_types.h"
 #include "spectroscopic_letters.h"
 
@@ -56,4 +57,10 @@ namespace KetCat
         { T::l() } -> std::convertible_to<natural_t>;
         { T::m() } -> std::convertible_to<int>;
     };
+
+    template <quantum_number_t QNumber>
+    std::string quantumNumberToString()
+    {
+        return std::to_string(QNumber::n()) + getSpectroscopicLetter(QNumber::l());
+    }
 }
