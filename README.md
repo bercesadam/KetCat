@@ -1,8 +1,10 @@
-# Ket Cat - constexpr quantum emulator
+# Ket Cat - Constexpr-friendly Ab Initio Neutral Atom Quantum Computer Simulator
 
 <img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/logo.png" alt="The project logo" width="300" style="text-align:center">
 
-## Bleeding edge version and future plans
+## Bleeding edge showcase and future plans
+
+<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/paulix.gif" alt="The project logo" width="800" style="text-align:center">
 
 From the initial ideas, the project is currently being developed to be a C++ library designed for the first-principles simulation of neutral atom quantum processors. Focusing on Coherent Dynamics, enabling the precise modeling of laser-atom interactions and population transfer without the overhead of decoherence. By utilizing a hybrid basis of Slater-Type Orbitals (STO) for core-electron interactions and Quantum Defect Theory (QDT) for high-lying Rydberg states, it provides a high-fidelity emulation environment for pulse shaping and gate design in alkali-based qubit systems. 
 
