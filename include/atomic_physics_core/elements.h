@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <type_traits>
 #include "core_types.h"
 
