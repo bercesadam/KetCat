@@ -5,7 +5,7 @@
 ## Bleeding edge showcase and future plans
 
 First successful test of a single-qubit quantum gate (Pauli-X) on a Cesium atom with SITRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually on ~60 million time steps): 
-<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/paulix.gif" alt="Pauli-x gate" width="800" style="text-align:center">
+<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/paulix.gif" alt="Pauli-x gate" width="1024" style="text-align:center">
 
 From the initial ideas, the project is currently being developed to be a C++ library designed for the first-principles simulation of neutral atom quantum processors. Focusing on Coherent Dynamics, enabling the precise modeling of laser-atom interactions and population transfer without the overhead of decoherence. By utilizing a hybrid basis of Slater-Type Orbitals (STO) for core-electron interactions and Quantum Defect Theory (QDT) for high-lying Rydberg states, it provides a high-fidelity emulation environment for pulse shaping and gate design in alkali-based qubit systems. 
 
