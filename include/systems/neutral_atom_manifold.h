@@ -303,7 +303,7 @@ namespace KetCat
 		///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
         ///    which operate entirely within the reduced space.
         StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
-            (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) noexcept
+            (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) const noexcept
         {
             return m_operationSpace->embed(reducedState);
 		}

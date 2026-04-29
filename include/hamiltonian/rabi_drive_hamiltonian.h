@@ -1,16 +1,10 @@
 #pragma once 
 #include "core_types.h"
+#include "laser/laser.h"
+
 
 namespace KetCat
 {
-    /// @brief Encapsulates the physical parameters of a driving laser field.
-    struct Laser
-    {
-        real_t omega;     ///< Angular frequency of the light field (rad/s or a.u.).
-        real_t amplitude; ///< Electric field amplitude ε₀.
-        real_t phase;     ///< Temporal phase offset φ in radians.
-    };
-
     /// @brief Multi-laser Tridiagonal Hamiltonian generator in the Rotating Wave Approximation (RWA).
     ///
     /// @details
@@ -19,7 +13,7 @@ namespace KetCat
     /// Schrödinger equation into a time-independent (or slowly varying) eigenvalue problem.
     ///
     /// The matrix structure is tridiagonal:
-    /// - **Main Diagonal:** Cumulative detunings and second-order AC Stark shifts.
+    /// - **Main Diagonal:** Cumulative Detunings and second-order AC Stark shifts.
     /// - **Off-Diagonals:** Coherent Rabi couplings between adjacent levels.
     ///
     /// @tparam LevelCount Total number of energy levels in the simulation manifold.
@@ -33,7 +27,7 @@ namespace KetCat
     private:
         std::array<real_t, LevelCount> m_Energies{};
         FullDipoleMatrix m_DipoleMatrix{};
-        std::array<Laser, LevelCount - 1> m_Lasers{};
+        std::array<LaserPulse, LevelCount - 1> m_Lasers{};
 
         tridiagonal_matrix_t<LevelCount> m_hamiltonianMatrix;
 
@@ -46,7 +40,7 @@ namespace KetCat
         constexpr MultiRwaRabiHamiltonian(
             const std::array<real_t, LevelCount>& energies,
             const FullDipoleMatrix& dipoleMatrix,
-            const std::array<Laser, LevelCount - 1>& lasers) noexcept
+            const std::array<LaserPulse, LevelCount - 1>& lasers) noexcept
             : m_Energies(energies),
             m_DipoleMatrix(dipoleMatrix),
             m_Lasers(lasers)
@@ -61,12 +55,12 @@ namespace KetCat
         }
 
     private:
-        /// @brief Computes the matrix elements, accounting for detuning and AC Stark shifts.
+        /// @brief Computes the matrix elements, accounting for Detuning and AC Stark shifts.
         ///
         /// @details
         /// The diagonal elements are calculated as:
         ///     H_ii = Δ_i + Σ ΔE_Stark
-        /// where Δ_i is the cumulative multi-photon detuning.
+        /// where Δ_i is the cumulative multi-photon Detuning.
         ///
         /// The off-diagonal elements (Rabi coupling) are:
         ///     Ω_i / 2 = -0.5 * μ_i,i+1 * ε * exp(iφ)
@@ -75,7 +69,7 @@ namespace KetCat
             m_hamiltonianMatrix = {};
 
             // --- 1. Diagonal Elements: Detuning + AC Stark-shift ---
-            real_t cumulative_omega = 0.0;
+            real_t CumulativeOmega = 0.0;
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
@@ -83,49 +77,53 @@ namespace KetCat
                 // sum of the frequencies of the lasers used to reach it.
                 if (i > 0)
                 {
-                    cumulative_omega += m_Lasers[i - 1].omega;
+                    CumulativeOmega += m_Lasers[i - 1].m_omega;
                 }
 
-                const real_t relative_energy = m_Energies[i] - m_Energies[0];
-                const real_t detuning = relative_energy - cumulative_omega;
+                const real_t RelativeEnergy = m_Energies[i] - m_Energies[0];
+                const real_t Detuning = RelativeEnergy - CumulativeOmega;
 
                 // --- AC Stark-shift calculation (Second-order Perturbation) ---
                 // We account for non-resonant couplings from all lasers to all levels,
                 // including the counter-rotating terms.
-                real_t stark_shift = 0.0;
-                for (natural_t l_idx = 0; l_idx < LevelCount - 1; ++l_idx)
+                real_t StarkShift = 0.0;
+                for (natural_t level = 0; level < LevelCount - 1; ++level)
                 {
-                    const auto& L = m_Lasers[l_idx];
+                    const auto& Laser = m_Lasers[level];
 
                     for (natural_t j = 0; j < LevelCount; ++j)
                     {
-                        if (i == j) continue;
+						// Skip the diagonal term (i == j) since it does not contribute to the Stark shift.
+                        if (i == j)
+                        {
+                            continue;
+                        }
 
-                        const real_t mu_ij = m_DipoleMatrix[i][j].re;
-                        const real_t omega_rabi_half = -0.5 * mu_ij * L.amplitude;
-                        const real_t delta_e = m_Energies[i] - m_Energies[j];
+                        const real_t DipoleElm = m_DipoleMatrix[i][j].re;
+                        const real_t OmegaRabiHalf = -0.5 * DipoleElm * Laser.m_amplitude;
+                        const real_t DeltaE = m_Energies[i] - m_Energies[j];
 
                         // A. Resonant (Rotating) term:
                         // If the laser is resonant with the i-j transition, this term 
                         // is already handled by the off-diagonal coupling. We only 
                         // add the shift for non-resonant (far-detuned) transitions.
-                        const real_t resonant_denom = delta_e - L.omega;
-                        if (std::abs(resonant_denom) > 1e-9)
+                        const real_t ResonantDenom = DeltaE - Laser.m_omega;
+                        if (ConstexprMath::abs(ResonantDenom) > 1e-9)
                         {
-                            stark_shift += (omega_rabi_half * omega_rabi_half) / resonant_denom;
+                            StarkShift += (OmegaRabiHalf * OmegaRabiHalf) / ResonantDenom;
                         }
 
                         // B. Anti-resonant (Counter-rotating) term:
                         // This accounts for the Bloch-Siegert shift contribution.
-                        const real_t anti_resonant_denom = delta_e + L.omega;
-                        if (std::abs(anti_resonant_denom) > 1e-9)
+                        const real_t anti_ResonantDenom = DeltaE + Laser.m_omega;
+                        if (ConstexprMath::abs(anti_ResonantDenom) > 1e-9)
                         {
-                            stark_shift += (omega_rabi_half * omega_rabi_half) / anti_resonant_denom;
+                            StarkShift += (OmegaRabiHalf * OmegaRabiHalf) / anti_ResonantDenom;
                         }
                     }
                 }
 
-                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(detuning + stark_shift);
+                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(Detuning + StarkShift);
             }
 
             // --- 2. Off-Diagonal Elements: Direct Rabi Couplings ---
@@ -133,23 +131,23 @@ namespace KetCat
             {
                 for (natural_t i = 0; i < LevelCount - 1; ++i)
                 {
-                    const Laser& L = m_Lasers[i];
+                    const LaserPulse& Laser = m_Lasers[i];
 
                     // Complex phase factor for the i -> i+1 driving field.
-                    const complex_t phase_factor =
+                    const complex_t PhaseFactor =
                     {
-                        std::cos(L.phase),
-                        std::sin(L.phase)
+                        std::cos(Laser.m_phase),
+                        std::sin(Laser.m_phase)
                     };
 
                     // The coupling term (half-Rabi frequency) including the transition phase.
                     // H_i,i+1 = -0.5 * d * E * e^(iφ)
-                    const complex_t coupling = m_DipoleMatrix[i][i + 1]
-                        * (-0.5 * L.amplitude)
-                        * phase_factor;
+                    const complex_t Coupling = m_DipoleMatrix[i][i + 1]
+                        * (-0.5 * Laser.m_amplitude)
+                        * PhaseFactor;
 
-                    m_hamiltonianMatrix[SUPERDIAGONAL][i] = coupling;
-                    m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = coupling.conj(); // Hermiticity
+                    m_hamiltonianMatrix[SUPERDIAGONAL][i] = Coupling;
+                    m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = Coupling.conj(); // Hermiticity
                 }
             }
         }

@@ -124,37 +124,42 @@ namespace KetCat
         ///   float64 re[0], float64 im[0], ...  (RealImag mode)
         ///   -- or --
         ///   float64 |psi[0]|^2, ...             (Probability mode)
-        void writeTimestep(real_t time, const State& state, const std::string& title,
-            const complex_t alpha, const complex_t beta)
+        void writeTimestep(const SimulationView<HilbertSpace>& view)
         {
             // Caption: 2-byte length prefix + raw UTF-8 bytes (no null terminator)
-            const auto captionLen = static_cast<uint16_t>(title.size());
+            const auto captionLen = static_cast<uint16_t>(view.m_title.size());
             writeRaw(captionLen);
-            m_File.write(title.data(), captionLen);
+            m_File.write(view.m_title.data(), captionLen);
 
             // Simulation time as a 64-bit IEEE-754 double
-            const double t = static_cast<double>(time);
+            const double t = static_cast<double>(view.m_time);
             writeRaw(t);
 
             // Write Bloch vectors for Bloch sphere visu
-            writeRaw(alpha.re);
-			writeRaw(alpha.im);
-			writeRaw(beta.re);
-			writeRaw(beta.im);
+            writeRaw(view.m_alpha.re);
+			writeRaw(view.m_alpha.im);
+			writeRaw(view.m_beta.re);
+			writeRaw(view.m_beta.im);
+
+			// Write laser parameters for visualization
+			writeRaw(view.m_laser1Wavelength);
+			writeRaw(view.m_laser1Intensity);
+			writeRaw(view.m_laser2Wavelength);
+			writeRaw(view.m_laser2Intensity);
 
             // Wavefunction payload
             for (natural_t i = 0; i < Size; ++i)
             {
                 if (m_Mode == ExportMode::RealImag)
                 {
-                    const double re = static_cast<double>(state[i].re);
-                    const double im = static_cast<double>(state[i].im);
+                    const double re = static_cast<double>(view.m_psi2D[i].re);
+                    const double im = static_cast<double>(view.m_psi2D[i].im);
                     writeRaw(re);
                     writeRaw(im);
                 }
                 else
                 {
-                    const double p = static_cast<double>(state[i].normSquared());
+                    const double p = static_cast<double>(view.m_psi2D[i].normSquared());
                     writeRaw(p);
                 }
             }
