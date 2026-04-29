@@ -17,6 +17,9 @@ namespace KetCat
 		/// Underlying state vector array
 		state_vector_t<Size> m_StateVector;
 
+		/// Global phase factor, used to track the accumulated phase during time evolution
+		real_t m_globalPhase = 0.0;
+
 		/// INDEXING ///////////////////////////////////////////////////////////////////////
 
 		/// @brief Indexing operator using the coordinate type (array of natural_t's)

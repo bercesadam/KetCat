@@ -6,14 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ----------------------------
-# Dependencies (vcpkg-friendly)
-# ----------------------------
-find_package(SDL2 CONFIG REQUIRED)
-find_package(SDL2_ttf CONFIG REQUIRED)
-find_package(SDL2_image CONFIG REQUIRED)
-find_package(matplot++ REQUIRED)
-
-# ----------------------------
 # Collect all cpp files
 # ----------------------------
 file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
@@ -62,11 +54,6 @@ foreach(SRC_FILE ${ALL_SOURCES})
 
     target_link_libraries(${EXE_NAME}
         PRIVATE
-        SDL2::SDL2main
-        SDL2::SDL2
-        SDL2_ttf::SDL2_ttf
-        SDL2_image::SDL2_image
-        Matplot++::matplot
     )
 
 endforeach()

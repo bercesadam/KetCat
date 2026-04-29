@@ -518,41 +518,185 @@ public:
         psi = psiUpdated;
     }
 
-    template <natural_t K>
-    static constexpr void applyUnitary(StateVector<FullHilbertSpace>&   psi,
-                                        qdit_list_t<K>& targetQdits,
-                                        const matrix_t<ConstexprMath::pow(LocalDim, K)>& unitary) noexcept
+private:
+	/// @brief  Compute the reduced density matrix of a single qudit via partial trace.
+    ///
+    /// @param  psi         Global state vector (size d^C).
+    /// @param  quditIndex  Target qudit whose local state is requested.
+    ///
+    /// @return             Reduced density matrix ρ_q = Tr_{¬q}(|ψ⟩⟨ψ|).
+    ///
+    /// @details
+    /// The full pure-state density matrix is |ψ⟩⟨ψ|.  Tracing out all
+    /// qudits except qudit q gives the d×d matrix:
+    ///
+    ///     ρ_q[a][b] = Σ_{env} ⟨a, env|ψ⟩⟨ψ|b, env⟩
+    ///
+    /// where the sum runs over all d^(C−1) environmental basis states.
+    ///
+    /// Equivalently, for each pair of global indices (i, j):
+    /// - Decode both into qudit digits.
+    /// - Accept the pair only when all non-target digits agree
+    ///   (partial-trace condition).
+    /// - Accumulate:  ρ[dᵢ_q][dⱼ_q] += ψ[i] · ψ[j]*.
+    static constexpr DensityMatrix<LocalDim>
+    reducedDensityMatrix(const StateVector<FullHilbertSpace>& psi,
+                         natural_t                            quditIndex) noexcept
     {
-        
-    }
+        DensityMatrix<LocalDim> Rho;
+        Rho.setZero();
 
-	/// @brief  Extract the local state of a single qudit from the global state vector.
-	/// @param  psi             Global state vector representing the entire register.
-	/// @param  quditIndex      Index of the qudit whose local state is to be extracted.
-	/// @return                 Normalized state vector of the specified qudit (size d).
-	/// @details This function computes the reduced state of a single qudit by summing over all
-    /// configurations of the other qudits. It iterates through the global state vector, decodes
-    /// the basis state to identify the value of the target qudit, and accumulates the corresponding
-    /// amplitudes. Finally, it normalizes the resulting single-qudit state vector before returning it.
-    static constexpr StateVector<OneQuditSpace>
-        extractLocalState(const StateVector<FullHilbertSpace>& psi,
-            natural_t quditIndex) noexcept
-    {
-        StateVector<OneQuditSpace> result{};
-
-        if (quditIndex >= QuditCount)
-            return result;
-
-        for (natural_t globalIndex = 0; globalIndex < FullDim; ++globalIndex)
+        for (natural_t i = 0; i < FullDim; ++i)
         {
-            const auto digits = decodeIndex(globalIndex);
-            result[digits[quditIndex]] += psi[globalIndex];
+            const auto Di = decodeIndex(i);
+
+            for (natural_t j = 0; j < FullDim; ++j)
+            {
+                const auto Dj = decodeIndex(j);
+
+                // Partial-trace condition: all non-target qudits must match.
+                bool EnvMatch = true;
+                for (natural_t q = 0; q < QuditCount; ++q)
+                {
+                    if (q == quditIndex) continue;
+                    if (Di[q] != Dj[q]) { EnvMatch = false; break; }
+                }
+                if (!EnvMatch) continue;
+
+                const natural_t A = Di[quditIndex];
+                const natural_t B = Dj[quditIndex];
+
+                Rho.m[A][B] += psi[i] * psi[j].conj();
+            }
         }
 
-        //result.normalize();
-
-        return result;
+        return Rho;
     }
+
+    /// @brief  Extract a normalized ket from a rank-1 density matrix.
+    ///
+    /// @param  rho  Pure reduced density matrix (Tr(ρ²) ≈ 1).
+    ///
+    /// @return      Normalized state vector |ψ⟩ such that ρ ≈ |ψ⟩⟨ψ|.
+    ///
+    /// @details
+    /// For a pure state ρ = |ψ⟩⟨ψ|, any non-zero column of ρ is
+    /// proportional to |ψ⟩.  This function selects the column whose
+    /// pivot row has the largest diagonal population (maximally stable
+    /// numerical choice), then normalizes the result.
+    ///
+    /// Precondition: rho is positive-semidefinite with Tr(ρ²) ≈ 1.
+    static constexpr StateVector<OneQuditSpace>
+    pureStateVectorFromDensityMatrix(const DensityMatrix<LocalDim>& rho) noexcept
+    {
+        // Select pivot: row with largest diagonal element (highest population).
+        natural_t Pivot   = 0;
+        real_t    MaxPop  = rho.m[0][0].re;
+        for (natural_t i = 1; i < LocalDim; ++i)
+        {
+            if (rho.m[i][i].re > MaxPop)
+            {
+                MaxPop = rho.m[i][i].re;
+                Pivot  = i;
+            }
+        }
+
+        // |ψ⟩ ∝ pivot-th column of ρ.
+        StateVector<OneQuditSpace> Psi{};
+        for (natural_t i = 0; i < LocalDim; ++i)
+            Psi[i] = rho.m[i][Pivot];
+
+        // Normalize.
+        real_t Norm2 = real_t(0);
+        for (natural_t i = 0; i < LocalDim; ++i)
+            Norm2 += Psi[i].normSquared();
+
+        if (Norm2 > real_t(0))
+        {
+            const real_t InvNorm = real_t(1) / ConstexprMath::sqrt(Norm2);
+            for (natural_t i = 0; i < LocalDim; ++i)
+                Psi[i] = Psi[i] * InvNorm;
+        }
+
+        return Psi;
+    }
+
+public:
+    /// @brief  Extract the complete local-state description of a single qudit.
+    ///
+    /// @param  psi         Global state vector representing the entire register.
+    /// @param  quditIndex  Index of the target qudit (0 ≤ quditIndex < C).
+    ///
+    /// @return             LocalStateInfo<d> containing:
+    ///                     - The reduced density matrix ρ_q  (always valid).
+    ///                     - The purity Tr(ρ²)               (always valid).
+    ///                     - The entanglement classification  (Pure / Entangled).
+    ///                     - A normalized ket |ψ⟩             (valid only when Pure).
+    ///
+    /// @details
+    /// The function performs a partial trace over all qudits except the
+    /// target, producing the reduced density matrix ρ_q.
+    ///
+    /// The purity Tr(ρ²) distinguishes two physically distinct cases:
+    ///
+    ///  • Tr(ρ²) ≈ 1  →  Pure state.
+    ///    The qudit is unentangled from the rest of the register.
+    ///    A unique (up to global phase) state vector |ψ⟩ exists and is
+    ///    extracted via the dominant column of ρ.
+    ///
+    ///  • Tr(ρ²) < 1  →  Mixed / Entangled state.
+    ///    The qudit is entangled with the environment.
+    ///    No single ket can describe its local state.
+    ///    `pureStateVector` is left zeroed; use `rho` directly.
+    ///
+    /// The purity threshold is set to 1 − 1×10⁻¹⁰ to accommodate
+    /// accumulated floating-point errors in constexpr arithmetic.
+    ///
+    /// Example usage:
+    /// @code
+    ///     auto Info = QuditSubspaceHelper<3, 4>::extractLocalState(psi, 2);
+    ///
+    ///     if (Info.kind == LocalStateKind::Pure)
+    ///     {
+    ///         // Info.pureStateVector holds |ψ⟩ for qudit 2.
+    ///     }
+    ///     else
+    ///     {
+    ///         // Qudit 2 is entangled — inspect Info.rho or Info.purityValue.
+    ///     }
+    /// @endcode
+    static constexpr LocalStateInfo<LocalDim>
+    extractLocalState(const StateVector<FullHilbertSpace>& psi,
+                      natural_t                            quditIndex) noexcept
+    {
+        LocalStateInfo<LocalDim> Info{};
+
+        if (quditIndex >= QuditCount)
+        {
+            // Out-of-range: return zero-initialized descriptor.
+            Info.rho.setZero();
+            Info.purityValue = real_t(0);
+            Info.kind        = LocalStateKind::Entangled;
+            return Info;
+        }
+
+        Info.rho         = reducedDensityMatrix(psi, quditIndex);
+        Info.purityValue = purity(Info.rho);
+
+        constexpr real_t PurityThreshold = real_t(1) - real_t(1e-10);
+
+        if (Info.purityValue >= PurityThreshold)
+        {
+            Info.kind            = LocalStateKind::Pure;
+            Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
+        }
+        else
+        {
+            Info.kind            = LocalStateKind::Entangled;
+            Info.pureStateVector = StateVector<OneQuditSpace>{};  // zeroed, intentionally invalid
+        }
+
+        return Info;
 };
 
 } // namespace KetCat
