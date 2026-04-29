@@ -124,7 +124,8 @@ namespace KetCat
         ///   float64 re[0], float64 im[0], ...  (RealImag mode)
         ///   -- or --
         ///   float64 |psi[0]|^2, ...             (Probability mode)
-        void writeTimestep(const SimulationView<HilbertSpace>& view)
+        void writeTimestep(real_t time, const State& state, const std::string& title,
+            const complex_t alpha, const complex_t beta)
         {
             // Caption: 2-byte length prefix + raw UTF-8 bytes (no null terminator)
             const auto captionLen = static_cast<uint16_t>(view.m_title.size());
@@ -146,6 +147,12 @@ namespace KetCat
 			writeRaw(view.m_laser1Intensity);
 			writeRaw(view.m_laser2Wavelength);
 			writeRaw(view.m_laser2Intensity);
+
+			// Write laser parameters for visualization
+			writeRaw(laser1.m_waveLengthNm);
+			writeRaw(laser1.m_intensityWCm2);
+			writeRaw(laser2.m_waveLengthNm);
+			writeRaw(laser2.m_intensityWCm2);
 
             // Wavefunction payload
             for (natural_t i = 0; i < Size; ++i)
