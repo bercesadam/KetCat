@@ -5,6 +5,11 @@
 #include "atomic_physics_core/quantum_number.h"
 #include "atomic_physics_core/elements.h"
 
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 namespace KetCat
 {
     /// @brief Associated Legendre polynomial Pₗᵐ(x).
@@ -121,14 +126,27 @@ namespace KetCat
 
             StateVector<HilbertSpace> Psi{ complex_t::zero() };
 
+            constexpr real_t QuantumDefect = RydbergQuantumDefect::value(element, QNumbers);
+            constexpr real_t EffectiveN = static_cast<real_t>(QNumbers.n()) - QuantumDefect;
+
+            constexpr real_t Scale = EffectiveN * EffectiveN;
+            constexpr real_t A = 80.0;
+			constexpr real_t B = 0.2;
+			constexpr real_t C = 2;
+            constexpr real_t Factor = ((A / (Scale + B)) + C);
+            constexpr real_t PhysicalExtent = Scale * Factor;
+
             // --------------------------------------------------------
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            using RadialSpace = InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent, HilbertSpace::Grid>;
+            using RadialSpace = InfiniteHilbertSpace<1_D, Steps, PhysicalExtent, HilbertSpace::Grid>;
             auto RadialWavefunction = EffectiveRadialOrbital<RadialSpace, element>{}(QNumbers);
             auto RadialArray = RadialWavefunction.m_Psi;
 
+            const real_t ViewScale = PhysicalExtent / HilbertSpace::Extent;
+
+			std::cout << Factor << ", " << PhysicalExtent << std::endl;
             for (natural_t ix = 0; ix < Steps; ++ix)
             {
                 for (natural_t iz = 0; iz < Steps; ++iz)
@@ -144,15 +162,17 @@ namespace KetCat
                         ? (Steps / 2 - iz)
                         : (iz - Steps / 2);
 
-                    real_t XCoord = (ix < Steps / 2)
-                        ? -HilbertSpace::gridToR(ixFromCenter)
-                        :  HilbertSpace::gridToR(ixFromCenter);
+                    real_t XCoord = ((ix < Steps / 2) ?
+                        -HilbertSpace::gridToR(ixFromCenter) :
+                         HilbertSpace::gridToR(ixFromCenter))
+                        * ViewScale;
 
-                    real_t ZCoord = (iz < Steps / 2)
-                        ? -HilbertSpace::gridToR(izFromCenter)
-                        :  HilbertSpace::gridToR(izFromCenter);
+                    real_t ZCoord = ((iz < Steps / 2) ?
+                        -HilbertSpace::gridToR(izFromCenter) :
+                         HilbertSpace::gridToR(izFromCenter))
+                        * ViewScale;
 
-                    real_t YCoord = HilbertSpace::RMin; 
+                    real_t YCoord = HilbertSpace::RMin * ViewScale;
 
                     // Spherical radius
                     real_t R = ConstexprMath::sqrt(
@@ -170,7 +190,7 @@ namespace KetCat
                         // --------------------------------------------
                         natural_t IR = RadialSpace::rToGrid(R);
                         
-                        //Zero-clamp the radial overflow 
+                        // Zero-clamp the radial overflow 
                         if (IR >= Steps)
                         {
                             Psi[{ ix, iz }] = complex_t::zero();

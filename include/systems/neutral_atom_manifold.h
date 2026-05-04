@@ -65,28 +65,13 @@ namespace KetCat
         /// to access nested types, templates, and static members in a type context.
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
-        /// @brief Basis-set type alias for a given spatial dimensionality.
-        ///
-        /// @tparam SpatialDimensions
-        ///   Spatial dimensionality of the underlying Hilbert space (e.g. 1_D, 2_D).
-        ///
-        /// @details
-        /// A basis set is represented as a fixed-size array of wavefunctions,
-        /// one for each eigenstate defined in the configuration.
-        template <DimensionTag SpatialDimensions>
-        using BasisSet =
-            basis_set_t<
-                typename ConfigType::template HilbertSpaceStub<SpatialDimensions>,
-                ConfigType::LevelCount
-            >;
+    public:
+        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 8192, 2000.0>;
+        //typename ConfigType::template HilbertSpaceStub<1_D>;
 
-        /// @brief Owning handle for a dynamically constructed basis set.
-        ///
-        /// @tparam SpatialDimensions
-        ///   Spatial dimensionality of the basis set.
-        template <DimensionTag SpatialDimensions>
-        using BasesSetHandle = std::unique_ptr<BasisSet<SpatialDimensions>>;
+        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 1.0>;
 
+    private:
         /// @brief Reduced-energy Hilbert space used for time evolution.
         ///
         /// @details
@@ -94,13 +79,9 @@ namespace KetCat
         /// Hilbert space spanned only by energy eigenstates.
         using ReducedEnergySpaceType =
             ReducedEnergySpace<
-                typename ConfigType::template HilbertSpaceStub<2_D>,
-                ConfigType::LevelCount
+            SingleAtomRadialHilbertSpace,
+            ConfigType::LevelCount
             >;
-
-        /// @brief Owning handle for the reduced energy space.
-        using ReducedEnergySpaceHandle =
-            std::unique_ptr<ReducedEnergySpaceType>;
 
     public:
         /// @brief Hilbert space used for single-atom operations (qubit-level dynamics).
@@ -111,8 +92,36 @@ namespace KetCat
         using SingleAtomOperationHilbertSpace =
             typename ReducedEnergySpaceType::ReducedHilbertSpace;
 
-        using SingleAtomFullHilbertSpace =
-            typename ConfigType::template HilbertSpaceStub<2_D>;
+    private:
+        //typename ConfigType::template HilbertSpaceStub<2_D>;
+
+        /// @brief Basis-set type alias for a given spatial dimensionality.
+        ///
+        /// @tparam SpatialDimensions
+        ///   Spatial dimensionality of the underlying Hilbert space (e.g. 1_D, 2_D).
+        ///
+        /// @details
+        /// A basis set is represented as a fixed-size array of wavefunctions,
+        /// one for each eigenstate defined in the configuration.
+        //template <DimensionTag SpatialDimensions>
+		template <hilbert_space_t HilbertSpace>
+        using BasisSet =
+            basis_set_t<
+                HilbertSpace,
+                ConfigType::LevelCount
+            >;
+
+        /// @brief Owning handle for a dynamically constructed basis set.
+        ///
+        /// @tparam SpatialDimensions
+        ///   Spatial dimensionality of the basis set.
+        //template <DimensionTag SpatialDimensions>
+        template <hilbert_space_t HilbertSpace>
+        using BasesSetHandle = std::unique_ptr<BasisSet<HilbertSpace>>;
+
+        /// @brief Owning handle for the reduced energy space.
+        using ReducedEnergySpaceHandle =
+            std::unique_ptr<ReducedEnergySpaceType>;
 
     private:
         /// @brief Electric dipole transition matrix between eigenstates.
@@ -126,14 +135,20 @@ namespace KetCat
 		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
         inline static std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
 
-        /// @brief Orthonormalized full spatial basis states (2D).
+        /// @brief Orthonormalized full spatial basis states (1D).
         ///
         /// @details
         /// Used primarily for visualization and spatially resolved analysis.
-        BasesSetHandle<2_D> m_basisStates;
+        BasesSetHandle<SingleAtomRadialHilbertSpace> m_basisStates1D;
+
+        /// @brief Full spatial basis states (2D) for visualization.
+        ///
+        /// @details
+        /// Used primarily for visualization and spatially resolved analysis.
+        BasesSetHandle<SingleAtomFullHilbertSpace> m_basisStates2D;
 
         /// @brief Reduced-energy space used for the actual qubit operations.
-        ReducedEnergySpaceHandle m_operationSpace;
+        ReducedEnergySpaceType m_operationSpace;
 
 
         /// @brief Construct a single basis state using a specified generator.
@@ -172,7 +187,8 @@ namespace KetCat
         /// @tparam IndexSequence
         ///   Compile-time index sequence used to expand over quantum numbers.
         template<
-            DimensionTag SpatialDimensions,
+            /*DimensionTag SpatialDimensions,*/
+			spatial_hilbert_space_t HilbertSpace,
             template<
                 spatial_hilbert_space_t,
                 Element
@@ -181,9 +197,9 @@ namespace KetCat
         >
         constexpr auto makeBasisSet(std::index_sequence<IndexSequence...>) noexcept
         {
-            return BasisSet<SpatialDimensions>{{
+            return BasisSet<HilbertSpace>{{
                 this->template makeBasisState<
-                    typename ConfigType::template HilbertSpaceStub<SpatialDimensions>,
+                    HilbertSpace,
                     WaveFunctionGenerator,
                     std::tuple_element_t<
                         IndexSequence,
@@ -200,14 +216,23 @@ namespace KetCat
         /// under the electric-dipole approximation.
         void buildDipleMatrix() noexcept
         {
-            BasesSetHandle<1_D> Bases =
-                std::make_unique<BasisSet<1_D>>(
-                    makeBasisSet<1_D, EffectiveRadialOrbital>(
+            m_basisStates1D =
+                std::make_unique<BasisSet<SingleAtomRadialHilbertSpace>>(
+                    makeBasisSet<SingleAtomRadialHilbertSpace, EffectiveRadialOrbital>(
                         std::make_index_sequence<ConfigType::LevelCount>{}
                     )
                 );
 
-            m_dipoleMatrix = buildRadialDipoleMatrix(*Bases);
+            m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
+
+            auto MGS =
+                std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
+
+            MGS->learn(*m_basisStates1D);
+
+            m_basisStates1D = std::make_unique<BasisSet<SingleAtomRadialHilbertSpace>>(
+                MGS->apply(*m_basisStates1D)
+            );
         }
 
         /// @brief Construct and orthonormalize the full spatial basis set (2D).
@@ -217,9 +242,9 @@ namespace KetCat
         /// orthonormalized using a two-pass Modified Gram-Schmidt.
         void buildFullBasisSet() noexcept
         {
-            BasesSetHandle<2_D> Bases2D =
-                std::make_unique<BasisSet<2_D>>(
-                    makeBasisSet<2_D, Hydrogenic2D>(
+            m_basisStates2D =
+                std::make_unique<BasisSet<SingleAtomFullHilbertSpace>>(
+                    makeBasisSet<SingleAtomFullHilbertSpace, Hydrogenic2D>(
                         std::make_index_sequence<ConfigType::LevelCount>{}
                     )
                 );
@@ -227,12 +252,11 @@ namespace KetCat
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
 
-            MGS->learn(*Bases2D);
-            
-            m_basisStates = std::make_unique<BasisSet<2_D>>(
-                MGS->apply(*Bases2D)
-            );
+            MGS->learn(*m_basisStates2D);
 
+            m_basisStates2D = std::make_unique<BasisSet<SingleAtomFullHilbertSpace>>(
+                MGS->apply(*m_basisStates2D)
+            );
         }
 
         /// @brief Construct the reduced-energy operational Hilbert space.
@@ -241,8 +265,8 @@ namespace KetCat
         /// This space is used for actual time evolution and control dynamics.
         void buildOperationSpace() noexcept
         {
-            m_operationSpace =
-                std::make_unique<ReducedEnergySpaceType>(*m_basisStates);
+            //m_operationSpace =
+             //   std::make_unique<ReducedEnergySpaceType>(*m_basisStates);
         }
         
 
@@ -291,7 +315,8 @@ namespace KetCat
         ///   State vector representing the logical |0⟩ state in the reduced space for one qubit
         StateVector<SingleAtomOperationHilbertSpace> getOperationSeed() noexcept
         {
-            return m_operationSpace->project((*m_basisStates)[ConfigType::Logical0Level].m_Psi);
+            return m_operationSpace.project(*m_basisStates2D,
+                (*m_basisStates2D)[ConfigType::Logical0Level].m_Psi);
         }
 
 		/// @brief Retrieve the full spatial state vector corresponding to a reduced operation state.
@@ -305,7 +330,7 @@ namespace KetCat
         StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
             (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) const noexcept
         {
-            return m_operationSpace->embed(reducedState);
+            return m_operationSpace.embed(*m_basisStates2D, reducedState);
 		}
 
         /// @brief Provide the dipole matrix   
@@ -339,7 +364,7 @@ namespace KetCat
         {
             buildDipleMatrix();
             buildFullBasisSet();
-            buildOperationSpace();
+            //buildOperationSpace();
 			calculateHartreeEnergies();
         }
     };
