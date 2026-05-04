@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include "wavefunction/wavefunction.h"
 
 
@@ -88,7 +89,8 @@ namespace KetCat
                 // Safety measure, handle linear dependency
                 if (Norm < 1e-12)
                 {
-                    [] { throw "Linear dependence in basis set!"; }();
+					std::cout << i << "-th vector is linearly dependent on previous ones. Norm: " << Norm << std::endl;
+                    //[] { throw "Linear dependence in basis set!"; }();
                 }
                 
                 real_t InvNorm = 1.0 / Norm;
