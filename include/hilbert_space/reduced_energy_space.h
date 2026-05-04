@@ -57,23 +57,6 @@ namespace KetCat
     public:
         using FullHilbertSpace = InitialHilbertSpace;
         using ReducedHilbertSpace = FiniteHilbertSpace<LevelCount>;
-    
-    private:
-        /// Embedded basis states |φ_i⟩ represented in the full grid space
-        basis_set_t<FullHilbertSpace, LevelCount> m_Basis;
-
-    public:
-        /// @brief Construct the reduced space from an arbitrary wavefunction generator.
-        ///
-        /// The generator must satisfy the `wavefunction_generator_t` concept.
-        /// Each parameter tuple provides inputs to generate one basis state.
-        ///
-        /// @param generator Callable that produces a wavefunction from a parameter tuple
-        /// @param params    Array of LevelCount parameter tuples for the generator
-        constexpr ReducedEnergySpace(basis_set_t<FullHilbertSpace, LevelCount>& bases)
-			: m_Basis(bases)
-        {
-        }
 
         /// @brief Project a full spatial state into the reduced subspace.
         ///
@@ -84,14 +67,16 @@ namespace KetCat
         /// Resulting reduced state:
         ///
         ///      |ψ⟩ → (c₀, ..., c_{K-1})
+		template <spatial_hilbert_space_t HilbertSpace>
         constexpr StateVector<ReducedHilbertSpace>
-            project(const StateVector<FullHilbertSpace>& psi) const noexcept
+            project(const basis_set_t<HilbertSpace, LevelCount>& basisSet,
+                    const StateVector<HilbertSpace>& psi) const noexcept
         {
             StateVector<ReducedHilbertSpace> Coeffs{};
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                Coeffs[i] = m_Basis[i].m_Psi.innerProduct(psi);
+                Coeffs[i] = basisSet[i].m_Psi.innerProduct(psi);
             }
 
             return Coeffs;
@@ -102,33 +87,21 @@ namespace KetCat
         /// Computes:
         ///
         ///      |ψ_red⟩ = Σ_i c_i |φ_i⟩
-        constexpr StateVector<FullHilbertSpace>
-            embed(const StateVector<ReducedHilbertSpace>& coeffs) const noexcept
+        template <spatial_hilbert_space_t HilbertSpace>
+        constexpr StateVector<HilbertSpace>
+            embed(const basis_set_t<HilbertSpace, LevelCount>& basisSet,
+                  const StateVector<ReducedHilbertSpace>& coeffs) const noexcept
         {
-            StateVector<FullHilbertSpace> Psi{ complex_t::zero() };
-
+            StateVector<HilbertSpace> Psi{ complex_t::zero() };
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                for (natural_t k = 0; k < FullHilbertSpace::Dim; ++k)
+                for (natural_t k = 0; k < HilbertSpace::Dim; ++k)
                 {
-                    Psi[k] += coeffs[i] * m_Basis[i].m_Psi[k];
+                    Psi[k] += coeffs[i] * basisSet[i].m_Psi[k];
                 }
             }
 
             return Psi;
-        }
-
-        /// @brief Get the energies of the reduced basis states.
-        /// @return Array of energies corresponding to the basis states |φ_i⟩
-        constexpr std::array<real_t, LevelCount> getEnergies() const noexcept
-        {
-			std::array<real_t, LevelCount> Eigenvalues{};
-
-            for (natural_t i = 0; i < LevelCount; ++i)
-            {
-				Eigenvalues[i] = m_Basis[i].m_Energy;
-            }
-            return Eigenvalues;
         }
     };
 
