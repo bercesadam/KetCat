@@ -17,23 +17,31 @@ int main()
 
     NeutralAtomTypeConfig
     <
-        Element::Cs, 256, 75.0,
-        0, 2, 4,
+        Element::Cs,
+
+        256, /* Spatial discretization steps count */
+        100.0, /* Spatial extent in a.u. */
+
+        0, /* Index of the logical level 0 */
+        2, /* Index of the logical level 1*/
+		4, /* Index of the Rydberg level */
+
         QuantumNumber<6, s>,
         QuantumNumber<6, p>,
         QuantumNumber<7, s>,
         QuantumNumber<7, p>,
-        QuantumNumber<40, s>/*,
-        QuantumNumber<40, p>,
+        QuantumNumber<40, s>,
+        QuantumNumber<40, p>/*
         QuantumNumber<39, s>,
         QuantumNumber<39, p>,
-        QuantumNumber<5, d>,
-        QuantumNumber<100, f>*/
+        QuantumNumber<6, d>,
+        QuantumNumber<7, f>*/
     > Config;
 
 	NeutralAtomManifold<Config> Manifold;
     using HilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
 	using OperationHilbertSpace = typename decltype(Manifold)::SingleAtomOperationHilbertSpace;
+    SingleQubitProtocol<Config> Protocol(256);
 
     SimulationViewBuilder<Config> ViewBuilder(Manifold);
     StateVectorExporter<HilbertSpace> Exporter
@@ -42,13 +50,15 @@ int main()
         KetCat::ExportMode::RealImag
     );
 
+	std::string SimuStep = "Gate: Pauli-Y";
     natural_t FrameCounter = 0;
-    std::function<void(real_t, const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&)> ExporterCallback =
-        [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2)
+	natural_t SaveNthFrame = 1E6;
+	decltype(Protocol)::CallbackType ExporterCallback =
+        [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
         {
-            if (FrameCounter % 500000 == 0)
+            if (FrameCounter % SaveNthFrame == 0 || isKey)
             {
-                auto SimulationView = ViewBuilder.build("Gate: Pauli-X", time, currentPsi, laser1, laser2);
+                auto SimulationView = ViewBuilder.build(SimuStep, time, currentPsi, laser1, laser2);
                 Exporter.writeTimestep(SimulationView);
 
                 for (natural_t i = 0; i < Config.LevelCount; ++i)
@@ -62,6 +72,6 @@ int main()
         };
 
     StateVector<OperationHilbertSpace> Psi = Manifold.getOperationSeed();
-    SingleQubitProtocol<Config> Protocol;
-	Protocol.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi, ExporterCallback);
+    
+	Protocol.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
 }

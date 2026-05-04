@@ -8,59 +8,95 @@
 
 namespace KetCat
 {
-	constexpr real_t TimeStep = 50; //AU
+    /**
+     * @brief Translates logical pulse commands into physical time-evolution.
+     * @details Implements physical X/Y rotations via TDSE and Virtual Z gates via phase shifts.
+     */
+    template <NeutralAtomTypeConfig Config>
+    class SingleQubitProtocol
+    {
+        using ConfigType = std::remove_cvref_t<decltype(Config)>;
+        using Manifold = NeutralAtomManifold<Config>;
+        using OperationHilbertSpace = typename Manifold::SingleAtomOperationHilbertSpace;
 
-	/// @brief Protocol for single qubit operations using a three-level STIRAP scheme.
-	template <NeutralAtomTypeConfig Config>
-	class SingleQubitProtocol
-	{
-		using ConfigType = std::remove_cvref_t<decltype(Config)>;
-		using Manifold = NeutralAtomManifold<Config>;
-		using OperationHilbertSpace = Manifold::SingleAtomOperationHilbertSpace;
+        const std::array<real_t, ConfigType::LevelCount> m_energies = Manifold::getHartreeEnergies();
+        const matrix_t<ConfigType::LevelCount> m_dipoleMatrix = Manifold::getDipoleMatrix();
 
-		const std::array<real_t, ConfigType::LevelCount> Energies = Manifold::getHartreeEnergies();
-		const matrix_t<ConfigType::LevelCount> DipoleMatrix = Manifold::getDipoleMatrix();
+        real_t m_timeStepAu = 0.1;
+        real_t m_peakRabiHz = 50e6;
+        real_t m_commonDetuningHz = 2e9;
 
-		using CallbackType = std::function<void(real_t, const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&)>;
+        // This tracks the accumulated phase for Virtual Z gates to be applied 
+        // to subsequent physical X/Y pulses.
+        real_t m_framePhase = 0.0;
 
- public:
-		void applyPulseCommand(const PulseCommand& command, StateVector<OperationHilbertSpace>& psi, const CallbackType& callback)
-		{
-			if (command.m_axis == RotationAxis::X || command.m_axis == RotationAxis::Y)
-			{
-				STIRAPConfig LaserConfig;
-				LaserConfig.m_Level1Energy = Energies[ConfigType::Logical0Level];
-				LaserConfig.m_Level2Energy = Energies[ConfigType::Logical0Level + 1];
-				LaserConfig.m_Level3Energy = Energies[ConfigType::Logical1Level];
-				LaserConfig.m_Mu12 = DipoleMatrix[ConfigType::Logical0Level][ConfigType::Logical0Level + 1].re;
-				LaserConfig.m_Mu23 = DipoleMatrix[ConfigType::Logical0Level + 1][ConfigType::Logical1Level].re;
-				LaserConfig.m_pumpPhase = (command.m_axis == RotationAxis::X) ? 0.0 : ConstexprMath::Pi / 2.0; // Phase for X or Y rotation.
-				LaserConfig.m_rabiFrequency_Hz = 1E9; // Target Rabi frequency in Hz (can be adjusted based on experimental parameters).
-				LaserConfig.m_stokesDetuning = 0.0; // On-resonance for the Stokes pulse.
-				LaserConfig.m_targetTheta = command.m_rotationAngleRad; // Target rotation angle in radians.
+    public:
+        using CallbackType = std::function<void(real_t, const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&, const bool)>;
 
-				STIRAPLaser<Config> Laser(LaserConfig);
+        SingleQubitProtocol(real_t timeStepAu = 0.1) : m_timeStepAu(timeStepAu) {}
 
-				real_t GateTime = Laser.getTransitionTimeLimit();
-				real_t CurrentTime = 0.0;
+        void applyPulseCommand(const PulseCommand& command, StateVector<OperationHilbertSpace>& psi, const CallbackType& callback)
+        {
+            if (command.m_axis == RotationAxis::Z)
+            {
+				// 1. Update the accumulated frame phase for virtual Z rotation
+                m_framePhase += command.m_rotationAngleRad;
 
-				LaserPulse Pump, Stokes;
+				// 2. Apply the phase shift to the logical |1⟩ level in the state vector.
+                psi[ConfigType::Logical1Level] = psi[ConfigType::Logical1Level] * complex_t::fromPolar(1.0, command.m_rotationAngleRad);
 
-				while (CurrentTime < GateTime)
-				{
-					std::tie(Pump, Stokes) = Laser(CurrentTime);
-					std::array<LaserPulse, ConfigType::LevelCount - 1> Lasers = { Pump, Stokes };
-					MultiRwaRabiHamiltonian<ConfigType::LevelCount> H(Energies, DipoleMatrix, Lasers);
+                // No laser pulse needed
+                return;
+            }
 
-					CrankNicolsonSolver<OperationHilbertSpace> solver(H.getMatrix(), TimeStepAu);
-					psi = solver(psi);
+            // --- PHYSICAL X / Y GATES ---
 
-					callback(CurrentTime, psi, Pump, Stokes);
+			// For X/Y rotations, we generate a two-photon Raman pulse sequence. The phase of the drive is determined by the target rotation axis:
+            real_t axisPhase = (command.m_axis == RotationAxis::Y) ? (ConstexprMath::Pi / 2.0) : 0.0;
+            real_t totalLaserPhase = axisPhase + m_framePhase;
 
-					CurrentTime += TimeStep;
-				}
-				callback(CurrentTime, psi, Pump, Stokes);
-			}
-		}
-	};	
+            TwoPhotonConfig laserConfig;
+            laserConfig.m_Level1Energy = m_energies[ConfigType::Logical0Level];
+            laserConfig.m_Level2Energy = m_energies[ConfigType::Logical0Level + 1];
+            laserConfig.m_Level3Energy = m_energies[ConfigType::Logical1Level];
+
+            laserConfig.m_Mu12 = m_dipoleMatrix[ConfigType::Logical0Level][ConfigType::Logical0Level + 1].re;
+            laserConfig.m_Mu23 = m_dipoleMatrix[ConfigType::Logical0Level + 1][ConfigType::Logical1Level].re;
+
+            laserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
+            laserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
+            laserConfig.m_targetTheta = command.m_rotationAngleRad;
+            laserConfig.m_pumpPhase = totalLaserPhase;
+            laserConfig.m_protocol = TwoPhotonPulseProtocol::Simultaneous;
+
+            GenericTwoPhotonLaser laser(laserConfig);
+
+            real_t gateTime = laser.getTransitionTimeLimit();
+            real_t currentTime = 0.0;
+
+			LaserPulse pump, stokes;
+
+            while (currentTime < gateTime)
+            {
+                std::tie(pump, stokes) = laser(currentTime);
+
+                std::array<LaserPulse, ConfigType::LevelCount - 1> lasers;
+                lasers[ConfigType::Logical0Level] = pump;
+                lasers[ConfigType::Logical0Level + 1] = stokes;
+
+                MultiRwaRabiHamiltonian<ConfigType::LevelCount> H(m_energies, m_dipoleMatrix, lasers);
+                CrankNicolsonSolver<OperationHilbertSpace> solver(H.getMatrix(), m_timeStepAu);
+                
+                psi = solver(psi);
+                callback(currentTime, psi, pump, stokes, false);
+
+                currentTime += m_timeStepAu;
+            }
+
+            callback(currentTime, psi, pump, stokes, true);
+        }
+
+        void setPeakRabiHz(real_t hz) { m_peakRabiHz = hz; }
+        void setDetuningHz(real_t hz) { m_commonDetuningHz = hz; }
+    };
 }
