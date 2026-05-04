@@ -10,7 +10,6 @@ namespace KetCat
 	// in the simulation is not in SI
 	constexpr real_t hBar = 1.0;
 
-
 	/// @brief Concept to ensure that the PotentialFunctor is a callable
 	///        object that takes a floating-point argument and returns a floating-point value.
 	/// @tparam PotentialFunctor The type of the potential functor
