@@ -154,12 +154,12 @@ ax_stirap.set_ylabel("Intensity (W/cm²)", color="white", fontsize=8)
 # Initial labels for wavelengths
 l1_val = stirap_data[0, 0]
 l2_val = stirap_data[0, 2]
-text_l1 = ax_stirap.text(0.01, 0.9, f"{l1_val:.1f} nm", color="lightgreen", transform=ax_stirap.transAxes, fontsize=8)
-text_l2 = ax_stirap.text(0.01, 0.8, f"{l2_val:.1f} nm", color="cyan", transform=ax_stirap.transAxes, fontsize=8)
+text_l1 = ax_stirap.text(0.01, 0.9, f"{l1_val:.1f} nm", color="lime", transform=ax_stirap.transAxes, fontsize=8)
+text_l2 = ax_stirap.text(0.01, 0.8, f"{l2_val:.1f} nm", color="deepskyblue", transform=ax_stirap.transAxes, fontsize=8)
 
 # Laser lines
-laser1_line, = ax_stirap.plot([], [], color="lightgreen", linewidth=1.5)
-laser2_line, = ax_stirap.plot([], [], color="cyan", linewidth=1.5)
+laser1_line, = ax_stirap.plot([], [], color="lime", linewidth=1.5)
+laser2_line, = ax_stirap.plot([], [], color="deepskyblue", linewidth=1.5)
 time_marker = ax_stirap.axvline(x=times[0], color="white", linestyle="--", alpha=0.5)
 
 ax_stirap.set_xlim(times[0], times[-1])
