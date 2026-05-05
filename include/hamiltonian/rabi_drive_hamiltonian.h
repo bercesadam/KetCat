@@ -27,7 +27,6 @@ namespace KetCat
     private:
         std::array<real_t, LevelCount> m_Energies{};
         FullDipoleMatrix m_DipoleMatrix{};
-        std::array<LaserPulse, LevelCount - 1> m_Lasers{};
 
         tridiagonal_matrix_t<LevelCount> m_hamiltonianMatrix;
 
@@ -42,19 +41,20 @@ namespace KetCat
             const FullDipoleMatrix& dipoleMatrix,
             const std::array<LaserPulse, LevelCount - 1>& lasers) noexcept
             : m_Energies(energies),
-            m_DipoleMatrix(dipoleMatrix),
-            m_Lasers(lasers)
+            m_DipoleMatrix(dipoleMatrix)
         {
-            calculateMatrix();
+            m_hamiltonianMatrix = {};
+            updateMainDiagonal(lasers);
+            updateOffDiagonal(lasers);
         }
 
         /// @return The constructed tridiagonal Hamiltonian matrix.
-        constexpr tridiagonal_matrix_t<LevelCount> getMatrix() const noexcept
+        constexpr const tridiagonal_matrix_t<LevelCount>& getMatrix() const noexcept
         {
             return m_hamiltonianMatrix;
         }
 
-    private:
+    //private:
         /// @brief Computes the matrix elements, accounting for Detuning and AC Stark shifts.
         ///
         /// @details
@@ -64,10 +64,8 @@ namespace KetCat
         ///
         /// The off-diagonal elements (Rabi coupling) are:
         ///     Ω_i / 2 = -0.5 * μ_i,i+1 * ε * exp(iφ)
-        constexpr void calculateMatrix() noexcept
+        constexpr void updateMainDiagonal(const std::array<LaserPulse, LevelCount - 1>& lasers) noexcept
         {
-            m_hamiltonianMatrix = {};
-
             // --- 1. Diagonal Elements: Detuning + AC Stark-shift ---
             real_t CumulativeOmega = 0.0;
 
@@ -77,12 +75,12 @@ namespace KetCat
                 // sum of the frequencies of the lasers used to reach it.
                 if (i > 0)
                 {
-                    CumulativeOmega += m_Lasers[i - 1].m_omega;
+                    CumulativeOmega += lasers[i - 1].m_omega;
                 }
 
                 const real_t RelativeEnergy = m_Energies[i] - m_Energies[0];
                 const real_t Detuning = RelativeEnergy - CumulativeOmega;
-
+/*
                 // --- AC Stark-shift calculation (Second-order Perturbation) ---
                 // We account for non-resonant couplings from all lasers to all levels,
                 // including the counter-rotating terms.
@@ -121,34 +119,34 @@ namespace KetCat
                             StarkShift += (OmegaRabiHalf * OmegaRabiHalf) / anti_ResonantDenom;
                         }
                     }
-                }
+                }*/
 
-                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(Detuning + StarkShift);
+                m_hamiltonianMatrix[MAINDIAGONAL][i] = complex_t::fromReal(Detuning);// + StarkShift);
             }
-
-            // --- 2. Off-Diagonal Elements: Direct Rabi Couplings ---
-            if constexpr (LevelCount > 1)
+            
+        }
+        
+        void updateOffDiagonal(const std::array<LaserPulse, LevelCount - 1>& lasers)
+        {
+            for (natural_t i = 0; i < LevelCount - 1; ++i)
             {
-                for (natural_t i = 0; i < LevelCount - 1; ++i)
+                const LaserPulse& Laser = lasers[i];
+
+                // Complex phase factor for the i -> i+1 driving field.
+                const complex_t PhaseFactor =
                 {
-                    const LaserPulse& Laser = m_Lasers[i];
+                    std::cos(Laser.m_phase),
+                    std::sin(Laser.m_phase)
+                };
 
-                    // Complex phase factor for the i -> i+1 driving field.
-                    const complex_t PhaseFactor =
-                    {
-                        std::cos(Laser.m_phase),
-                        std::sin(Laser.m_phase)
-                    };
+                // The coupling term (half-Rabi frequency) including the transition phase.
+                // H_i,i+1 = -0.5 * d * E * e^(iφ)
+                const complex_t Coupling = m_DipoleMatrix[i][i + 1]
+                    * (-0.5 * Laser.m_amplitude)
+                    * PhaseFactor;
 
-                    // The coupling term (half-Rabi frequency) including the transition phase.
-                    // H_i,i+1 = -0.5 * d * E * e^(iφ)
-                    const complex_t Coupling = m_DipoleMatrix[i][i + 1]
-                        * (-0.5 * Laser.m_amplitude)
-                        * PhaseFactor;
-
-                    m_hamiltonianMatrix[SUPERDIAGONAL][i] = Coupling;
-                    m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = Coupling.conj(); // Hermiticity
-                }
+                m_hamiltonianMatrix[SUPERDIAGONAL][i] = Coupling;
+                m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = Coupling.conj(); // Hermiticity
             }
         }
     };

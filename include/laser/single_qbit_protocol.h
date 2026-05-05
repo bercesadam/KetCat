@@ -74,17 +74,21 @@ namespace KetCat
             real_t gateTime = laser.getTransitionTimeLimit();
             real_t currentTime = 0.0;
 
-			LaserPulse pump, stokes;
+			auto [pump, stokes] = laser(0);
+            std::array<LaserPulse, ConfigType::LevelCount - 1> lasers;
+            lasers[ConfigType::Logical0Level] = pump;
+            lasers[ConfigType::Logical0Level + 1] = stokes;
+
+            MultiRwaRabiHamiltonian<ConfigType::LevelCount> H(m_energies, m_dipoleMatrix, lasers);
 
             while (currentTime < gateTime)
             {
                 std::tie(pump, stokes) = laser(currentTime);
-
-                std::array<LaserPulse, ConfigType::LevelCount - 1> lasers;
+                
                 lasers[ConfigType::Logical0Level] = pump;
                 lasers[ConfigType::Logical0Level + 1] = stokes;
 
-                MultiRwaRabiHamiltonian<ConfigType::LevelCount> H(m_energies, m_dipoleMatrix, lasers);
+                H.updateOffDiagonal(lasers);
                 CrankNicolsonSolver<OperationHilbertSpace> solver(H.getMatrix(), m_timeStepAu);
                 
                 psi = solver(psi);
