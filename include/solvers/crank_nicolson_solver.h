@@ -72,7 +72,7 @@ namespace KetCat
         /// which are reused for each time step.
         constexpr CrankNicolsonSolver(const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
         {
-            buildCrankNicolsonMatrices(hamiltonian, dt, m_A, m_B);
+            buildCrankNicolsonMatrices(hamiltonian, dt);
         }
 
         /// @brief  Advances the state vector by one time step.
@@ -108,8 +108,7 @@ namespace KetCat
         /// If the Hamiltonian matrix is tridiagonal, both A and B remain
         /// tridiagonal, enabling efficient O(N) time stepping.
         constexpr void buildCrankNicolsonMatrices(
-            const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt,
-            tridiagonal_matrix_t<Dim>& A, tridiagonal_matrix_t<Dim>& B) noexcept
+            const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
         {
             const tridiagonal_matrix_t<Dim>& H = hamiltonian;
 
@@ -119,21 +118,21 @@ namespace KetCat
             for (natural_t i = 0; i < Dim; ++i)
             {
                 // Build main diagonal
-                A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
-                B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
+                m_A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
+                m_B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
                 //  Build lower diagonal
                 if (i > 0)
                 {
-                    A[SUBDIAGONAL][i] = Factor * H[SUBDIAGONAL][i];
-                    B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
+                    m_A[SUBDIAGONAL][i] = Factor * H[SUBDIAGONAL][i];
+                    m_B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
                 }
 
                 //  Build upper diagonal
                 if (i + 1 < Dim)
                 {
-                    A[SUPERDIAGONAL][i] = Factor * H[SUPERDIAGONAL][i];
-                    B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
+                    m_A[SUPERDIAGONAL][i] = Factor * H[SUPERDIAGONAL][i];
+                    m_B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
                 }
             }
         }
