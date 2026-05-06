@@ -115,25 +115,47 @@ namespace KetCat
     /// @brief Construct a Slater-type reduced radial wavefunction seed u(r) flattened to 1D.
     ///
     /// @details
-    ///   This implements a Slater-Type Orbital (STO) radial seed in reduced-radial form.
+    ///   This implements a Slater-Type Orbital (STO) inspired radial seed in reduced-radial form.
     ///   The returned function is u(r) = r · R(r), discretized on a 1D radial grid and
     ///   normalized on that grid.
     ///
-    ///   Unlike hydrogenic orbitals, STOs do not involve Laguerre polynomials and instead
-    ///   use a simple exponential decay with an effective screening parameter ζ.
-    ///   This form is commonly used in atomic-structure and quantum-chemistry methods
-    ///   due to its correct cusp behavior at the nucleus and efficient numerical handling.
+    ///   Unlike hydrogenic orbitals, this form avoids Laguerre polynomials and instead uses
+    ///   a simple exponential decay with an effective screening parameter ζ. The construction
+    ///   is designed to preserve the correct near-origin behavior required by the radial
+    ///   Schrödinger equation while remaining numerically simple and stable.
     ///
     ///   The reduced radial function is defined as:
-    ///     u(r) = r^{n*} · exp(−ζ r)
     ///
-    ///   where n* is an effective (non-integer) principal quantum number and ζ is the
-    ///   screened nuclear charge parameter. The full spatial wavefunction is
+    ///     u(r) = r^{ℓ+1} · exp(−(ζ / n*) · r)
+    ///
+    ///   where:
+    ///     - ℓ    is the orbital angular momentum quantum number
+    ///     - ζ    is the screened nuclear charge parameter (from Slater rules)
+    ///     - n*   is the effective principal quantum number (n corrected by quantum defect)
+    ///
+    ///   Key properties:
+    ///
+    ///     • Near-origin behavior:
+    ///         u(r) ~ r^{ℓ+1}
+    ///       This satisfies the boundary condition imposed by the centrifugal term
+    ///       ℓ(ℓ+1)/r² in the radial Schrödinger equation.
+    ///
+    ///     • Radial extent scaling:
+    ///         exp(−(ζ / n*) r)
+    ///       The inclusion of n* in the decay term increases the spatial extent of
+    ///       higher-n states, mimicking the physical scaling of orbital size.
+    ///
+    ///   The full spatial wavefunction is:
     ///
     ///     ψ_{nℓm}(r,θ,φ) = (u_{nℓ}(r) / r) · Y_{ℓm}(θ,φ)
     ///
-    ///   As with all central potentials, the Hamiltonian is m-independent; the magnetic
-    ///   quantum number m enters only through the spherical harmonic Y_{ℓm}.
+    ///   where Y_{ℓm} are spherical harmonics. The Hamiltonian is m-independent;
+    ///   the magnetic quantum number m enters only through the angular part.
+    ///
+    ///   This construction is particularly useful for:
+    ///     - initializing radial eigenvalue solvers
+    ///     - generating physically consistent seed states
+    ///     - approximate modeling of alkali valence orbitals
     ///
     /// @tparam HilbertSpace
     ///   Discrete 1D spatial Hilbert space defining the radial grid size and spacing.
@@ -152,6 +174,7 @@ namespace KetCat
             operator()(QuantumNumberType q) const noexcept
         {
             // Effective (possibly non-integer) principal quantum number n*
+            const real_t l = static_cast<real_t>(q.l());
             const real_t N_star = SlaterEffectiveQuantumNumber::value(q.n());
 
             // Estimate the Slater orbital exponent ζ using effective nuclear charge and n*.
@@ -161,9 +184,13 @@ namespace KetCat
 
             for (natural_t i = 1; i < HilbertSpace::Dim; ++i)
             {
-                const double r = HilbertSpace::gridToR(i);
-            
-                const double logValue = N_star * ConstexprMath::log(r) - Zeta * r;
+                const real_t r = HilbertSpace::gridToR(i);
+
+                const real_t nFactor = N_star - (l + 1.0);
+                const real_t logValue =
+                    (l + 1.0 + 0.3 * nFactor) * log(r) - Zeta * r;
+
+               // const real_t logValue = (l + 1.0) * ConstexprMath::log(r) - (Zeta / N_star) * r;
                 Psi[i] = complex_t::fromReal(ConstexprMath::exp(logValue));
             }
 

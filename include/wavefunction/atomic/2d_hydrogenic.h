@@ -129,6 +129,8 @@ namespace KetCat
             constexpr real_t QuantumDefect = RydbergQuantumDefect::value(element, QNumbers);
             constexpr real_t EffectiveN = static_cast<real_t>(QNumbers.n()) - QuantumDefect;
 
+            // Experimental feature: scale the radial part based on the distance from the nucleus,
+			// so Rydberg states can fit in the same grid as low-lying states, while still showing the correct nodal structure.
             constexpr real_t Scale = EffectiveN * EffectiveN;
             constexpr real_t A = 80.0;
 			constexpr real_t B = 0.2;

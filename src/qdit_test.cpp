@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "systems/neutral_atom_manifold.h"
-#include "laser/single_qbit_protocol.h"
+#include "laser/single_qbit_control.h"
 #include "kwf_exporter/simulation_view_builder.h"
 #include "kwf_exporter/kwf_exporter.h"
 
@@ -41,7 +41,7 @@ int main()
 	NeutralAtomManifold<Config> Manifold;
     using HilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
 	using OperationHilbertSpace = typename decltype(Manifold)::SingleAtomOperationHilbertSpace;
-    SingleQubitProtocol<Config> Protocol(256);
+    SingleQubitControl<Config> Protocol(10);
 
     SimulationViewBuilder<Config> ViewBuilder(Manifold);
     StateVectorExporter<HilbertSpace> Exporter
@@ -50,20 +50,23 @@ int main()
         KetCat::ExportMode::RealImag
     );
 
-	std::string SimuStep = "Gate: Pauli-Y";
+	std::string SimuStep;
+	real_t GlobalTime = 0.0;
     natural_t FrameCounter = 0;
-	natural_t SaveNthFrame = 1E6;
+	natural_t SaveNthFrame = 1E7;
+
 	decltype(Protocol)::CallbackType ExporterCallback =
         [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
         {
             if (FrameCounter % SaveNthFrame == 0 || isKey)
             {
-                auto SimulationView = ViewBuilder.build(SimuStep, time, currentPsi, laser1, laser2);
+				GlobalTime += time;
+                auto SimulationView = ViewBuilder.build(SimuStep, GlobalTime, currentPsi, laser1, laser2);
                 Exporter.writeTimestep(SimulationView);
 
                 for (natural_t i = 0; i < Config.LevelCount; ++i)
                 {
-                    std::cout << "Probability of basis state" << i << ": " << currentPsi[i].normSquared() * 100.0 << "%" << std::endl;
+                    std::cout << "Probability of basis state " << i << ": " << currentPsi[i].normSquared() * 100.0 << "%" << std::endl;
                 }
                 std::cout << "------------------------" << std::endl;
             }
@@ -72,6 +75,10 @@ int main()
         };
 
     StateVector<OperationHilbertSpace> Psi = Manifold.getOperationSeed();
-    
+    SimuStep = "Gate: Pauli-Y";
+	std::cout << "Applying Y gate..." << std::endl;
 	Protocol.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
+    SimuStep = "Gate: Rx(Pi/2)";
+	std::cout << "Applying Rx(Pi/2) gate..." << std::endl;
+    Protocol.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2}, Psi,  ExporterCallback);
 }

@@ -66,7 +66,7 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
     public:
-        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 8192, 2000.0>;
+        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 5120, 2000.0>;
         //typename ConfigType::template HilbertSpaceStub<1_D>;
 
         using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 1.0>;
@@ -225,6 +225,8 @@ namespace KetCat
 
             m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
 
+			std::cout <<"1D" << std::endl;
+
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
 
@@ -248,6 +250,8 @@ namespace KetCat
                         std::make_index_sequence<ConfigType::LevelCount>{}
                     )
                 );
+
+            std::cout<< "2D" << std::endl;
 
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
