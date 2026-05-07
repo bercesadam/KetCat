@@ -5,6 +5,10 @@
 
 build/*
 
+*.png
+*.kwf
+*.csv
+
 *.slnx
 *.vxproj.*
 

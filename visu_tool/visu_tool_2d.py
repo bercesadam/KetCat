@@ -17,6 +17,7 @@ output_dir = "frames2"
 Nx, Ny = 256, 256
 L = 100.0
 
+
 fps = 30
 interval_ms = 10
 save_frames = True
@@ -122,7 +123,7 @@ def phase_to_rgb(psi):
     phase = phase - np.floor(phase)
     amplitude = np.abs(psi)**2
     if amplitude.max() > 0: amplitude /= amplitude.max()
-    amplitude = np.power(amplitude, 0.9)
+    amplitude = np.power(amplitude, 1.0)
     r, g, b = np.zeros_like(phase), np.zeros_like(phase), np.zeros_like(phase)
     m1 = (phase < 0.25); f1 = phase[m1]/0.25
     r[m1], g[m1], b[m1] = 1.0, 0.0, f1
@@ -136,7 +137,7 @@ def phase_to_rgb(psi):
 
 # Setup plot
 fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
-im = ax.imshow(phase_to_rgb(psi_all[0]), origin="lower", extent=[-L, L, -L, L], interpolation="nearest")
+im = ax.imshow(phase_to_rgb(psi_all[0]), origin="lower", extent=[-L, L, -L, L], interpolation="lanczos")
 
 # Bloch-sphere Inset
 ax_bloch = fig.add_axes([0.56, 0.01, 0.35, 0.35], projection='3d')
@@ -148,7 +149,7 @@ ax_stirap.set_facecolor((0, 0, 0, 0.3))
 ax_stirap.tick_params(colors='white', labelsize=8)
 for spine in ax_stirap.spines.values():
     spine.set_color('white')
-ax_stirap.set_xlabel("Time", color="white", fontsize=8)
+ax_stirap.set_xlabel("Time (sec)", color="white", fontsize=8)
 ax_stirap.set_ylabel("Intensity (W/cm²)", color="white", fontsize=8)
 
 # Initial labels for wavelengths

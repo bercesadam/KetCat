@@ -7,9 +7,9 @@
 #include "kwf_exporter/simulation_view_builder.h"
 #include "kwf_exporter/kwf_exporter.h"
 
+// Smoke test for the single-qubit control layer, applying a sequence of gates to a Cs atom and exporting the state evolution to a KWF file.
 
 using namespace KetCat;
-
 
 int main() 
 {
@@ -31,20 +31,17 @@ int main()
         QuantumNumber<7, s>,
         QuantumNumber<7, p>,
         QuantumNumber<40, s>,
-        QuantumNumber<40, p>/*
-        QuantumNumber<39, s>,
-        QuantumNumber<39, p>,
-        QuantumNumber<6, d>,
-        QuantumNumber<7, f>*/
+        QuantumNumber<40, p>
     > Config;
 
 	NeutralAtomManifold<Config> Manifold;
-    using HilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
+    using FullHilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
 	using OperationHilbertSpace = typename decltype(Manifold)::SingleAtomOperationHilbertSpace;
-    SingleQubitControl<Config> Protocol(10);
+
+    SingleQubitControl<Config> Controller(10 /* Timestep in a.u. */);
 
     SimulationViewBuilder<Config> ViewBuilder(Manifold);
-    StateVectorExporter<HilbertSpace> Exporter
+    StateVectorExporter<FullHilbertSpace> Exporter
     (
         "simulation.kwf",
         KetCat::ExportMode::RealImag
@@ -53,9 +50,9 @@ int main()
 	std::string SimuStep;
 	real_t GlobalTime = 0.0;
     natural_t FrameCounter = 0;
-	natural_t SaveNthFrame = 1E5;
+	natural_t SaveNthFrame = 1E6;
 
-	decltype(Protocol)::CallbackType ExporterCallback =
+	decltype(Controller)::CallbackType ExporterCallback =
         [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
         {
             if (FrameCounter % SaveNthFrame == 0 || isKey)
@@ -70,15 +67,16 @@ int main()
                 }
                 std::cout << "------------------------" << std::endl;
             }
-
             FrameCounter++;
         };
 
     StateVector<OperationHilbertSpace> Psi = Manifold.getOperationSeed();
+
     SimuStep = "Gate: Pauli-Y";
 	std::cout << "Applying Y gate..." << std::endl;
-	Protocol.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
+    Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
+
     SimuStep = "Gate: Rx(Pi/2)";
 	std::cout << "Applying Rx(Pi/2) gate..." << std::endl;
-    Protocol.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2}, Psi,  ExporterCallback);
+    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2}, Psi,  ExporterCallback);
 }

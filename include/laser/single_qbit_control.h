@@ -133,7 +133,7 @@ namespace KetCat
             }
 
             /// Determine phase corresponding to rotation axis
-            real_t axisPhase = (command.m_axis == RotationAxis::X) ? (ConstexprMath::Pi / 2.0) : 0.0;
+            real_t axisPhase = (command.m_axis == RotationAxis::Y) ? (ConstexprMath::Pi / 2.0) : 0.0;
 
 			// Total laser phase includes both the desired rotation axis and the accumulated frame phase
             real_t totalLaserPhase = axisPhase - m_framePhase;
