@@ -243,7 +243,7 @@ def update(frame):
     by = 2 * (a.real * b.imag - a.imag * b.real)
     bz = (np.abs(a)**2) - (np.abs(b)**2)
 
-    bloch_vector.set_data_3d([0, bx], [0, -by], [0, bz])
+    bloch_vector.set_data_3d([0, bx], [0, by], [0, bz])
     
     # STIRAP update
     start = 0

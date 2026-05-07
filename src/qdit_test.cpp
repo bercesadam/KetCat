@@ -53,7 +53,7 @@ int main()
 	std::string SimuStep;
 	real_t GlobalTime = 0.0;
     natural_t FrameCounter = 0;
-	natural_t SaveNthFrame = 1E7;
+	natural_t SaveNthFrame = 1E5;
 
 	decltype(Protocol)::CallbackType ExporterCallback =
         [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)

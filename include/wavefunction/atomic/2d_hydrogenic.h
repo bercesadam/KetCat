@@ -142,11 +142,11 @@ namespace KetCat
             // 1D radial component Rₙₗ(r) = uₙₗ(r) / r
             // Already normalized by HydrogenOrbital<Dim>().
             // --------------------------------------------------------
-            using RadialSpace = InfiniteHilbertSpace<1_D, Steps, PhysicalExtent, HilbertSpace::Grid>;
+            using RadialSpace = InfiniteHilbertSpace<1_D, Steps, HilbertSpace::Extent, HilbertSpace::Grid>;
             auto RadialWavefunction = EffectiveRadialOrbital<RadialSpace, element>{}(QNumbers);
             auto RadialArray = RadialWavefunction.m_Psi;
 
-            const real_t ViewScale = PhysicalExtent / HilbertSpace::Extent;
+            const real_t ViewScale = 1.0; //PhysicalExtent / HilbertSpace::Extent;
 
 			std::cout << Factor << ", " << PhysicalExtent << std::endl;
             for (natural_t ix = 0; ix < Steps; ++ix)

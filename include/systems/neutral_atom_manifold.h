@@ -69,7 +69,7 @@ namespace KetCat
         using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 5120, 2000.0>;
         //typename ConfigType::template HilbertSpaceStub<1_D>;
 
-        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 1.0>;
+        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 40.0>;
 
     private:
         /// @brief Reduced-energy Hilbert space used for time evolution.
