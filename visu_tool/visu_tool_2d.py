@@ -139,7 +139,7 @@ fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
 im = ax.imshow(phase_to_rgb(psi_all[0]), origin="lower", extent=[-L, L, -L, L], interpolation="nearest")
 
 # Bloch-sphere Inset
-ax_bloch = fig.add_axes([0.6, 0.01, 0.35, 0.35], projection='3d')
+ax_bloch = fig.add_axes([0.56, 0.01, 0.35, 0.35], projection='3d')
 ax_bloch.set_facecolor((0, 0, 0, 0))
 
 # STIRAP Intensity Plot (Bottom Left)
@@ -178,22 +178,24 @@ def setup_bloch(axis):
     axis.plot([-1.1, 1.1], [0, 0], [0, 0], color="white", alpha=0.05) # X
     axis.plot([0, 0], [-1.1, 1.1], [0, 0], color="white", alpha=0.05) # Y
     axis.plot([0, 0], [0, 0], [-1.1, 1.1], color="white", alpha=0.1)  # Z
+    axis.plot([0,1],[0,0],[0,0], color="red")    # +X
+    axis.plot([0,0],[0,1],[0,0], color="green")  # +Y
+    axis.plot([0,0],[0,0],[0,1], color="blue")   # +Z
 
     # Label offset
     o = 1.2 
     
     # Z axis labels
-    axis.text(0, 0, o, r"$|0\rangle$", color="white", ha="center", va="bottom", fontsize=9, alpha=0.6)
-    axis.text(0, 0, -o, r"$|1\rangle$", color="white", ha="center", va="top", fontsize=9, alpha=0.6)
+    axis.text(0, 0, o, r"$|0\rangle$", color="white", ha="center", va="bottom", fontsize=9, alpha=1)
+    axis.text(0, 0, -o, r"$|1\rangle$", color="white", ha="center", va="top", fontsize=9, alpha=1)
     
     # X axis labels
-    axis.text(o, 0, 0, r"$|+\rangle$", color="white", ha="left", va="center", fontsize=8, alpha=0.4)
-    axis.text(-o, 0, 0, r"$|-\rangle$", color="white", ha="right", va="center", fontsize=8, alpha=0.4)
+    axis.text(o, 0, 0, r"$|+\rangle$", color="white", ha="left", va="center", fontsize=8, alpha=1)
+    axis.text(-o, 0, 0, r"$|-\rangle$", color="white", ha="right", va="center", fontsize=8, alpha=1)
     
     # Y axis labels
-    axis.text(0, o, 0, r"$|i\rangle$", color="white", ha="left", va="center", fontsize=8, alpha=0.4)
-    axis.text(0, -o, 0, r"$-|i\rangle$", color="white", ha="right", va="center", fontsize=8, alpha=0.4)
-    
+    axis.text(0, o, 0, r"$|+i\rangle$", color="white", ha="left", va="center", fontsize=8, alpha=1)
+    axis.text(0, -o, 0, r"$|-i\rangle$", color="white", ha="right", va="center", fontsize=8, alpha=1)
     # Set up POV
     axis.view_init(elev=20, azim=45)
 
@@ -240,7 +242,8 @@ def update(frame):
     bx = 2 * (a.real * b.real + a.imag * b.imag)
     by = 2 * (a.real * b.imag - a.imag * b.real)
     bz = (np.abs(a)**2) - (np.abs(b)**2)
-    bloch_vector.set_data_3d([0, bx], [0, by], [0, bz])
+
+    bloch_vector.set_data_3d([0, bx], [0, -by], [0, bz])
     
     # STIRAP update
     start = 0
