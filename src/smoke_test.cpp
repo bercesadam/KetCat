@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 
+#include "systems/time_master.h"
 #include "systems/neutral_atom_manifold.h"
 #include "laser/single_qbit_control.h"
 #include "kwf_exporter/simulation_view_builder.h"
@@ -38,7 +39,8 @@ int main()
     using FullHilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
 	using OperationHilbertSpace = typename decltype(Manifold)::SingleAtomOperationHilbertSpace;
 
-    SingleQubitControl<Config> Controller(10 /* Timestep in a.u. */);
+    TimeMaster::Clock().init(100);
+    SingleQubitControl<Config> Controller;
 
     SimulationViewBuilder<Config> ViewBuilder(Manifold);
     StateVectorExporter<FullHilbertSpace> Exporter
@@ -48,17 +50,16 @@ int main()
     );
 
 	std::string SimuStep;
-	real_t GlobalTime = 0.0;
     natural_t FrameCounter = 0;
-	natural_t SaveNthFrame = 1E6;
+	natural_t SaveNthFrame = 2E6;
 
 	decltype(Controller)::CallbackType ExporterCallback =
-        [&](real_t time, const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
+        [&](const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
         {
             if (FrameCounter % SaveNthFrame == 0 || isKey)
             {
-				GlobalTime += time;
-                auto SimulationView = ViewBuilder.build(SimuStep, GlobalTime, currentPsi, laser1, laser2);
+
+                auto SimulationView = ViewBuilder.build(SimuStep, TimeMaster::Clock().getGlobalTime(), currentPsi, laser1, laser2);
                 Exporter.writeTimestep(SimulationView);
 
                 for (natural_t i = 0; i < Config.LevelCount; ++i)
@@ -71,12 +72,38 @@ int main()
         };
 
     StateVector<OperationHilbertSpace> Psi = Manifold.getOperationSeed();
-
-    SimuStep = "Gate: Pauli-Y";
-	std::cout << "Applying Y gate..." << std::endl;
+    /*
+    SimuStep = "Gate: Pauli-X, Laser Protocol: STIRAP";
+	std::cout << "Applying X gate..." << std::endl;
     Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi, ExporterCallback);
 
-    SimuStep = "Gate: Rx(Pi/2)";
-	std::cout << "Applying Rx(Pi/2) gate..." << std::endl;
+    SimuStep = "Gate: Pauli-X, Laser Protocol: Inverted STIRAP";
+	std::cout << "Applying X gate (Inverted STIRAP)..." << std::endl;
     Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi,  ExporterCallback);
+    */
+    SimuStep = "Gate: Pauli-Y, Laser Protocol: STIRAP";
+    std::cout << "Applying Y gate..." << std::endl;
+    Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
+    // wasFractionalStirap false
+    // !even
+
+    // even
+	// wasFractionalStirap false
+
+    SimuStep = "Gate: Rx(Pi/2), Laser Protocol: Inverted STIRAP";
+    std::cout << "Applying Rx(Pi/2)  gate..." << std::endl;
+    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2 }, Psi, ExporterCallback);
+    // even
+    // wasFractionalStirap false
+
+    // even
+    // wasFractionalStirap false
+
+
+    std::cout << "Applying Z gate (virtual)..." << std::endl;
+    Controller.applyPulseCommand({ RotationAxis::Z, ConstexprMath::Pi }, Psi, ExporterCallback);
+
+    SimuStep = "Gate: Hadamard, Laser Protocol: STIRAP + Virtual Z";
+    std::cout << "Applying Ry(Pi/2) gate..." << std::endl;
+    Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi / 2 }, Psi, ExporterCallback);
 }

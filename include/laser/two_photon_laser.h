@@ -288,20 +288,20 @@ namespace KetCat
 
             if (m_config.m_protocol == TwoPhotonProtocol::STIRAP)
             {
-                m_tS = 3.0 * m_Sigma;
-                m_tP = 5.0 * m_Sigma;
+                m_tS = 2.5 * m_Sigma;
+                m_tP = 4.5 * m_Sigma;
             }
             else
             {
-                m_tP = 3.0 * m_Sigma;
-                m_tS = 5.0 * m_Sigma;
+                m_tS = 4.5 * m_Sigma;
+                m_tP = 2.5 * m_Sigma;
             }
 
             if (m_config.m_targetTheta >= ConstexprMath::Pi - 1e-7)
             {
                 m_TimeLimit =
                     std::max(m_tP, m_tS)
-                    + 4.0 * m_Sigma;
+                    + 3.0 * m_Sigma;
             }
             else
             {

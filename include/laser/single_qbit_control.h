@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 
+#include "systems/time_master.h"
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "solvers/crank_nicolson_solver.h"
 #include "pulse_command.h"
@@ -63,9 +64,6 @@ namespace KetCat
         /// @brief Dipole coupling matrix between atomic levels.
         const matrix_t<ConfigType::LevelCount> m_dipoleMatrix = Manifold::getDipoleMatrix();
 
-        /// @brief Time step used by the time evolution solver (atomic units).
-        real_t m_timeStepAu = 0.1;
-
         /// @brief Peak Rabi frequency used for generated pulses (Hz).
         real_t m_peakRabiHz = 100e6;
 
@@ -87,13 +85,7 @@ namespace KetCat
         /// @param pump            Pump laser pulse
         /// @param stokes          Stokes laser pulse
         /// @param isFinalStep     True if this is the last step of the pulse
-        using CallbackType = std::function<void(real_t, const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&, const bool)>;
-
-        /// @brief Construct control layer with given solver time step.
-        ///
-        /// @param timeStepAu
-        ///   Time step for numerical integration (atomic units).
-        SingleQubitControl(real_t timeStepAu = 0.1) : m_timeStepAu(timeStepAu) {}
+        using CallbackType = std::function<void(const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&, const bool)>;
 
         /// @brief Apply a single pulse command to the quantum state.
         ///
@@ -124,11 +116,6 @@ namespace KetCat
                 /// Update accumulated frame phase for virtual Z rotation
                 m_framePhase += command.m_rotationAngleRad;
 
-                /// Apply phase shift directly to logical |1⟩ level
-                psi[ConfigType::Logical1Level] =
-                    psi[ConfigType::Logical1Level] *
-                    complex_t::fromPolar(1.0, command.m_rotationAngleRad);
-
                 /// No physical pulse required
                 return;
             }
@@ -153,50 +140,78 @@ namespace KetCat
             laserConfig.m_targetTheta = command.m_rotationAngleRad;
             laserConfig.m_pumpPhase = totalLaserPhase;
 
+			static bool wasFractionalStirap = false;
+
             /// Alternate between STIRAP and inverted STIRAP
             static bool even = false;
             laserConfig.m_protocol = even ? TwoPhotonProtocol::InvertedSTIRAP : TwoPhotonProtocol::STIRAP;
-            even = !even;
+
+            if (command.m_rotationAngleRad >= ConstexprMath::Pi - 1e-7)
+            {
+                wasFractionalStirap = false;
+            }
+            else
+            {   
+                wasFractionalStirap = true;
+            }
+
+            if (!wasFractionalStirap)
+            {
+                even = !even;
+            }
+
 
             std::cout << "Laser parameters:" << "\n  Peak Rabi Frequency (Hz): " << m_peakRabiHz
                 << "\n  Common Detuning (Hz): " << m_commonDetuningHz
                 << "\n  Target Theta (rad): " << command.m_rotationAngleRad
                 << "\n  Total Laser Phase (rad): " << totalLaserPhase
                 << "\n  Protocol: " << (laserConfig.m_protocol == TwoPhotonProtocol::STIRAP ? "STIRAP" : "Inverted STIRAP")
+				<< "\n  Fractional STIRAP: " << (wasFractionalStirap ? "Yes" : "No")
                 << std::endl;
 
             TwoPhotonLaser laser(laserConfig);
 
             real_t gateTime = laser.getTransitionTimeLimit();
-            real_t currentTime = 0.0;
+
+			std::cout << "Gate time (s): " << gateTime << std::endl;
+			std::cout << "Current instruction time: " << TimeMaster::Clock().getCurrentInstructionTime() << std::endl;
 
             auto [pump, stokes] = laser(0);
             std::array<LaserPulse, ConfigType::LevelCount - 1> lasers;
             lasers[ConfigType::Logical0Level] = pump;
             lasers[ConfigType::Logical0Level + 1] = stokes;
 
-            MultiRwaRabiHamiltonian<ConfigType::LevelCount> H(m_energies, m_dipoleMatrix, lasers);
+            MultiRwaRabiHamiltonian<ConfigType::LevelCount> Hamiltonian(m_energies, m_dipoleMatrix, lasers);
 
-            while (currentTime < gateTime)
+            while (TimeMaster::Clock().getCurrentInstructionTime() < gateTime)
             {
-                std::tie(pump, stokes) = laser(currentTime);
+                std::tie(pump, stokes) = laser(TimeMaster::Clock().getCurrentInstructionTime());
 
                 lasers[ConfigType::Logical0Level] = pump;
                 lasers[ConfigType::Logical0Level + 1] = stokes;
 
-                H.updateOffDiagonal(lasers);
-                H.updateMainDiagonal(lasers);
+                Hamiltonian.updateOffDiagonal(lasers);
+                Hamiltonian.updateMainDiagonal(lasers);
 
-                CrankNicolsonSolver<OperationHilbertSpace> solver(H.getMatrix(), m_timeStepAu);
+                CrankNicolsonSolver<OperationHilbertSpace> solver(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
 
                 psi = solver(psi);
-                callback(currentTime, psi, pump, stokes, false);
+                callback(psi, pump, stokes, false);
 
-                currentTime += m_timeStepAu;
+                TimeMaster::Clock().tick();
             }
 
 			// Ensure final callback is invoked with the last state and pulse parameters, marking the end of the pulse sequence
-            callback(currentTime, psi, pump, stokes, true);
+            callback(psi, pump, stokes, true);
+
+            if (command.m_rotationAngleRad >= ConstexprMath::Pi - 1e-7)
+            {
+                TimeMaster::Clock().resetCurrentInstructionClock();
+            }
+            else
+            {
+				std::cout << "valami" << std::endl;    
+            }
         }
 
         /// @brief Set peak Rabi frequency used for generated pulses (Hz).
