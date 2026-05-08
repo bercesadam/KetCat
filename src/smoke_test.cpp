@@ -74,9 +74,9 @@ int main()
 
     SimuStep = "Gate: Pauli-Y";
 	std::cout << "Applying Y gate..." << std::endl;
-    Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
+    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi, ExporterCallback);
 
     SimuStep = "Gate: Rx(Pi/2)";
 	std::cout << "Applying Rx(Pi/2) gate..." << std::endl;
-    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2}, Psi,  ExporterCallback);
+    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi,  ExporterCallback);
 }

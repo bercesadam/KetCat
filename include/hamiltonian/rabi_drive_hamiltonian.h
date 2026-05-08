@@ -1,6 +1,7 @@
 #pragma once 
 #include "core_types.h"
-#include "laser/laser.h"
+#include "laser/laser_pulse.h"
+
 
 namespace KetCat
 {

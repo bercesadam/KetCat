@@ -4,7 +4,8 @@
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "solvers/crank_nicolson_solver.h"
 #include "pulse_command.h"
-#include "stirap.h"
+#include "two_photon_laser.h"
+
 
 namespace KetCat
 {
@@ -154,17 +155,17 @@ namespace KetCat
 
             /// Alternate between STIRAP and inverted STIRAP
             static bool even = false;
-            laserConfig.m_protocol = even ? TwoPhotonPulseProtocol::InvertedSTIRAP : TwoPhotonPulseProtocol::STIRAP;
+            laserConfig.m_protocol = even ? TwoPhotonProtocol::InvertedSTIRAP : TwoPhotonProtocol::STIRAP;
             even = !even;
 
             std::cout << "Laser parameters:" << "\n  Peak Rabi Frequency (Hz): " << m_peakRabiHz
                 << "\n  Common Detuning (Hz): " << m_commonDetuningHz
                 << "\n  Target Theta (rad): " << command.m_rotationAngleRad
                 << "\n  Total Laser Phase (rad): " << totalLaserPhase
-                << "\n  Protocol: " << (laserConfig.m_protocol == TwoPhotonPulseProtocol::STIRAP ? "STIRAP" : "Inverted STIRAP")
+                << "\n  Protocol: " << (laserConfig.m_protocol == TwoPhotonProtocol::STIRAP ? "STIRAP" : "Inverted STIRAP")
                 << std::endl;
 
-            GenericTwoPhotonLaser laser(laserConfig);
+            TwoPhotonLaser laser(laserConfig);
 
             real_t gateTime = laser.getTransitionTimeLimit();
             real_t currentTime = 0.0;
@@ -194,6 +195,7 @@ namespace KetCat
                 currentTime += m_timeStepAu;
             }
 
+			// Ensure final callback is invoked with the last state and pulse parameters, marking the end of the pulse sequence
             callback(currentTime, psi, pump, stokes, true);
         }
 

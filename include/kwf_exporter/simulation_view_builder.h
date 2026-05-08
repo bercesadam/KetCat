@@ -5,7 +5,7 @@
 #include <string>
 
 #include "atomic_units.h"
-#include "laser/laser.h"
+#include "laser/laser_pulse.h"
 #include "simulation_data.h"
 
 
