@@ -103,4 +103,15 @@ namespace ConstexprMath
     {
         return (n <= 1) ? 1 : n * factorial(n - 1);
     }
+
+	/// @brief Determine whether two floating‑point numbers are approximately equal within a specified tolerance.
+	/// @tparam FloatType Floating‑point type.
+	/// @param a First value.
+	/// @param b Second value.
+	/// @param epsilon Tolerance for comparison (default: 1E-9).
+    template <std::floating_point FloatType>
+	constexpr FloatType floatNear(FloatType a, FloatType b, FloatType epsilon = 1E-9) noexcept
+    {
+        return abs(a - b) < epsilon;
+    }
 }
