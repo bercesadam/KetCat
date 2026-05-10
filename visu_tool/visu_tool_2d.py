@@ -255,9 +255,6 @@ def setup_bloch(axis):
     axis.plot([0,0],[0,1],[0,0], color="green")
     axis.plot([0,0],[0,0],[0,1], color="blue")
 
-    global highlighted_circle
-    highlighted_circle, = axis.plot([], [], [], color="magenta", alpha=0.8, linewidth=1.5)
-
     o = 1.2
 
     axis.text(0, 0, o, r"$|0\rangle$", color="white",
@@ -363,22 +360,6 @@ def update(frame):
         [0, bz]
     )
 
-    current_phi = np.arctan2(by, bx)
-    
-    # Legyen egy körív 0-tól 2*pi-ig
-    angles = np.linspace(0, 2 * np.pi, 100)
-    
-    # Ez a kör a gömb felszínén fut át a pólusokon és a vektor hegyén
-    # Paraméterezés: 
-    # x = cos(phi) * sin(theta)
-    # y = sin(phi) * sin(theta)
-    # z = cos(theta)
-    cx = np.cos(current_phi) * np.sin(angles)
-    cy = np.sin(current_phi) * np.sin(angles)
-    cz = np.cos(angles)
-
-    highlighted_circle.set_data_3d(cx, cy, cz)
-
     start = 0
 
     laser1_line.set_data(
@@ -412,7 +393,7 @@ for frame in range(n_timesteps):
 
         fig.savefig(
             filename,
-            dpi=100
+            dpi=150
         )
 
         if frame % 20 == 0:
