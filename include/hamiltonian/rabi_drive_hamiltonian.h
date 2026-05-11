@@ -195,13 +195,13 @@ namespace KetCat
                 const complex_t PhaseFactor =
                 {
                     std::cos(Laser.m_phase),
-                    std::sin(Laser.m_phase)
+                    -std::sin(Laser.m_phase)
                 };
 
                 /// Coupling term:
                 ///   Ω/2 = −½ · μ · E · e^{iφ}
                 const complex_t Coupling = m_DipoleMatrix[i][i + 1]
-                    * (-0.5 * Laser.m_amplitude)
+                    * (0.5 * Laser.m_amplitude)
                     * PhaseFactor;
 
                 m_hamiltonianMatrix[SUPERDIAGONAL][i] = Coupling;
