@@ -209,10 +209,10 @@ namespace KetCat
                 ? (ConstexprMath::Pi / 2.0)
                 : 0.0;
 
-			m_framePhase += AxisPhase;
-
             /// Include accumulated rotating-frame correction - TODO cleanup and measure actual gate phase shifts
-            //real_t TotalLaserPhase = AxisPhase - m_framePhase;
+            real_t TotalLaserPhase = AxisPhase - m_framePhase;
+            
+            m_framePhase += AxisPhase;
 
             /// Configure two-photon interaction
             TwoPhotonConfig LaserConfig;
@@ -248,7 +248,7 @@ namespace KetCat
                 command.m_rotationAngleRad;
 
             LaserConfig.m_pumpPhase =
-                m_framePhase;
+                TotalLaserPhase;
 
             LaserConfig.m_protocol =
                 handleStirapTheta(command.m_rotationAngleRad);

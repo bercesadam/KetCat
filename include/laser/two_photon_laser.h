@@ -318,7 +318,8 @@ namespace KetCat
                 m_TimeLimit =
                     ((m_tP + m_tS) / 2.0)
                     + (m_Sigma * m_Sigma * std::log(ratio))
-                    / (2.0 * deltaT);
+                    / (2.0 * deltaT) +
+                    (m_FullTransferTime * 0.005);
             }
         }
 
