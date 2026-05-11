@@ -16,6 +16,8 @@ int main()
 {
     using namespace SpectroscopicLetters;
 
+	real_t TimeStep = 50;
+
     NeutralAtomTypeConfig
     <
         Element::Cs,
@@ -39,7 +41,7 @@ int main()
     using FullHilbertSpace = typename decltype(Manifold)::SingleAtomFullHilbertSpace;
 	using OperationHilbertSpace = typename decltype(Manifold)::SingleAtomOperationHilbertSpace;
 
-    TimeMaster::Clock().init(100);
+    TimeMaster::Clock().init(TimeStep);
     SingleQubitControl<Config> Controller;
 
     SimulationViewBuilder<Config> ViewBuilder(Manifold);
@@ -51,7 +53,7 @@ int main()
 
 	std::string SimuStep;
     natural_t FrameCounter = 0;
-	natural_t SaveNthFrame = 2E6;
+	natural_t SaveNthFrame = 1E6;
 
 	decltype(Controller)::CallbackType ExporterCallback =
         [&](const StateVector<OperationHilbertSpace>& currentPsi, const LaserPulse& laser1, const LaserPulse& laser2, const bool isKey)
@@ -72,38 +74,17 @@ int main()
         };
 
     StateVector<OperationHilbertSpace> Psi = Manifold.getOperationSeed();
-    /*
+
+    std::cout << "Applying X gate..." << std::endl;
     SimuStep = "Gate: Pauli-X, Laser Protocol: STIRAP";
-	std::cout << "Applying X gate..." << std::endl;
     Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi, ExporterCallback);
 
-    SimuStep = "Gate: Pauli-X, Laser Protocol: Inverted STIRAP";
-	std::cout << "Applying X gate (Inverted STIRAP)..." << std::endl;
-    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi }, Psi,  ExporterCallback);
-    */
-    SimuStep = "Gate: Pauli-Y, Laser Protocol: STIRAP";
     std::cout << "Applying Y gate..." << std::endl;
+    SimuStep = "Gate: Pauli-Y, Laser Protocol: Inverted STIRAP";
     Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi }, Psi, ExporterCallback);
-    // wasFractionalStirap false
-    // !even
 
-    // even
-	// wasFractionalStirap false
-
-    SimuStep = "Gate: Rx(Pi/2), Laser Protocol: Inverted STIRAP";
-    std::cout << "Applying Rx(Pi/2)  gate..." << std::endl;
-    Controller.applyPulseCommand({ RotationAxis::X, ConstexprMath::Pi / 2 }, Psi, ExporterCallback);
-    // even
-    // wasFractionalStirap false
-
-    // even
-    // wasFractionalStirap false
-
-
-    std::cout << "Applying Z gate (virtual)..." << std::endl;
+    std::cout << "Applying H gate..." << std::endl;
+    SimuStep = "Gate: Hadamard [Virtual Z(Pi) + Ry(Pi/2)], Laser Protocol: Fractional STIRAP";
     Controller.applyPulseCommand({ RotationAxis::Z, ConstexprMath::Pi }, Psi, ExporterCallback);
-
-    SimuStep = "Gate: Hadamard, Laser Protocol: STIRAP + Virtual Z";
-    std::cout << "Applying Ry(Pi/2) gate..." << std::endl;
     Controller.applyPulseCommand({ RotationAxis::Y, ConstexprMath::Pi / 2 }, Psi, ExporterCallback);
 }

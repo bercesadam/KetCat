@@ -10,47 +10,61 @@
 
 namespace KetCat
 {
-    /// @brief Control layer that maps logical pulse commands to physical time evolution.
+    /// @brief Single-qubit quantum control layer for Raman/STIRAP-driven operations.
     ///
     /// @details
-    ///   This class translates high-level single-qubit rotation commands into
-    ///   laser-driven dynamics and propagates the quantum state accordingly.
+    ///   This class translates abstract logical pulse commands into
+    ///   physically realizable laser-driven dynamics and propagates
+    ///   the quantum state under the resulting time-dependent Hamiltonian.
     ///
-    ///   Responsibilities:
+    ///   The controller operates on a fixed neutral-atom manifold and
+    ///   supports single-qubit rotations implemented through:
     ///
-    ///     • Interpret PulseCommand (X, Y, Z rotations)
-    ///     • Convert commands into two-photon Raman / STIRAP laser parameters
-    ///     • Build and update the time-dependent Hamiltonian
-    ///     • Execute time evolution using a numerical solver (Crank–Nicolson)
-    ///     • Maintain a rotating frame for Virtual Z gates
+    ///     • Raman-driven X/Y rotations
+    ///     • Virtual Z rotations via rotating-frame updates
+    ///     • STIRAP / Inverted STIRAP pulse sequencing
     ///
-    ///   Gate implementation:
+    ///   Main responsibilities:
     ///
-    ///     • X / Y gates:
-    ///         Implemented as physical Raman transitions using dynamically
-    ///         generated laser pulses. The rotation axis is encoded as a phase
-    ///         of the driving field.
+    ///     • Interpret logical PulseCommand operations
+    ///     • Configure two-photon laser interactions
+    ///     • Construct and update the driven Hamiltonian
+    ///     • Propagate the wavefunction using Crank–Nicolson evolution
+    ///     • Maintain coherent rotating-frame phase tracking
     ///
-    ///     • Z gates (virtual):
-    ///         Implemented as a frame update (phase accumulation) without
-    ///         applying any physical pulse. The phase is applied directly to
-    ///         the state and tracked for subsequent operations.
+    ///   Physical model:
     ///
-    ///   Execution model:
+    ///     • Logical qubit states are embedded in a three-level ladder system
+    ///     • X/Y rotations are realized through coherent Raman coupling
+    ///     • Z rotations are implemented virtually without population transfer
+    ///     • Laser phases encode the effective rotation axis
     ///
-    ///     • A pulse command is expanded into a time-dependent laser sequence
-    ///     • The Hamiltonian is updated at each time step
-    ///     • The state is propagated incrementally
-    ///     • Optional callback provides access to intermediate states and pulses
+    ///   Numerical evolution:
     ///
-    ///   Notes:
+    ///     H(t) Ψ(t) = i ∂Ψ(t)/∂t
     ///
-    ///     • This is a single-qubit control layer operating on a fixed atomic manifold
-    ///     • The implementation assumes a three-level system for Raman transitions
-    ///     • STIRAP / Inverted STIRAP protocols are alternated between calls
+    ///   where:
+    ///
+    ///     • H(t) is the time-dependent driven Hamiltonian
+    ///     • Ψ(t) is the propagated quantum state
+    ///
+    ///   The propagation is performed incrementally using a Crank–Nicolson solver.
+    ///
+    ///   STIRAP sequencing:
+    ///
+    ///     • Successive rotations alternate between:
+    ///         - STIRAP
+    ///         - Inverted STIRAP
+    ///
+    ///   based on the accumulated total rotation angle:
+    ///
+    ///     θ_accum ∈ [0, 2π)
     ///
     /// @tparam Config
-    ///   Neutral atom configuration describing level structure and couplings.
+    ///   Neutral atom configuration describing:
+    ///     • energy levels
+    ///     • dipole couplings
+    ///     • logical qubit mapping
     template <NeutralAtomTypeConfig Config>
     class SingleQubitControl
     {
@@ -58,169 +72,353 @@ namespace KetCat
         using Manifold = NeutralAtomManifold<Config>;
         using OperationHilbertSpace = typename Manifold::SingleAtomOperationHilbertSpace;
 
-        /// @brief Energy levels (Hartree units) for the configured atom.
-        const std::array<real_t, ConfigType::LevelCount> m_energies = Manifold::getHartreeEnergies();
+        /// @brief Atomic energy levels in Hartree atomic units.
+        ///
+        /// @details
+        ///   Retrieved from the configured neutral-atom manifold.
+        const std::array<real_t, ConfigType::LevelCount> m_energies =
+            Manifold::getHartreeEnergies();
 
-        /// @brief Dipole coupling matrix between atomic levels.
-        const matrix_t<ConfigType::LevelCount> m_dipoleMatrix = Manifold::getDipoleMatrix();
+        /// @brief Electric dipole coupling matrix between atomic states.
+        ///
+        /// @details
+        ///   Matrix elements define laser-induced transition strengths:
+        ///
+        ///     μᵢⱼ = ⟨i| d̂ |j⟩
+        const matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
+            Manifold::getDipoleMatrix();
 
         /// @brief Peak Rabi frequency used for generated pulses (Hz).
+        ///
+        /// @details
+        ///   Defines the maximum laser coupling amplitude:
+        ///
+        ///     Ω_max / (2π)
         real_t m_peakRabiHz = 100e6;
 
-        /// @brief Common detuning applied to Raman transitions (Hz).
+        /// @brief Common Raman detuning from the intermediate state (Hz).
+        ///
+        /// @details
+        ///   Applied symmetrically to the two-photon interaction.
         real_t m_commonDetuningHz = 0;
 
-        /// @brief Accumulated phase of the rotating frame for Virtual Z gates.
+        /// @brief Accumulated rotating-frame phase for virtual Z operations.
         ///
         /// @details
-        ///   This phase is added to subsequent physical pulses to ensure
-        ///   correct phase coherence across operations.
+        ///   Virtual Z gates are implemented by updating the effective
+        ///   rotating frame instead of applying a physical pulse:
+        ///
+        ///     |1⟩ → e^{iφ} |1⟩
+        ///
+        ///   The accumulated frame phase is incorporated into all
+        ///   subsequent Raman pulse phases to preserve phase coherence.
         real_t m_framePhase = 0.0;
 
-    public:
-        /// @brief Callback signature for monitoring time evolution.
-        ///
-        /// @param time            Current simulation time
-        /// @param state           Current quantum state
-        /// @param pump            Pump laser pulse
-        /// @param stokes          Stokes laser pulse
-        /// @param isFinalStep     True if this is the last step of the pulse
-        using CallbackType = std::function<void(const StateVector<OperationHilbertSpace>&, const LaserPulse&, const LaserPulse&, const bool)>;
-
-        /// @brief Apply a single pulse command to the quantum state.
-        ///
-        /// @param command
-        ///   Logical rotation command (axis + angle).
-        ///
-        /// @param psi
-        ///   Input/output state vector. Updated in-place during evolution.
-        ///
-        /// @param callback
-        ///   User callback invoked at each time step:
-        ///     (time, state, pump pulse, stokes pulse, isFinalStep)
+        /// @brief Accumulated STIRAP sequencing angle.
         ///
         /// @details
-        ///   Behavior depends on the rotation axis:
+        ///   Used to alternate between:
         ///
-        ///     • Z:
-        ///         Applies a virtual phase shift to the logical |1⟩ state and updates
-        ///         the internal frame phase. No time evolution is performed.
+        ///     • STIRAP
+        ///     • Inverted STIRAP
         ///
-        ///     • X / Y:
-        ///         Generates a Raman pulse sequence, constructs the Hamiltonian,
-        ///         and propagates the state over the pulse duration.
-        void applyPulseCommand(const PulseCommand& command, StateVector<OperationHilbertSpace>& psi, const CallbackType& callback)
+        ///   based on the accumulated total rotation angle:
+        ///
+        ///     θ_accum ∈ [0, 2π)
+        static inline real_t m_stirapCycleTheta = 0.0;
+
+        /// @brief Select STIRAP protocol based on accumulated rotation angle.
+        ///
+        /// @param targetTheta
+        ///   Requested logical rotation angle in radians.
+        ///
+        /// @return
+        ///   Selected two-photon transfer protocol.
+        ///
+        /// @details
+        ///   Protocol selection alternates between:
+        ///
+        ///     • STIRAP
+        ///     • Inverted STIRAP
+        ///
+        ///   over successive operations in order to balance
+        ///   adiabatic transfer directionality.
+        ///
+        ///   The accumulated angle is wrapped periodically:
+        ///
+        ///     θ_accum → θ_accum mod 2π
+        static TwoPhotonProtocol handleStirapTheta(real_t targetTheta)
+        {
+            TwoPhotonProtocol Result;
+
+            if (m_stirapCycleTheta >= 0.0 &&
+                m_stirapCycleTheta < ConstexprMath::Pi)
+            {
+                Result = TwoPhotonProtocol::STIRAP;
+            }
+            else if (m_stirapCycleTheta >= ConstexprMath::Pi - 1E-7)
+            {
+                Result = TwoPhotonProtocol::InvertedSTIRAP;
+            }
+
+            m_stirapCycleTheta += targetTheta;
+
+            /// Wrap accumulated angle into [0, 2π)
+            if (ConstexprMath::floatNear(
+                m_stirapCycleTheta,
+                2 * ConstexprMath::Pi))
+            {
+                m_stirapCycleTheta = 0.0;
+            }
+
+            return Result;
+        }
+
+        /// @brief Construct physical laser configuration for a pulse command.
+        ///
+        /// @param command
+        ///   Logical pulse command to translate.
+        ///
+        /// @return
+        ///   Fully configured two-photon laser interaction.
+        ///
+        /// @details
+        ///   Rotation-axis encoding:
+        ///
+        ///     • X rotation → phase = 0
+        ///     • Y rotation → phase = π/2
+        ///
+        ///   The final physical laser phase additionally includes
+        ///   the accumulated rotating-frame correction:
+        ///
+        ///     φ_total = φ_axis - φ_frame
+        ///
+        ///   The generated configuration includes:
+        ///
+        ///     • Energy levels
+        ///     • Dipole couplings
+        ///     • Rabi frequencies
+        ///     • Detuning
+        ///     • Pulse phases
+        ///     • STIRAP protocol selection
+        TwoPhotonConfig prepareLaserConfig(const PulseCommand& command)
+        {
+            /// Determine phase corresponding to the requested rotation axis
+            real_t AxisPhase =
+                (command.m_axis == RotationAxis::Y)
+                ? (ConstexprMath::Pi / 2.0)
+                : 0.0;
+
+            /// Include accumulated rotating-frame correction
+            real_t TotalLaserPhase = AxisPhase - m_framePhase;
+
+            /// Configure two-photon interaction
+            TwoPhotonConfig LaserConfig;
+
+            LaserConfig.m_Level1Energy =
+                m_energies[ConfigType::Logical0Level];
+
+            LaserConfig.m_Level2Energy =
+                m_energies[ConfigType::Logical0Level + 1];
+
+            LaserConfig.m_Level3Energy =
+                m_energies[ConfigType::Logical1Level];
+
+            LaserConfig.m_Mu12 =
+                m_dipoleMatrix
+                [ConfigType::Logical0Level]
+                [ConfigType::Logical0Level + 1]
+                .re;
+
+            LaserConfig.m_Mu23 =
+                m_dipoleMatrix
+                [ConfigType::Logical0Level + 1]
+                [ConfigType::Logical1Level]
+                .re;
+
+            LaserConfig.m_peakRabiFrequency =
+                Units::omegaAuFromHz(m_peakRabiHz);
+
+            LaserConfig.m_commonDetuning =
+                Units::omegaAuFromHz(m_commonDetuningHz);
+
+            LaserConfig.m_targetTheta =
+                command.m_rotationAngleRad;
+
+            LaserConfig.m_pumpPhase =
+                TotalLaserPhase;
+
+            LaserConfig.m_protocol =
+                handleStirapTheta(command.m_rotationAngleRad);
+
+            std::cout
+                << "Laser parameters:"
+                << "\n  Peak Rabi Frequency (Hz): " << m_peakRabiHz
+                << "\n  Common Detuning (Hz): " << m_commonDetuningHz
+                << "\n  Target Theta (rad): " << command.m_rotationAngleRad
+                << "\n  Total Laser Phase (rad): " << TotalLaserPhase
+                << "\n  Protocol: "
+                << (LaserConfig.m_protocol ==
+                    TwoPhotonProtocol::STIRAP
+                    ? "STIRAP"
+                    : "Inverted STIRAP")
+                << std::endl;
+
+            return LaserConfig;
+        }
+
+    public:
+        /// @brief Callback type for observing pulse evolution.
+        ///
+        /// @param state
+        ///   Current propagated quantum state.
+        ///
+        /// @param pump
+        ///   Current pump laser pulse.
+        ///
+        /// @param stokes
+        ///   Current Stokes laser pulse.
+        ///
+        /// @param isFinalStep
+        ///   True if the pulse sequence has completed.
+        ///
+        /// @details
+        ///   Invoked once per simulation step during pulse evolution.
+        using CallbackType =
+            std::function<
+            void(
+                const StateVector<OperationHilbertSpace>&,
+                const LaserPulse&,
+                const LaserPulse&,
+                const bool)>;
+
+        /// @brief Apply a logical pulse command to the quantum state.
+        ///
+        /// @param command
+        ///   Requested logical rotation.
+        ///
+        /// @param psi
+        ///   Input/output quantum state vector.
+        ///
+        /// @param callback
+        ///   Optional evolution callback invoked after each propagation step.
+        ///
+        /// @details
+        ///   Supported operations:
+        ///
+        ///     • Z rotations:
+        ///
+        ///         Implemented virtually by updating the rotating frame:
+        ///
+        ///             φ_frame ← φ_frame + θ
+        ///
+        ///         No physical laser pulse or propagation is performed.
+        ///
+        ///     • X/Y rotations:
+        ///
+        ///         1. Generate Raman/STIRAP pulse envelopes
+        ///         2. Construct driven Hamiltonian
+        ///         3. Propagate the wavefunction incrementally
+        ///         4. Emit intermediate callback updates
+        ///
+        ///   Time evolution:
+        ///
+        ///     Ψ(t + Δt) = U(Δt) Ψ(t)
+        ///
+        ///   where U(Δt) is computed using the Crank–Nicolson method.
+        void applyPulseCommand(
+            const PulseCommand& command,
+            StateVector<OperationHilbertSpace>& psi,
+            const CallbackType& callback)
         {
             if (command.m_axis == RotationAxis::Z)
             {
-                /// Update accumulated frame phase for virtual Z rotation
+                /// Update rotating-frame phase
                 m_framePhase += command.m_rotationAngleRad;
 
-                /// No physical pulse required
+                /// Virtual Z requires no physical pulse
                 return;
             }
 
-            /// Determine phase corresponding to rotation axis
-            real_t axisPhase = (command.m_axis == RotationAxis::Y) ? (ConstexprMath::Pi / 2.0) : 0.0;
+            TwoPhotonLaser LaserEnvelope(
+                prepareLaserConfig(command));
 
-			// Total laser phase includes both the desired rotation axis and the accumulated frame phase
-            real_t totalLaserPhase = axisPhase - m_framePhase;
+            TimeMaster::Clock().setInstructionTimeLimit(
+                LaserEnvelope.getFullTransferTime());
 
-            /// Configure two-photon Raman interaction
-            TwoPhotonConfig laserConfig;
-            laserConfig.m_Level1Energy = m_energies[ConfigType::Logical0Level];
-            laserConfig.m_Level2Energy = m_energies[ConfigType::Logical0Level + 1];
-            laserConfig.m_Level3Energy = m_energies[ConfigType::Logical1Level];
+            real_t GateTime =
+                LaserEnvelope.getTransitionTimeLimit();
 
-            laserConfig.m_Mu12 = m_dipoleMatrix[ConfigType::Logical0Level][ConfigType::Logical0Level + 1].re;
-            laserConfig.m_Mu23 = m_dipoleMatrix[ConfigType::Logical0Level + 1][ConfigType::Logical1Level].re;
+            auto [Pump, Stokes] = LaserEnvelope(0);
 
-            laserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
-            laserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
-            laserConfig.m_targetTheta = command.m_rotationAngleRad;
-            laserConfig.m_pumpPhase = totalLaserPhase;
+            std::array<LaserPulse, ConfigType::LevelCount - 1> Lasers;
 
-			static bool wasFractionalStirap = false;
+            Lasers[ConfigType::Logical0Level] = Pump;
+            Lasers[ConfigType::Logical0Level + 1] = Stokes;
 
-            /// Alternate between STIRAP and inverted STIRAP
-            static bool even = false;
-            laserConfig.m_protocol = even ? TwoPhotonProtocol::InvertedSTIRAP : TwoPhotonProtocol::STIRAP;
+            MultiRwaRabiHamiltonian<ConfigType::LevelCount>
+                Hamiltonian(
+                    m_energies,
+                    m_dipoleMatrix,
+                    Lasers);
 
-            if (command.m_rotationAngleRad >= ConstexprMath::Pi - 1e-7)
+            while (
+                TimeMaster::Clock().getCurrentInstructionTime()
+                < GateTime)
             {
-                wasFractionalStirap = false;
-            }
-            else
-            {   
-                wasFractionalStirap = true;
-            }
+                std::tie(Pump, Stokes) =
+                    LaserEnvelope(
+                        TimeMaster::Clock()
+                        .getCurrentStirapCycleTime());
 
-            if (!wasFractionalStirap)
-            {
-                even = !even;
-            }
+                Lasers[ConfigType::Logical0Level] = Pump;
+                Lasers[ConfigType::Logical0Level + 1] = Stokes;
 
+                Hamiltonian.updateOffDiagonal(Lasers);
+                Hamiltonian.updateMainDiagonal(Lasers);
 
-            std::cout << "Laser parameters:" << "\n  Peak Rabi Frequency (Hz): " << m_peakRabiHz
-                << "\n  Common Detuning (Hz): " << m_commonDetuningHz
-                << "\n  Target Theta (rad): " << command.m_rotationAngleRad
-                << "\n  Total Laser Phase (rad): " << totalLaserPhase
-                << "\n  Protocol: " << (laserConfig.m_protocol == TwoPhotonProtocol::STIRAP ? "STIRAP" : "Inverted STIRAP")
-				<< "\n  Fractional STIRAP: " << (wasFractionalStirap ? "Yes" : "No")
-                << std::endl;
-
-            TwoPhotonLaser laser(laserConfig);
-
-            real_t gateTime = laser.getTransitionTimeLimit();
-
-			std::cout << "Gate time (s): " << gateTime << std::endl;
-			std::cout << "Current instruction time: " << TimeMaster::Clock().getCurrentInstructionTime() << std::endl;
-
-            auto [pump, stokes] = laser(0);
-            std::array<LaserPulse, ConfigType::LevelCount - 1> lasers;
-            lasers[ConfigType::Logical0Level] = pump;
-            lasers[ConfigType::Logical0Level + 1] = stokes;
-
-            MultiRwaRabiHamiltonian<ConfigType::LevelCount> Hamiltonian(m_energies, m_dipoleMatrix, lasers);
-
-            while (TimeMaster::Clock().getCurrentInstructionTime() < gateTime)
-            {
-                std::tie(pump, stokes) = laser(TimeMaster::Clock().getCurrentInstructionTime());
-
-                lasers[ConfigType::Logical0Level] = pump;
-                lasers[ConfigType::Logical0Level + 1] = stokes;
-
-                Hamiltonian.updateOffDiagonal(lasers);
-                Hamiltonian.updateMainDiagonal(lasers);
-
-                CrankNicolsonSolver<OperationHilbertSpace> solver(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
+                CrankNicolsonSolver<OperationHilbertSpace>
+                    solver(
+                        Hamiltonian.getMatrix(),
+                        TimeMaster::Clock().getTimeStep());
 
                 psi = solver(psi);
-                callback(psi, pump, stokes, false);
+
+                callback(psi, Pump, Stokes, false);
 
                 TimeMaster::Clock().tick();
             }
 
-			// Ensure final callback is invoked with the last state and pulse parameters, marking the end of the pulse sequence
-            callback(psi, pump, stokes, true);
+            /// Emit final callback state
+            callback(psi, Pump, Stokes, true);
 
-            if (command.m_rotationAngleRad >= ConstexprMath::Pi - 1e-7)
-            {
-                TimeMaster::Clock().resetCurrentInstructionClock();
-            }
-            else
-            {
-				std::cout << "valami" << std::endl;    
-            }
+            /// Reset instruction-local timing state
+            TimeMaster::Clock().resetCurrentInstructionClock();
         }
 
-        /// @brief Set peak Rabi frequency used for generated pulses (Hz).
+        /// @brief Set peak Rabi frequency for generated pulses.
+        ///
+        /// @param hz
+        ///   Peak Rabi frequency in Hz.
+        ///
+        /// @details
+        ///   Controls the maximum Raman coupling strength:
+        ///
+        ///     Ω_max / (2π)
         void setPeakRabiHz(real_t hz)
-        { 
+        {
             m_peakRabiHz = hz;
         }
 
-        /// @brief Set common detuning for Raman transitions (Hz).
+        /// @brief Set common Raman detuning.
+        ///
+        /// @param hz
+        ///   Detuning in Hz.
+        ///
+        /// @details
+        ///   Applied uniformly to the intermediate-state detuning:
+        ///
+        ///     Δ = ω_laser - ω_transition
         void setDetuningHz(real_t hz)
         {
             m_commonDetuningHz = hz;

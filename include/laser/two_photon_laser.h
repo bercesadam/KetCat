@@ -147,6 +147,9 @@ namespace KetCat
         /// @brief Total evolution duration.
         real_t m_TimeLimit;
 
+		/// @brief Total time required for full population transfer.
+        real_t m_FullTransferTime;
+
         /// @brief Pump laser angular frequency ωp.
         real_t m_omegaP;
 
@@ -297,11 +300,13 @@ namespace KetCat
                 m_tP = 2.5 * m_Sigma;
             }
 
-            if (m_config.m_targetTheta >= ConstexprMath::Pi - 1e-7)
+            m_FullTransferTime =
+                std::max(m_tP, m_tS)
+                + 3.0 * m_Sigma;
+
+            if (ConstexprMath::floatNear(m_config.m_targetTheta, ConstexprMath::Pi))
             {
-                m_TimeLimit =
-                    std::max(m_tP, m_tS)
-                    + 3.0 * m_Sigma;
+				m_TimeLimit = m_FullTransferTime;
             }
             else
             {
@@ -361,5 +366,14 @@ namespace KetCat
         {
             return m_TimeLimit;
         }
+
+		/// @brief Get total time required for full population transfer.
+        ///
+		/// @return 
+		///   Time required to achieve complete population transfer (θ = π) for STIRAP protocols.
+        constexpr real_t getFullTransferTime() const noexcept
+        {
+            return m_FullTransferTime;
+		}
     };
 }
