@@ -1,12 +1,13 @@
 #pragma once
 #include <functional>
 
-#include "systems/time_master.h"
+#include "quantum_computer/time_master.h"
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "solvers/crank_nicolson_solver.h"
 #include "pulse_command.h"
 #include "two_photon_laser.h"
 
+#include "quantum_gates/gate_diag.h"
 
 namespace KetCat
 {
@@ -102,16 +103,15 @@ namespace KetCat
         ///   Applied symmetrically to the two-photon interaction.
         real_t m_commonDetuningHz = 0;
 
-        /// @brief Accumulated rotating-frame phase for virtual Z operations.
+        /// Tracks the effective logical qubit frame phase.
         ///
-        /// @details
-        ///   Virtual Z gates are implemented by updating the effective
-        ///   rotating frame instead of applying a physical pulse:
+        /// Includes:
+        ///   • Virtual Z gate updates
+        ///   • Pulse-induced residual phase shifts
+        ///   • Calibration frame corrections
         ///
-        ///     |1⟩ → e^{iφ} |1⟩
-        ///
-        ///   The accumulated frame phase is incorporated into all
-        ///   subsequent Raman pulse phases to preserve phase coherence.
+        /// Subsequent Raman pulse phases are expressed relative
+        /// to this accumulated logical frame.
         real_t m_framePhase = 0.0;
 
         /// @brief Accumulated STIRAP sequencing angle.
@@ -209,8 +209,10 @@ namespace KetCat
                 ? (ConstexprMath::Pi / 2.0)
                 : 0.0;
 
-            /// Include accumulated rotating-frame correction
-            real_t TotalLaserPhase = AxisPhase - m_framePhase;
+			m_framePhase += AxisPhase;
+
+            /// Include accumulated rotating-frame correction - TODO cleanup and measure actual gate phase shifts
+            //real_t TotalLaserPhase = AxisPhase - m_framePhase;
 
             /// Configure two-photon interaction
             TwoPhotonConfig LaserConfig;
@@ -246,7 +248,7 @@ namespace KetCat
                 command.m_rotationAngleRad;
 
             LaserConfig.m_pumpPhase =
-                TotalLaserPhase;
+                m_framePhase;
 
             LaserConfig.m_protocol =
                 handleStirapTheta(command.m_rotationAngleRad);
@@ -256,7 +258,7 @@ namespace KetCat
                 << "\n  Peak Rabi Frequency (Hz): " << m_peakRabiHz
                 << "\n  Common Detuning (Hz): " << m_commonDetuningHz
                 << "\n  Target Theta (rad): " << command.m_rotationAngleRad
-                << "\n  Total Laser Phase (rad): " << TotalLaserPhase
+                << "\n  Total Laser Phase (rad): " << m_framePhase
                 << "\n  Protocol: "
                 << (LaserConfig.m_protocol ==
                     TwoPhotonProtocol::STIRAP
@@ -394,6 +396,8 @@ namespace KetCat
 
             /// Reset instruction-local timing state
             TimeMaster::Clock().resetCurrentInstructionClock();
+
+
         }
 
         /// @brief Set peak Rabi frequency for generated pulses.

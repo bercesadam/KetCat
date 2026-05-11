@@ -3,7 +3,7 @@
 
 #include "atomic_units.h"
 #include "laser/laser_pulse.h"
-#include "systems/neutral_atom_manifold.h"
+#include "quantum_bit/neutral_atom_manifold.h"
 
 namespace KetCat
 {

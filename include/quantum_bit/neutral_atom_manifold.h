@@ -5,14 +5,14 @@
 #include "neutral_atom_config.h"
 
 #include "hilbert_space/hilbert.h"
-#include "hilbert_space/gram_schmidt_orthonorm.h"
-#include "hilbert_space/reduced_energy_space.h"
+#include "hilbert_space/basis_sets/gram_schmidt_orthonorm.h"
+#include "hilbert_space/basis_sets/reduced_energy_space.h"
 
 #include "atomic_physics_core/elements.h"
 #include "atomic_physics_core/quantum_number.h"
 
-#include "wavefunction/atomic/2d_hydrogenic.h"
-#include "wavefunction/atomic/hartree.h"
+#include "wavefunction/2d_hydrogenic.h"
+#include "wavefunction/hartree.h"
 
 #include "hamiltonian/dipole_operator.h"
 
@@ -225,8 +225,6 @@ namespace KetCat
 
             m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
 
-			std::cout <<"1D" << std::endl;
-
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
 
@@ -251,8 +249,6 @@ namespace KetCat
                     )
                 );
 
-            std::cout<< "2D" << std::endl;
-
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
 
@@ -263,16 +259,6 @@ namespace KetCat
             );
         }
 
-        /// @brief Construct the reduced-energy operational Hilbert space.
-        ///
-        /// @details
-        /// This space is used for actual time evolution and control dynamics.
-        void buildOperationSpace() noexcept
-        {
-            //m_operationSpace =
-             //   std::make_unique<ReducedEnergySpaceType>(*m_basisStates);
-        }
-        
 
         /// @brief Compile-time helper to compute Hartree energies for all eigenstates.
         ///
@@ -368,7 +354,6 @@ namespace KetCat
         {
             buildDipleMatrix();
             buildFullBasisSet();
-            //buildOperationSpace();
 			calculateHartreeEnergies();
         }
     };

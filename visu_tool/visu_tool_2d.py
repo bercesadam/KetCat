@@ -15,7 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.cm as cm
 import pandas as pd
 
-output_dir = "frames2"
+output_dir = "frames"
 
 # Hilbert space properties
 Nx, Ny = 256, 256

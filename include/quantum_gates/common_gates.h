@@ -10,7 +10,7 @@
 /// Toffoli, SWAP, rotations) and the `identityMatrix<QBitCount>()` helper for
 /// generating identity operators for arbitrary qubit counts.
 
-namespace KetCat::QCC::Gates
+namespace KetCat::UnitaryGateLib
 {
     /// @brief Mathematical constants used for gate definitions.
     constexpr real_t sqrt2     = 1.41421356237309505;

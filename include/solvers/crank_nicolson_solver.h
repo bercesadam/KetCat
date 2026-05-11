@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "core_types.h"
-#include "hamiltonian/hamiltonian.h"
 #include "hilbert_space/state_vector.h"
 
 namespace KetCat
@@ -113,7 +112,7 @@ namespace KetCat
             const tridiagonal_matrix_t<Dim>& H = hamiltonian;
 
             // i * dt / (2ℏ)
-            const complex_t Factor(0.0, dt / (2.0 * hBar));
+            const complex_t Factor(0.0, dt / 2.0);
 
             for (natural_t i = 0; i < Dim; ++i)
             {

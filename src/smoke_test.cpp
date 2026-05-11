@@ -2,8 +2,8 @@
 #include <memory>
 #include <functional>
 
-#include "systems/time_master.h"
-#include "systems/neutral_atom_manifold.h"
+#include "quantum_computer/time_master.h"
+#include "quantum_bit/neutral_atom_manifold.h"
 #include "laser/single_qbit_control.h"
 #include "kwf_exporter/simulation_view_builder.h"
 #include "kwf_exporter/kwf_exporter.h"
