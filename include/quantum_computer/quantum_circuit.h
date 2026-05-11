@@ -1,14 +1,8 @@
 ﻿#pragma once
-#include <iostream>
-#include <iomanip>
+#include "core_types.h"
 
-// Aggressively include all relevant headers for ease of use
-#include "solvers/quantum_gate_solver.h"
 
-#include "quantum_gates/common_gates.h"
-#include "quantum_gates/iqft_gate.h"
-
-namespace KetCat::QCC
+namespace KetCat
 {
     /// @file
     /// @brief Small executor and convenience API for composing and running quantum gates.

@@ -8,7 +8,7 @@
 namespace KetCat
 {
     template<natural_t _LocalQditDim, natural_t _QuditCount>
-    class QuditSubspaceHelper
+    class SubspaceHelper
     {
         static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2");
         static_assert(_QuditCount >= 1, "Qudit count must be >= 1");
@@ -653,7 +653,7 @@ namespace KetCat
         ///
         /// Example usage:
         /// @code
-        ///     auto Info = QuditSubspaceHelper<3, 4>::extractLocalState(psi, 2);
+        ///     auto Info = SubspaceHelper<3, 4>::extractLocalState(psi, 2);
         ///
         ///     if (Info.kind == LocalStateKind::Pure)
         ///     {
