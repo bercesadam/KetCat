@@ -68,7 +68,10 @@ namespace KetCat
         static constexpr natural_t LevelCount = sizeof...(_QuantumNumbers);
         using QuantumNumbers = std::tuple<_QuantumNumbers...>;
 
-        // Check correctness of loigalto phy
+		// Compile-time assertions to validate level indices and ordering
+		// - Ensure there are enough levels to accommodate logical and Rydberg states
+		// - Validate that logical and Rydberg levels are ordered correctly
+        // 
         static_assert(LevelCount >= 3);
         static_assert(LevelCount - 3 >= Logical0);
         static_assert(LevelCount - 2 >= Logical1);
