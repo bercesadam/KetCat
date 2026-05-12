@@ -270,29 +270,10 @@ namespace KetCat
         }
 
     public:
+        using ControlLaserArray = std::array<LaserPulse, ConfigType::LevelCount - 1>;
+
         /// @brief Callback type for observing pulse evolution.
-        ///
-        /// @param state
-        ///   Current propagated quantum state.
-        ///
-        /// @param pump
-        ///   Current pump laser pulse.
-        ///
-        /// @param stokes
-        ///   Current Stokes laser pulse.
-        ///
-        /// @param isFinalStep
-        ///   True if the pulse sequence has completed.
-        ///
-        /// @details
-        ///   Invoked once per simulation step during pulse evolution.
-        using CallbackType =
-            std::function<
-            void(
-                const StateVector<OperationHilbertSpace>&,
-                const LaserPulse&,
-                const LaserPulse&,
-                const bool)>;
+        using CallbackType = std::function<void(const ControlLaserArray&)>;
 
         /// @brief Apply a logical pulse command to the quantum state.
         ///
@@ -351,22 +332,9 @@ namespace KetCat
             real_t GateTime =
                 LaserEnvelope.getTransitionTimeLimit();
 
-            auto [Pump, Stokes] = LaserEnvelope(0);
-
-            std::array<LaserPulse, ConfigType::LevelCount - 1> Lasers;
-
-            Lasers[ConfigType::Logical0Level] = Pump;
-            Lasers[ConfigType::Logical0Level + 1] = Stokes;
-
-            MultiRwaRabiHamiltonian<ConfigType::LevelCount>
-                Hamiltonian(
-                    m_energies,
-                    m_dipoleMatrix,
-                    Lasers);
-
-            while (
-                TimeMaster::Clock().getCurrentInstructionTime()
-                < GateTime)
+            ControlLaserArray Lasers;
+            
+            while (TimeMaster::Clock().getCurrentInstructionTime() < GateTime)
             {
                 std::tie(Pump, Stokes) =
                     LaserEnvelope(
@@ -376,27 +344,13 @@ namespace KetCat
                 Lasers[ConfigType::Logical0Level] = Pump;
                 Lasers[ConfigType::Logical0Level + 1] = Stokes;
 
-                Hamiltonian.updateOffDiagonal(Lasers);
-                Hamiltonian.updateMainDiagonal(Lasers);
-
-                CrankNicolsonSolver<OperationHilbertSpace>
-                    solver(
-                        Hamiltonian.getMatrix(),
-                        TimeMaster::Clock().getTimeStep());
-
-                psi = solver(psi);
-
-                callback(psi, Pump, Stokes, false);
+                callback(Lasers);
 
                 TimeMaster::Clock().tick();
             }
 
-            /// Emit final callback state
-            callback(psi, Pump, Stokes, true);
-
             /// Reset instruction-local timing state
             TimeMaster::Clock().resetCurrentInstructionClock();
-
 
         }
 

@@ -14,8 +14,8 @@ namespace KetCat
         static_assert(_QuditCount >= 1, "Qudit count must be >= 1");
 
     public:
-        static constexpr natural_t LocalDim = _LocalQditDim;      // d
-        static constexpr natural_t QuditCount = _QuditCount;    // C
+        static constexpr natural_t LocalDim = _LocalQditDim;
+        static constexpr natural_t QuditCount = _QuditCount;
         static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QuditCount);
 
         using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
@@ -493,25 +493,26 @@ namespace KetCat
         /// This function performs the following steps:
         /// 1. Iterates over all tiles corresponding to the selected target qubits.
         /// 2. For each tile:
-        ///    a. Gathers the relevant amplitudes from the global state       vector into a local tile vector.
+        ///    a. Gathers the relevant amplitudes from the global state vector into a local tile vector.
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
         template <natural_t K>
-        static constexpr void applyHamiltonian(CrankNicolsonSolver<OperationSpace<K>>& solver,
-                                            StateVector<FullHilbertSpace>& psi,
-                                            qdit_list_t<K> targetQdits,
-                                            const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
+        static constexpr void applyHamiltonian(StateVector<FullHilbertSpace>& psi,
+                                               const qdit_list_t<K> targetQdits,
+                                               const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
-            StateVector<OperationSpace<K>> local{};
-            StateVector<FullHilbertSpace> psiUpdated = psi;
+            CrankNicolsonSolver<OperationSpace<K>> Solver;
+
+            StateVector<OperationSpace<K>> Local{};
+            StateVector<FullHilbertSpace> PsiUpdated = psi;
 
             for (natural_t b = 0; b < BlockCount; ++b)
             {
-                gatherTile<K>(psi, targetQdits, b, local);
-                auto updatedLocal = solver(local);
-                scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
+                gatherTile<K>(psi, targetQdits, b, Local);
+                auto UpdatedLocal = Solver(local);
+                scatterTile<K>(PsiUpdated, targetQdits, b, UpdatedLocal);
             }
 
             psi = psiUpdated;
@@ -655,7 +656,7 @@ namespace KetCat
         /// @code
         ///     auto Info = SubspaceHelper<3, 4>::extractLocalState(psi, 2);
         ///
-        ///     if (Info.kind == LocalStateKind::Pure)
+        ///     if (Info.kind == LocalStateQualifier::Pure)
         ///     {
         ///         // Info.pureStateVector holds |ψ⟩ for qudit 2.
         ///     }
@@ -675,7 +676,7 @@ namespace KetCat
                 // Out-of-range: return zero-initialized descriptor.
                 Info.rho.setZero();
                 Info.purityValue = real_t(0);
-                Info.kind        = LocalStateKind::Entangled;
+                Info.kind        = LocalStateQualifier::Entangled;
                 return Info;
             }
 
@@ -686,12 +687,12 @@ namespace KetCat
 
             if (Info.purityValue >= PurityThreshold)
             {
-                Info.kind            = LocalStateKind::Pure;
+                Info.kind            = LocalStateQualifier::Pure;
                 Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
             }
             else
             {
-                Info.kind            = LocalStateKind::Entangled;
+                Info.kind            = LocalStateQualifier::Entangled;
                 Info.pureStateVector = StateVector<OneQuditSpace>{};  // zeroed, intentionally invalid
             }
 

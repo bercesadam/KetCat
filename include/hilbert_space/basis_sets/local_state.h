@@ -51,7 +51,7 @@ namespace KetCat
     }
 
     /// @brief  Entanglement classification of a single qudit's reduced state.
-    enum class LocalStateKind : natural_t
+    enum class LocalStateQualifier : natural_t
     {
         Pure      = 0,   ///< Tr(ρ²) ≈ 1  →  qudit is unentangled, has a well-defined state vector.
         Entangled = 1,   ///< Tr(ρ²) < 1  →  qudit is entangled with the rest of the register.
@@ -72,10 +72,10 @@ namespace KetCat
     {
         DensityMatrix<LocalDim>            rho;             ///< Reduced density matrix (always valid).
         real_t                             purityValue;     ///< Tr(ρ²) ∈ (0, 1].
-        LocalStateKind                     kind;            ///< Pure or Entangled classification.
+        LocalStateQualifier                     kind;            ///< Pure or Entangled classification.
 
         /// @brief  Representative ket for a pure local state.
-        /// @note   Only meaningful when kind == LocalStateKind::Pure.
+        /// @note   Only meaningful when kind == LocalStateQualifier::Pure.
         StateVector<FiniteHilbertSpace<LocalDim>> pureStateVector;
     };
 }
