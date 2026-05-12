@@ -9,18 +9,18 @@ namespace KetCat
     template <NeutralAtomTypeConfig Config>
     class NeutralAtomQubit
     {
-        using ConfigType = std::remove_cvref_t<decltype(Config)>;
+        natrual_t QubitIndex;
 
-        using SubspaceManager = SubspaceHelper<ConfigType::LevelCount, QBitCount>
+        using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
         NeutralAtomManifold<Config> m_Manifold;
 
         SingleQubitControl<Config> m_SingleQubitControl;
 
 
-        void performInstruction()
+        void performInstruction(/* megkapja a gatet */)
         {
-           
+            m_SingleQubitControl.applyPulseCommand(command, Psi, (performTimeStep))
         }
 
         void performTimeStep(const decltype(m_SingleQubitControl)::ControlLaserArray& lasers)
@@ -42,7 +42,7 @@ namespace KetCat
                         Hamiltonian.getMatrix(),
                         TimeMaster::Clock().getTimeStep());
 
-            psi = solver(psi);
+			SubspaceManager::applyHamiltonian<1>(solver, { QubitIndex }, Hamiltonian);
             
         }
 
@@ -50,22 +50,20 @@ namespace KetCat
 
 
     template <natural_t QBitCount, NeutralAtomTypeConfig Config>
-    class NeutralAtomComputer
+    class NeutralAtomQuantumProcessor
     {
         constexpr real_t TimeStep = 50; // a.u.
 
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
         using SubspaceManager = SubspaceHelper<ConfigType::LevelCount, QBitCount>
 
-        NeutralAtomManifold<Config> m_Manifold;
-
-        std::array<SingleQubitControl<Config>, QBitCount> m_SingleQubitControl;
+        std::array<NeutralAtomQubit<Config>, QBitCount> m_Qubits;
 
 		StateVector<SubspaceManager::FullHilbertSpace> m_GlobalStateVector;
 
         
     public:
-        NeutralAtomComputer()
+        NeutralAtomQuantumProcessor()
         {
             TimeMaster::Clock().init(TimeStep);
             StateVector<OperationHilbertSpace> OneAtomSeed = m_Manifold.getOperationSeed();

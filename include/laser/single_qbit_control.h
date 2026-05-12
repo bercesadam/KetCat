@@ -331,16 +331,15 @@ namespace KetCat
 
             real_t GateTime =
                 LaserEnvelope.getTransitionTimeLimit();
-
-            ControlLaserArray Lasers;
             
             while (TimeMaster::Clock().getCurrentInstructionTime() < GateTime)
             {
-                std::tie(Pump, Stokes) =
+                auto [Pump, Stokes] =
                     LaserEnvelope(
                         TimeMaster::Clock()
                         .getCurrentStirapCycleTime());
 
+                ControlLaserArray Lasers;
                 Lasers[ConfigType::Logical0Level] = Pump;
                 Lasers[ConfigType::Logical0Level + 1] = Stokes;
 

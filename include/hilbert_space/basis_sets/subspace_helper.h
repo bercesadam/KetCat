@@ -497,22 +497,21 @@ namespace KetCat
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
         template <natural_t K>
-        static constexpr void applyHamiltonian(StateVector<FullHilbertSpace>& psi,
-                                               const qdit_list_t<K> targetQdits,
-                                               const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
+        static constexpr void applyHamiltonian(CrankNicolsonSolver<OperationSpace<K>>& solver,
+            StateVector<FullHilbertSpace>& psi,
+            qdit_list_t<K> targetQdits,
+            const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
-            CrankNicolsonSolver<OperationSpace<K>> Solver;
-
-            StateVector<OperationSpace<K>> Local{};
-            StateVector<FullHilbertSpace> PsiUpdated = psi;
+            StateVector<OperationSpace<K>> local{};
+            StateVector<FullHilbertSpace> psiUpdated = psi;
 
             for (natural_t b = 0; b < BlockCount; ++b)
             {
-                gatherTile<K>(psi, targetQdits, b, Local);
-                auto UpdatedLocal = Solver(local);
-                scatterTile<K>(PsiUpdated, targetQdits, b, UpdatedLocal);
+                gatherTile<K>(psi, targetQdits, b, local);
+                auto updatedLocal = solver(local);
+                scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
             }
 
             psi = psiUpdated;
