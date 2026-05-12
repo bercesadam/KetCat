@@ -1,12 +1,10 @@
-# Ket Cat - Constexpr-friendly Ab Initio Neutral Atom Quantum Computer Simulator
-
-# KetCat (|😾⟩)
+# Ket Cat
 
 **Ab Initio Neutral Atom Quantum Computer Emulator**  
-A first-principles simulation framework for modeling the coherent dynamics of neutral atom qubits via TDSE, laser-atom interaction, and adiabatic passage protocols.
+|😾⟩, pronounced as "Ket Cat" is a first-principles simulation framework for modeling the coherent dynamics of neutral atom qubits via TDSE, laser-atom interaction, and adiabatic passage protocols.
 
-<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo" alt="Pauli-x gate" width="1024" style="text-align:center">
-First successful test of a single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
+<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo.gif" alt="One qubit demonstration" width="1024" style="text-align:center">
+A successful test of a single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
 
 ---
 
