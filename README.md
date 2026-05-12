@@ -4,7 +4,7 @@
 |😾⟩, pronounced as "Ket Cat" is a first-principles simulation framework for modeling the coherent dynamics of neutral atom qubits via TDSE, laser-atom interaction, and adiabatic passage protocols.
 
 <img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo.gif" alt="One qubit demonstration" width="1024" style="text-align:center">
-A successful test of a single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
+A successful test of single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
 
 ---
 
@@ -12,11 +12,11 @@ A successful test of a single-qubit gates on a Cesium atom with STIRAP Laser dri
 
 KetCat is a modern C++ framework designed to unify the logical abstractions of quantum computing with the underlying physical reality of the **Time-Dependent Schrödinger Equation (TDSE)**. The project focuses on the ab initio modeling and visualization of neutral atom quantum processors. 
 
-### 🌌 Concept: The "Digital Quantum Observatory"
+### Concept: The "Digital Quantum Observatory"
 KetCat is not a mass-market research tool; it is a work of technological art and an architectural experiment. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
 
-### 🚀 Current Focus: Neutral Atoms & STIRAP
+### Current Focus: Neutral Atoms & STIRAP
 The project began as a fully `constexpr` logical circuit simulator. Today, the focus has shifted entirely to the Physical Layer:
 
 *   **Ab Initio Simulation**: Numerically solving the TDSE with high temporal resolution (millions of time steps).
@@ -24,7 +24,7 @@ The project began as a fully `constexpr` logical circuit simulator. Today, the f
 *   **Gate Design**: Realizing quantum gates (Hadamard, Pauli rotations) via fractional and inverted **STIRAP** (Stimulated Raman Adiabatic Passage) protocols.
 *   **Hybrid Basis Sets**: Combining **Slater-Type Orbitals (STO)** for core-electron shielding with **Quantum Defect Theory (QDT)** for high-lying Rydberg states.
 
-### 🛠 The "Architect" Approach (Engineering Principles)
+### The "Architect" Approach (Engineering Principles)
 As I am working as a System and SW Architect in the automotive industry, I've tried to bring my mindset into this project as well:
 
 *   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
@@ -32,7 +32,7 @@ As I am working as a System and SW Architect in the automotive industry, I've tr
 *   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more).
 ---
 
-### 📦 Quickstart
+### Quickstart
 ```bash
 mkdir build && cd build
 cmake ..
@@ -40,7 +40,7 @@ cmake --build .
 
 ---
 
-### 📚 Mathematical and Physical Foundations
+### Mathematical and Physical Foundations
 
 KetCat operates across multiple layers of abstraction to simulate a quantum processor from first principles.
 
