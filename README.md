@@ -1,136 +1,79 @@
 # Ket Cat - Constexpr-friendly Ab Initio Neutral Atom Quantum Computer Simulator
 
-## Bleeding edge showcase and future plans
+# KetCat (|😾⟩)
 
-First successful test of a single-qubit quantum gate (Pauli-X) on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually on ~60 million time steps): 
+**Ab Initio Neutral Atom Quantum Computer Emulator**  
+A first-principles simulation framework for modeling the coherent dynamics of neutral atom qubits via TDSE, laser-atom interaction, and adiabatic passage protocols.
+
 <img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/paulix.gif" alt="Pauli-x gate" width="1024" style="text-align:center">
+First successful test of a single-qubit quantum gate (Pauli-X) on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually on ~60 million time steps).
 
-From the initial ideas, the project is currently being developed to be a C++ library designed for the first-principles simulation of neutral atom quantum processors. Focusing on Coherent Dynamics, enabling the precise modeling of laser-atom interactions and population transfer without the overhead of decoherence. By utilizing a hybrid basis of Slater-Type Orbitals (STO) for core-electron interactions and Quantum Defect Theory (QDT) for high-lying Rydberg states, it provides a high-fidelity emulation environment for pulse shaping and gate design in alkali-based qubit systems. 
+---
 
-This will create the bridge between the two "worlds", which was represented in the stable version and described in the legacy readme below.
+### A bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
 
-## Readme for v2.0
+KetCat is a modern C++ framework designed to unify the logical abstractions of quantum computing with the underlying physical reality of the **Time-Dependent Schrödinger Equation (TDSE)**. The project focuses on the ab initio modeling and visualization of neutral atom quantum processors. 
 
-<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/logo.png" alt="The project logo" width="300" style="text-align:center">
-
-|😾⟩, pronounced as “Ket Cat”, is fully `constexpr` C++ framework for simulating quantum systems: **logical quantum circuits** and **physical quantum mechanics** under a shared mathematical foundation. The project was originally named *'|Ψ⟩CC — Quantum Circuits in Compiler'* and began as a quantum circuit simulator: the original goal was to compute the evolution of quantum state vectors in constexpr time using unitary gate operations. Formally, this corresponds to solving the Schrödinger equation in a finite-dimensional Hilbert space using discrete unitary operators:
-
-$$
-|\psi_{n+1}\rangle = U_n |\psi_n\rangle
-$$
-
-Since this is mathematically a special case of Schrödinger evolution under a piecewise-constant Hamiltonian, the existing linear algebra abstractions, state vector representations, and operator formalism naturally generalized to support the computation of time evolution of physical quantum systems described by the **time-dependent Schrödinger equation**:
-
-$$
-i\hbar \frac{\partial \psi(t)}{\partial t} = H(t)\psi(t)
-$$
-
-As a result, the project evolved from a quantum circuit simulator into a unified quantum simulation framework and capable of modeling both logical and physical quantum systems - currently supporting discretized, 1D cases. 
-
-## Conceptual Framework
-
-This project is not intended to be a high-performance production simulator.  
-Instead, it serves as:
-* A conceptual bridge between **quantum circuits** and **physical quantum mechanics**
-* A didactic framework for understanding quantum state evolution
-* A demonstration of advanced **type-driven design** and **compile-time verification** in modern C++
-
-At its core, |😾⟩ is built on a shared mathematical model:
-* Complex-valued state vectors representing elements of a Hilbert space
-* Linear operators acting on those states
-* Explicit, unitary time evolution
-* Easy to use API (see examples) both for circuit building and describing physical simulations
-
-Within this framework, two complementary quantum models are supported. Both models reuse the same underlying types and abstractions; they differ only in how the evolution operators are constructed:
-
-### Quantum Circuit Model
-
-Discrete, gate-based evolution of logical qubits using unitary operators.
-This corresponds to the standard circuit model of quantum computation with zero classically hard-coded gate logic.
-Also provides a library of basic quantum gates and also a few examples (Bell and GHZ state, Shor's algorithm and my fair quantum dice circuit).
-
-<figure>
-  <img
-    src="doc/shor.png"
-    alt="Example output of Shor's algorithm factoring 21" />
-  <figcaption>Example output of Shor's algorithm factoring 21</figcaption>
-</figure>
-
-### Physical Quantum Mechanics Model
-
-Numerical simulation of wavefunctions evolving under different Hamiltonians, which can be built with an intuitive API (using functors for separate potentials). Time evolution is calculated by a numerical PDE solver for the time-dependent Schrödinger equation. Currently it's specialized to 1D cases only, so the calculation model heavily exploits the tridigonal structure of the discrete Laplacian in 1D. (There are plans to extend the functionality to more than one dimensions.)
-
-The library provides a set of predefined, configurable seed wave functions (presenting quantum physics textbook examples, like eigenstates, Gaussian wave packets, coherent state and Hydrogen orbitals); different potentials (Zero potential well with configurable barriers, Soft Coulomb, Harmonic oscillator); and a 1D Particle-in-a-box system in which you can compile all these into one living quantum playground.
-
-Also features an 1D oscilloscope-like visualization with phase encoding where you can witness a Schrödinger time evolution directly in a terminal, like how quantum tunneling works conceptually in the components of flash memories or the radial nodes of a hydrogen atom’s electron cloud. It can be also configured to visualize the potential in the box and also the real/imaginary components of the wave functions, which can contribute to the understanding of the given system.
-
-<figure>
-  <img
-    src="doc/visu_showcase.png"
-    alt="Example output of Shor's algorithm factoring 21" />
-  <figcaption>Showcasing outputs of the supplied examples</figcaption>
-</figure>
-
-## C++ Design and Type-Level Guarantees
-
-Beyond its mathematical foundations, the framework places strong emphasis on **type safety and compile-time correctness**, expoiting modern C++ language features extensively.
-
-Key strengths from a C++ perspective include:
-
--   **Strong Type Safety**  
-    Quantum states, operators, and systems are represented using distinct, explicit types.  
-    Invalid compositions (e.g. applying incompatible operators or mismatched dimensions) are rejected at compile time rather than failing at runtime.
-    
--   **Template-Based Dimensional Encoding**  
-    Hilbert space dimensionality and system sizes are encoded directly in template parameters, enabling the compiler to enforce algebraic consistency across operations.
-    
--   **Concepts, Type Traits and Compile-Time Constraints**  
-    C++20 concepts are used to express mathematical requirements such as linearity, unitarity, and operator compatibility.  
-    
--   **`constexpr` Evaluation and Zero Runtime Cost**  
-    Where applicable, quantum state evolution and operator application can be fully evaluated at compile time, eliminating runtime cost.
-    
--   **Clear Separation of Abstraction Layers**  
-    The design cleanly separates:
-    
-    -   mathematical primitives,
-        
-    -   quantum evolution models,
-        
-    -   and system-level simulations  
-        while still sharing a unified type system.
-        
-
-Together, these features make the framework not only a quantum simulation environment, but also a demonstration of advanced **type-driven design**, **metaprogramming**, and **compile-time verification** techniques in modern C++.
+### 🌌 Concept: The "Digital Quantum Observatory"
+KetCat is not a mass-market research tool; it is a work of technological art and an architectural experiment. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
 
-## Limitations
+### 🚀 Current Focus: Neutral Atoms & STIRAP
+The project began as a fully `constexpr` logical circuit simulator. Today, the focus has shifted entirely to the Physical Layer:
 
-While |😾⟩ provides a unified and mathematically consistent framework for quantum simulation, several limitations should be noted:
-    
--   **Not a High-Performance Simulator**
-    The framework prioritizes clarity, correctness, and type safety over raw performance.
-    It is not optimized for large-scale systems or production-level numerical workloads.
-    
--   **Exponential State Growth**
-    As with all explicit state-vector simulations, memory and computational complexity scale exponentially with system size. This limits practical simulations to relatively small Hilbert spaces.
-    
--   **Numerical Precision**
-    Physical quantum simulations rely on floating-point arithmetic and discretization. While stable integration schemes are used, numerical error accumulation is unavoidable for long time evolutions or fine spatial grids. Also as the project is conceptwise fully constexpr, most basic functions (trigonometry, exp etc.) is approximated with Taylor polynominals which contributes to possible numerical instability for longer simulations.
-    
--   **Idealized Quantum Circuits**
-    The circuit model assumes ideal unitary operations and does not model noise, decoherence, or hardware-specific effects.
-    
-    These limitations are intentional design choices that align with the project’s educational and exploratory goals. I also view the project as a form of digital art, since real‑world, research‑grade simulators that serve a similar purpose would gain no practical benefit from constexpr evaluation and are typically designed and optimized for high‑performance computing environments.
-    
+*   **Ab Initio Simulation**: Numerically solving the TDSE with high temporal resolution (millions of time steps).
+*   **Laser-Atom Interactions**: High-fidelity modeling of alkali atom (e.g., Cesium) pulse shaping and population transfer.
+*   **Gate Design**: Realizing quantum gates (Hadamard, Pauli rotations) via fractional and inverted **STIRAP** (Stimulated Raman Adiabatic Passage) protocols.
+*   **Hybrid Basis Sets**: Combining **Slater-Type Orbitals (STO)** for core-electron shielding with **Quantum Defect Theory (QDT)** for high-lying Rydberg states.
 
-## Getting Started
-    
-### Build
+### 🛠 The "Architect" Approach (Engineering Principles)
+As I am working as a System and SW Architect in the automotive industry, I've tried to bring my mindset into this project as well:
 
+*   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
+*   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms abstract complex numbers into visual aesthetics and "simple" debugging.
+*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more).
+---
+
+### 📦 Quickstart
 ```bash
 mkdir build && cd build
 cmake ..
 cmake --build .
-```
+
+---
+
+### 📚 Mathematical and Physical Foundations
+
+KetCat operates across multiple layers of abstraction to simulate a quantum processor from first principles.
+
+#### **1. Atomic Structure & Hybrid Model Selection**
+For alkali atoms, the valence electron experiences a Coulomb-like potential at long range, but inner electrons cause significant screening. KetCat utilizes an **Effective Radial Orbital** meta-generator to create the initial **seed wavefunction**:
+
+*   **Model Selection Logic**:
+    *   **Hydrogenic/QDT Seed**: Selected for high angular momentum states ($l \geq 3$) or states with negligible quantum defects ($\delta_l < 0.05$).
+    *   **Slater-Type Orbital (STO) Seed**: Selected for low-$l$ states where core penetration is significant.
+*   **Effective Nuclear Charge**: For STO seeds, the simulator calculates the screened nuclear charge ($Z_{eff}$) using **Slater's Rules**:
+    $$Z_{eff} = Z - \sigma$$
+    where $\sigma$ is the shielding constant derived from the electron configuration. The resulting orbital decay is governed by $\zeta = Z_{eff} / n^*$.
+
+#### **2. Wavefunction Physics (Seed Wavefunction)**
+The spatial wavefunction is decomposed into radial and angular components:
+$$\Psi_{n^*lm}(r, \theta, \phi) = \frac{u_{n^*l}(r)}{r} Y_l^m(\theta, \phi)$$
+*   **Angular Part**: Computed via Associated Legendre polynomials $P_l^m(x)$ normalized into Spherical Harmonics $Y_l^m$.
+*   **Radial Part ($u$)**: To support non-integer principal quantum numbers ($n^* = n - \delta_l$), KetCat generalizes the radial solution using the **Kummer Confluent Hypergeometric function** ($_{1}F_{1}$):
+    $$u_{n^*l}(r) \propto r^{l+1} \cdot e^{-\frac{r}{n^* a_{eff}}} \cdot {}_{1}F_{1}(-(n^* - l - 1), 2l + 2, \frac{2r}{n^* a_{eff}})$$
+    This ensures that nodal structures and phases correctly reflect core penetration effects.
+
+#### **3. Quantum Control & Laser Interaction**
+Quantum gates are implemented as physical transitions in a 3-level system ($|0\rangle \leftrightarrow |1\rangle \leftrightarrow |2\rangle$).
+*   **STIRAP Protocol**: Uses a counter-intuitive pulse sequence (Stokes before Pump) to transfer population via a "dark state," avoiding the lossy intermediate state.
+*   **Hamiltonian Construction**: The interaction Hamiltonian in the Rotating Wave Approximation (RWA) is:
+    $$\mathbf{H}_{int} = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta_P & \Omega_S(t) \\ 0 & \Omega_S(t) & 2(\Delta_P - \Delta_S) \end{pmatrix}$$
+
+#### **4. Numerical Propagation (Crank–Nicolson)**
+Temporal evolution is handled by solving the TDSE using the **Crank–Nicolson method**, ensuring **unitarity** (norm-preservation):
+$$\left( \mathbf{I} + \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^{n+1} = \left( \mathbf{I} - \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^n$$
+By utilizing a **tridiagonal Hamiltonian** matrix, the system is solved in $\mathcal{O}(N)$ time using the **Thomas algorithm**, allowing for millions of high-resolution time steps.
+
+
 
