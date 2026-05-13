@@ -1,11 +1,11 @@
-#include "quantum_processor/neutral_atom_computer.h"
+#include "quantum_processor/quantum_processor.h"
 
 int main()
 {
     using namespace KetCat;
     using namespace SpectroscopicLetters;
 
-    real_t TimeStep = 15;
+    real_t TimeStep = 50;
 
     NeutralAtomTypeConfig
         <
@@ -26,10 +26,11 @@ int main()
         QuantumNumber<40, p>
         > Config;
         
-    auto qc = QuantumCircuit<1>().withGates(
+    auto Circuit = QuantumCircuit<1>().withGates(
         QuantumGate<1, GateType::X>().toBits(0),
         QuantumGate<1, GateType::Y>().toBits(0),
-        QuantumGate<1, GateType::H>().toBits(0),
-        QuantumGate<1, GateType::RY>().withTheta(ConstexprMath::Pi / 4).toBits(0)
+        QuantumGate<1, GateType::H>().toBits(0)
     );
+
+    QuantumProcessor<1, Config>(TimeStep).execute(Circuit);
 }

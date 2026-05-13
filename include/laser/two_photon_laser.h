@@ -48,6 +48,7 @@ namespace KetCat
         real_t m_tS;        ///< Stokes center
         real_t m_tLimit;    ///< Evaluation cutoff
         real_t m_tStart;    ///< Start time in case of fractional STIRAP
+        real_t m_PiTransferTime; ///< Theoretical transfer time needed for a full Pi transition
     };
 
     /// @brief Lightweight time-dependent two-photon laser pulse evaluator.
@@ -97,7 +98,10 @@ namespace KetCat
         /// @brief Get total pulse duration required for target transfer.
         constexpr real_t getTransitionTimeLimit() const noexcept { return m_Parameters.m_tLimit; }
 
-        real_t setStartTime(const real_t startTime) noexcept { m_Parameters.m_tStart = startTime; }
+        /// @brief Get total pulse duration required for a theoretical (or actual) full Pi transfer.
+        constexpr real_t getFullTransferTime() const noexcept { return m_Parameters.m_PiTransferTime; }
+
+        constexpr void setStartTime(const real_t startTime) noexcept { m_Parameters.m_tStart = startTime; }
         constexpr real_t getStartTime() const noexcept { return m_Parameters.m_tStart; }
     };
 
@@ -176,12 +180,12 @@ namespace KetCat
                 Parameters.m_tP = 2.5 * Parameters.m_sigma;
             }
 
-            const real_t fullTransferTime =
+            Parameters.m_PiTransferTime =
                 std::max(Parameters.m_tP, Parameters.m_tS) + 3.0 * Parameters.m_sigma;
 
             if (ConstexprMath::floatNear(m_config.m_targetTheta, ConstexprMath::Pi))
             {
-                Parameters.m_tLimit = fullTransferTime;
+                Parameters.m_tLimit = Parameters.m_PiTransferTime;
             }
             else
             {
@@ -196,7 +200,7 @@ namespace KetCat
 
                 Parameters.m_tLimit = ((Parameters.m_tP + Parameters.m_tS) / 2.0)
                     + (Parameters.m_sigma * Parameters.m_sigma * ConstexprMath::log(Ratio)) / (2.0 * DeltaT)
-                    + (fullTransferTime * SafetyMarginRatio);
+                    + (Parameters.m_PiTransferTime * SafetyMarginRatio);
             }
         }
     };

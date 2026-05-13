@@ -136,7 +136,7 @@ namespace KetCat
         ///
         ///    The rotating frame update ensures phase coherence:
         ///      φ_pump = φ_instr - φ_frame
-        TwoPhotonConfig prepareLaserConfig(const detail::AtomControlData& atomControl, const PhysicalInstruction& instruction)
+        TwoPhotonConfig prepareLaserConfig(detail::AtomControlData& atomControl, const PhysicalInstruction& instruction)
         {
             TwoPhotonConfig LaserConfig;
 

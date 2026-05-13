@@ -9,6 +9,7 @@
 
 namespace KetCat
 {
+	/// @brief Enumeration of supported quantum gate types.
     enum class GateType
     {
         I,
@@ -18,7 +19,9 @@ namespace KetCat
         Z,
         H,
 
+        RX,
         RY,
+        RZ,
 
         CX,
         CNOT,
@@ -30,6 +33,7 @@ namespace KetCat
     };
 
 
+	/// @brief Compile-time traits and properties for each quantum gate type.
     template<GateType Gate>
     struct GateTraits;
 

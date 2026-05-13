@@ -4,6 +4,7 @@
 
 namespace KetCat
 {
+	/// @brief Concrete instance of a quantum gate operation, ready for compilation and execution.
     template<natural_t QubitCount>
     struct GateOperation
     {
