@@ -44,6 +44,8 @@ namespace KetCat
         using ReducedMatrix = tridiagonal_matrix_t<LevelCount>;
         using FullDipoleMatrix = matrix_t<LevelCount>;
 
+        using laser_array_t = std::array<LaserPulse, LevelCount - 1>;
+
     private:
         /// @brief Bare energy levels of the system (e.g. Hartree units).
         std::array<real_t, LevelCount> m_Energies{};
@@ -72,7 +74,7 @@ namespace KetCat
         constexpr MultiRwaRabiHamiltonian(
             const std::array<real_t, LevelCount>& energies,
             const FullDipoleMatrix& dipoleMatrix,
-            const std::array<LaserPulse, LevelCount - 1>& lasers) noexcept
+            const laser_array_t& lasers) noexcept
             : m_Energies(energies),
             m_DipoleMatrix(dipoleMatrix)
         {

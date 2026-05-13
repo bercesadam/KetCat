@@ -1,29 +1,141 @@
+
 #pragma once
-#include "quantum_bit/neutral_atom_manifold.h"
-#include "laser/single_qbit_control.h"
-#include "hilbert_space/basis_sets/subspace_helper.h"
+
+#include <array>
+#include <variant>
+#include <tuple>
+#include <utility>
+#include <type_traits>
+
+#include "operation_space/neutral_atom_manifold.h"
+#include "operation_space/utils/subspace_operations.h"
+
+#include "quantum_circuit.h"
+#include "compiler/gate_compiler.h"
+
+#include "laser/pulse_sequencer.h"
+
+#include "hamiltonian/rabi_drive_hamiltonian.h"
+#include "solvers/crank_nicolson_solver.h"
 
 
 namespace KetCat
 {
-    template <NeutralAtomTypeConfig Config>
-    class NeutralAtomQubit
-    {
-        natrual_t QubitIndex;
+    //============================================================
+    // Observer system
+    //============================================================
 
+    template<typename StateType>
+    class ExecutionObserver
+    {
+    public:
+
+        virtual ~ExecutionObserver() = default;
+
+        virtual void onTimeStep(
+            real_t globalTime,
+            const StateType& psi) = 0;
+    };
+
+
+    //============================================================
+    // QPU
+    //============================================================
+
+    template <natural_t QubitCount, NeutralAtomTypeConfig Config>
+    class QuantumProcessor
+    {
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
+        using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
+
+        StateVector<typename GlobalStateManager::FullHilbertSpace> m_GlobalStateVector;
 
         NeutralAtomManifold<Config> m_Manifold;
 
-        SingleQubitControl<Config> m_SingleQubitControl;
+        LaserPulseSequencer<Config, QubitCount> m_laserSequencer;
 
+    public:
 
-        void performInstruction(/* megkapja a gatet */)
+        constexpr QuantumProcessor(real_t dt)
         {
-            m_SingleQubitControl.applyPulseCommand(command, Psi, (performTimeStep))
+            TimeMaster::Clock().init(dt);
+            StateVector<decltype(m_Manifold)::SingleAtomOperationHilbertSpace> OneAtomSeed =
+                m_Manifold.getOperationSeed();
+            m_GlobalStateVector = GlobalStateManager::productStateFromSeed(OneAtomSeed);
         }
 
-        void performTimeStep(const decltype(m_SingleQubitControl)::ControlLaserArray& lasers)
+        // Iterate thru the logical gates and execute their associated physical actions
+        template<natural_t OpCount>
+        void execute(const QuantumCircuit<QubitCount, OpCount>& circuit)
+        {
+           
+            for (const auto& op : circuit.operations())
+            {
+                std::visit(
+                    [&](const auto& gate)
+                {
+                    executeGate(gate);
+                }, op);
+            }
+        }
+
+    private:
+        // Translate the logical gate into a series of physical actions
+        template<typename GateOp>
+        void executeGate(const GateOp& gate)
+        {
+            
+            auto [ PhysicalInstructions, InstructionCount]
+                = GateCompiler::compile(gate);
+
+            for (natural_t i = 0; i < InstructionCount; ++i)
+            {
+                executeInstruction(PhysicalInstructions[i]);
+            }
+        }
+
+        // Translate the physical instruction into a series of laser pulses
+        void executeInstruction(const PhysicalInstruction& instruction)
+        {
+            
+            auto PulseEnvelope = m_laserSequencer.calculateLaserEnvelope(instruction);
+
+            // In case of Virtual Z pulses, only internal changes are taken
+            // in the laser controller and we don't need TDSE evolution
+            if (!PulseEnvelope)
+            {
+                return;
+            }
+
+            TwoPhotonLaserEnvelope& Envelope = *PulseEnvelope;
+            real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
+            real_t TimeShift = Envelope.setStartTime(); // if adiabatic continuity needs to be ensured
+
+            while (TimeMaster::Clock().getCurrentInstructionTime() < TransitionTimeLimit)
+            {
+                // TODO probably for handling Rydberg excitations we need a better laser pulse structure
+                // not getting along by Pump and Stokes for the lower 3 states
+                auto [Pump, Stokes] =
+                    Envelope(TimeMaster::Clock().getCurrentInstructionTime() + TimeShift);
+
+                // Compile array with the drive laser for each energy level of the operational space
+                typename MultiRwaRabiHamiltonian<ConfigType::LevelCount>::template laser_array_t Lasers;
+                Lasers[ConfigType::Logical0Level] = Pump;
+                Lasers[ConfigType::Logical0Level + 1] = Stokes;
+
+                // Perform one time step of the Schrödinger evolution
+                evolveGlobalState(Lasers, instruction.m_targets[0]);
+
+                // observer
+
+                TimeMaster::Clock().tick();
+            }
+
+            /// Reset instruction-local timing state
+            TimeMaster::Clock().resetCurrentInstructionClock();
+        }
+
+        void evolveGlobalState(const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers, const natural_t affectedQubit)
         {
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
@@ -36,43 +148,14 @@ namespace KetCat
                     HartreeEnergies,
                     DipoleMatrix,
                     lasers);
-            
-            CrankNicolsonSolver<OperationHilbertSpace>
-                    solver(
-                        Hamiltonian.getMatrix(),
-                        TimeMaster::Clock().getTimeStep());
 
-			SubspaceManager::applyHamiltonian<1>(solver, { QubitIndex }, Hamiltonian);
-            
-        }
+            CrankNicolsonSolver<typename GlobalStateManager::template OperationSpace<1>>
+                Solver(
+                    Hamiltonian.getMatrix(),
+                    TimeMaster::Clock().getTimeStep());
 
-    };
-
-
-    template <natural_t QBitCount, NeutralAtomTypeConfig Config>
-    class NeutralAtomQuantumProcessor
-    {
-        constexpr real_t TimeStep = 50; // a.u.
-
-        using ConfigType = std::remove_cvref_t<decltype(Config)>;
-        using SubspaceManager = SubspaceHelper<ConfigType::LevelCount, QBitCount>
-
-        std::array<NeutralAtomQubit<Config>, QBitCount> m_Qubits;
-
-		StateVector<SubspaceManager::FullHilbertSpace> m_GlobalStateVector;
-
-        
-    public:
-        NeutralAtomQuantumProcessor()
-        {
-            TimeMaster::Clock().init(TimeStep);
-            StateVector<OperationHilbertSpace> OneAtomSeed = m_Manifold.getOperationSeed();
-			m_GlobalStateVector = SubspaceManager::productStateFromSeed(OneAtomSeed);
-		}
-
-        void execute(QuantumCircuit<QBitCount> circuit)
-        {
-
+            GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, { { affectedQubit } }, Hamiltonian.getMatrix());
         }
     };
+
 }
