@@ -5,8 +5,8 @@
 #include "neutral_atom_config.h"
 
 #include "hilbert_space/hilbert.h"
-#include "hilbert_space/basis_sets/gram_schmidt_orthonorm.h"
-#include "hilbert_space/basis_sets/reduced_energy_space.h"
+#include "utils/gram_schmidt_orthonorm.h"
+#include "utils/reduced_energy_space.h"
 
 #include "atomic_physics_core/elements.h"
 #include "atomic_physics_core/quantum_number.h"
@@ -15,6 +15,7 @@
 #include "wavefunction/hartree.h"
 
 #include "hamiltonian/dipole_operator.h"
+
 
 namespace KetCat
 {

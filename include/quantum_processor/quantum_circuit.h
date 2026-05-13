@@ -1,98 +1,118 @@
 ﻿#pragma once
+#include <variant>
 #include "core_types.h"
-
+#include "quantum_gates/gate_builder.h"
 
 namespace KetCat
 {
-    /// @file
-    /// @brief Small executor and convenience API for composing and running quantum gates.
+    /// @brief Type-safe variant representing the supported arity of gate operations.
+    using OperationVariant = std::variant<GateOperation<1>, GateOperation<2>>;
 
-	/// @brief Forward declaration of QuantumCircuit for friend declaration.
-    template<natural_t QBitCount>
-    class QuantumCircuit;
-
-    /// @brief Concept for types that behave like a gate: they are callable with a state vector.
-    /// @tparam GateType  Type to test.
+    /// @brief Compile-time representation of a quantum circuit.
     ///
-    /// The requirement checks one instantiation (with StateCount == 1) and uses that as a
-    /// proxy for gate-like behaviour. Implementers should ensure their operator() is
-    /// templated or overloaded appropriately for various `StateCount` values.
-    template<typename GateType>
-    concept QuantumGateLike =
-        requires(GateType g)
-    {
-        // Try invoking the gate with a sample 1-qubit state vector; the returned type
-        // must be a state_vector_t<1>. This models the "callable that maps state->state".
-        { g(StateVector<FiniteHilbertSpace<1>>{}) }
-            -> std::same_as<StateVector<FiniteHilbertSpace<1>>>;
-    };
-
-    /// @brief Executor that schedules and runs a series of gate-like callables at compile-time (where possible).
-    /// @tparam QBitCount  Number of qubits in the circuit.
-    /// @tparam Gates      Variadic pack of gate-like callables accepted by the executor.
-    template<natural_t QBitCount, QuantumGateLike... Gates>
-    class QuantumCircuitExecutor
-    {
-
-        /// @brief Precompute 2^QBitCount for convenience
-        static constexpr natural_t BasisStateCount = ConstexprMath::pow2(QBitCount);
-
-        /// @brief The internal global state vector (amplitudes for 2^QBitCount basis states).
-        StateVector<FiniteHilbertSpace<BasisStateCount>> m_stateVector;
-
-
-        /// @brief Construct executor and immediately execute provided gates.
-        /// @param gates  Variadic list of gate-like callables to apply in order.
-        constexpr QuantumCircuitExecutor(const Gates& ... gates)
-        {
-            // Initialize to the |0...0> computational basis state
-			m_stateVector = { complex_t::fromReal(1.0) };
-
-            // Apply the provided gates in sequence
-            executeCircuit(gates...);
-        }
-
-        friend class QuantumCircuit<QBitCount>;
-
-    public:
-        /// @brief Recursively apply gates: head then recurse on tail.
-        /// @tparam Gate  First gate type.
-        /// @tparam Rest  Remaining gate types.
-        /// @param gate   Gate callable to apply.
-        /// @param rest   Remaining gate callables.
-        template<QuantumGateLike Gate, QuantumGateLike... Rest>
-        constexpr void executeCircuit(const Gate& gate, const Rest&... rest)
-        {
-            // Apply the gate to the current state vector (gate returns a new vector)
-            m_stateVector = gate(m_stateVector);
-
-            // Recurse for the remaining gates
-            executeCircuit(rest...);
-        }
-
-        /// @brief Base case for recursion: no gates left to apply.
-        constexpr void executeCircuit() {}
-
-        /// @brief Get the final state vector after executing all gates.
-        constexpr const StateVector<FiniteHilbertSpace<BasisStateCount>>& getStateVector() const noexcept
-        {
-            return m_stateVector;
-        }
-    };
-
-    /// @brief Facade class to create executors bound to a fixed qubit count.
-    template<natural_t QBitCount>
+    /// @details
+    ///    The QuantumCircuit class uses a functional, immutable design to build a 
+    ///    sequence of quantum operations at compile-time. Each gate addition 
+    ///    results in a new type instance with an incremented GateCount.
+    ///
+    ///    Design Architecture:
+    ///      - Logical Representation: Stores a sequence of GateOperations.
+    ///      - Fluent DSL Interface: Supports chaining via withGates and recursion-based 
+    ///        template expansion.
+    ///
+    /// @tparam QubitCount The total width of the quantum register (wires).
+    /// @tparam GateCount The current number of logical operations in the circuit depth.
+    template<natural_t QubitCount, natural_t GateCount = 0>
     class QuantumCircuit
     {
+        template <natural_t Count>
+        using operation_array_t = std::array<OperationVariant, Count>;
+
+        /// @brief Sequential storage of operations.
+        operation_array_t<GateCount> m_Gates;
+
     public:
-        /// @brief Create an executor with the provided gate sequence.
-        /// @tparam Gates  Gate-like callables to include in the circuit.
-        /// @param gates   Instances of the gate-like callables (passed by reference-to-const).
-        /// @return        A `QuantumCircuitExecutor` that has already executed the gates on an initialized state.
-        template<QuantumGateLike... Gates>
-        constexpr QuantumCircuitExecutor<QBitCount, Gates...> withGates(const Gates& ... gates) const
+        constexpr QuantumCircuit() = default;
+
+        /// @brief Internal constructor for creating extended circuits from existing gate arrays.
+        constexpr QuantumCircuit(const std::array<OperationVariant, GateCount>& gates)
+            : m_Gates(gates)
+        {}
+
+        /// @brief Access the ordered list of gate operations.
+        constexpr const auto& operations() const noexcept
         {
-            return QuantumCircuitExecutor<QBitCount, Gates...>(gates...);
+            return m_Gates;
         }
+
+        /// @brief Add multiple gates to the circuit.
+        ///
+        /// @tparam Gates Variadic list of GateOperation types.
+        /// @param gates Instances of gates to append.
+        /// @return A new QuantumCircuit instance containing the additional gates.
+        template<typename... Gates>
+        constexpr auto withGates(Gates... gates) const
+        {
+            return applyImpl(*this, gates...);
+        }
+
+        /// @brief Utility to apply a single-qubit gate across multiple target indices.
+        ///
+        /// @tparam GateTag The logical GateType to apply.
+        /// @tparam N The number of targets provided.
+        /// @param targets An array of qubit indices.
+        /// @return A new QuantumCircuit instance with N new gates.
+        template<typename GateTag, natural_t N>
+        constexpr auto applySingleQubitGate(const std::array<natural_t, N>& targets) const
+        {
+            if constexpr (N == 0)
+            {
+                return *this;
+            }
+
+            return applyTargetsImpl<GateTag>(*this, targets, std::make_index_sequence<N>{});
+        }
+
+    private:
+        /// @brief Implementation helper to expand target indices into individual gate operations.
+        template<typename GateTag, typename Circuit, std::size_t... I, natural_t N>
+        static constexpr auto applyTargetsImpl(Circuit c, const std::array<natural_t, N>& targets, std::index_sequence<I...>)
+        {
+            return applyImpl(c, QuantumGate<1, GateTag>().toBits(targets[I])...);
+        }
+
+        /// @brief Base case for recursive gate application.
+        template<typename Circuit>
+        static constexpr auto applyImpl(Circuit c)
+        {
+            return c;
+        }
+
+        /// @brief Recursive implementation for gate chaining.
+        template<typename Circuit, typename Gate, typename... Rest>
+        static constexpr auto applyImpl(Circuit c, const Gate& gate, const Rest&... rest)
+        {
+            return applyImpl(c.addGate(gate), rest...);
+        }
+
+        /// @brief Creates a new circuit instance by appending a single gate.
+        ///
+        /// @details 
+        ///    Performs a compile-time copy of the existing gate array and appends 
+        ///     the new operation at index [GateCount].
+        template<typename Gate>
+        constexpr auto addGate(const Gate& gate) const
+        {
+            std::array<OperationVariant, GateCount + 1> UpdatedArray;
+            std::copy_n(m_Gates.begin(), GateCount, UpdatedArray.begin());
+
+            UpdatedArray[GateCount] = gate;
+
+            return QuantumCircuit<QubitCount, GateCount + 1>(UpdatedArray);
+        }
+
+		// Granting other QuantumCircuit template instances access to private members for execution.
+        template<natural_t, natural_t>
+        friend class QuantumCircuit;
     };
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include "hilbert_space/matrix.h"
 #include "hilbert_space/state_vector.h"
-#include "quantum_gates/common_gates.h"
+#include "quantum_gates/gates.h"
 
 
 namespace KetCat
