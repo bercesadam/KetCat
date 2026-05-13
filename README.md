@@ -1,7 +1,7 @@
 # Ket Cat
 
 **Ab Initio Neutral Atom Quantum Computer Emulator**  
-|😾⟩, pronounced as "Ket Cat" is a first-principles simulation framework for modeling the coherent dynamics of neutral atom qubits via TDSE, laser-atom interaction, and adiabatic passage protocols.
+|😾⟩, pronounced as "Ket Cat" is an independent first-principles simulation framework for modeling the coherent dynamics of quantum circuits from physical neutral atom qubit models and laser-atom interactions.
 
 <img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo.gif" alt="One qubit demonstration" width="1024" style="text-align:center">
 A successful test of single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
@@ -13,7 +13,7 @@ A successful test of single-qubit gates on a Cesium atom with STIRAP Laser drive
 KetCat is a modern C++ framework designed to unify the logical abstractions of quantum computing with the underlying physical reality of the **Time-Dependent Schrödinger Equation (TDSE)**. The project focuses on the ab initio modeling and visualization of neutral atom quantum processors. 
 
 ### Concept: The "Digital Quantum Observatory"
-KetCat is not a mass-market research tool; it is a work of technological art and an architectural experiment. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
+KetCat is not a mass-market research tool; it is an independent, one-man development, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
 
 ### Current Focus: Neutral Atoms & STIRAP
