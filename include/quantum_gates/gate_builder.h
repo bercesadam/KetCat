@@ -54,7 +54,7 @@ namespace KetCat
             {
                 Gate,
                 { static_cast<natural_t>(bits)... },
-                    m_theta
+                m_theta
             };
         }
     };

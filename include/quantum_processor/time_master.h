@@ -12,36 +12,8 @@ namespace KetCat
     ///
     ///   Responsibilities:
     ///
-    ///     • Maintain the global simulation time
-    ///     • Track per-instruction evolution time
-    ///     • Track cyclic STIRAP-local evolution time
-    ///     • Provide a globally consistent evolution timestep
-    ///     • Synchronize Hamiltonian propagation across subsystems
-    ///
-    ///   Time domains:
-    ///
-    ///     • Global time:
-    ///
-    ///         Monotonically increasing simulation time:
-    ///
-    ///             t_global ← t_global + Δt
-    ///
-    ///     • Instruction-local time:
-    ///
-    ///         Measures elapsed time within the currently active
-    ///         control instruction or pulse sequence.
-    ///
-    ///     • STIRAP cycle time:
-    ///
-    ///         Cyclic local timer used for periodically repeating
-    ///         Raman/STIRAP pulse envelopes
-    ///
-    ///
-    ///   Design notes:
-    ///
-    ///     • Implemented as a singleton authoritative clock source
-    ///     • Copying and moving are disabled intentionally
-    ///     • Shared globally across all propagators and controllers
+    ///     - Maintain the global simulation time
+    ///     - Track per-instruction evolution time
     class TimeMaster
     {
         /// @brief Indicates whether the clock has been initialized.

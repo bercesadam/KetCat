@@ -23,6 +23,7 @@ namespace KetCat
         RY,
         RZ,
 
+        CZ,
         CX,
         CNOT,
 
@@ -31,6 +32,28 @@ namespace KetCat
         CCX,
         TOFFOLI
     };
+
+    std::string gateNameToString(GateType gate)
+    {
+        switch (gate)
+        {
+            case GateType::I: return "Identity";
+            case GateType::X: return "Pauli-X";
+            case GateType::Y: return "Pauli-Y";
+            case GateType::Z: return "Pauli-Z";
+            case GateType::H: return "Hadamard";
+            case GateType::RX: return "Rx";
+            case GateType::RY: return "Ry";
+            case GateType::RZ: return "Rz";
+            case GateType::CZ: return "CZ";
+            case GateType::CX: return "CX";
+            case GateType::CNOT: return "CNOT";
+            case GateType::SWAP: return "SWAP";
+            case GateType::CCX: return "CCX";
+            case GateType::TOFFOLI: return "TOFFOLI";
+            default: return "UnknownGate";
+        }
+	}
 
 
 	/// @brief Compile-time traits and properties for each quantum gate type.
@@ -61,7 +84,7 @@ namespace KetCat
 
         static constexpr const char* name() noexcept
         {
-            return "I";
+            return "Identity";
         }
     };
 
@@ -85,7 +108,7 @@ namespace KetCat
 
         static constexpr const char* name() noexcept
         {
-            return "X";
+            return "Pauli-X";
         }
     };
 
@@ -109,7 +132,7 @@ namespace KetCat
 
         static constexpr const char* name() noexcept
         {
-            return "Y";
+            return "Pauli-Y";
         }
     };
 
@@ -133,7 +156,7 @@ namespace KetCat
 
         static constexpr const char* name() noexcept
         {
-            return "Z";
+            return "Pauli-Z";
         }
     };
 
@@ -166,7 +189,7 @@ namespace KetCat
 
         static constexpr const char* name() noexcept
         {
-            return "H";
+            return "Hadamard";
         }
     };
 

@@ -16,9 +16,17 @@
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "solvers/crank_nicolson_solver.h"
 
+#include "simulation_observer.h"
+
 
 namespace KetCat
 {
+    /// @brief Defining these as global constants here, as they work out well and
+    /// currently I see no point to expose them ie. in the contructor the the QPU
+    /// so it grabs these values directly from here.
+    constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 5E6;
+
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
     /// @details
@@ -47,13 +55,17 @@ namespace KetCat
         /// @brief Controller for pulse generation and rotating frame management.
         LaserPulseSequencer<Config, QubitCount> m_laserSequencer;
 
+        /// @brief Helper class which generates the simulation data file output.
+        SimulationObserver<QubitCount, Config> m_SimulationObserver;
+
     public:
         /// @brief Initialize the processor with a specific time-step for TDSE.
         ///
-        /// @param dt Simulation time step in Hartree atomic units.
-        constexpr QuantumProcessor(real_t dt)
+        /// @param simulationOutputFileName Output filename for the simulation data
+        constexpr QuantumProcessor(std::string simulationOutputFileName) :
+            m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
         {
-            TimeMaster::Clock().init(dt);
+            TimeMaster::Clock().init(CrankNicolsonTimeStep);
             StateVector<decltype(m_Manifold)::SingleAtomOperationHilbertSpace>
                 OneAtomSeed = m_Manifold.getOperationSeed();
             m_GlobalStateVector = GlobalStateManager::productStateFromSeed(OneAtomSeed);
@@ -83,8 +95,16 @@ namespace KetCat
         template<typename GateOp>
         void executeGate(const GateOp& gate)
         {
+			m_SimulationObserver.setSimulationStepName(gateNameToString(gate.m_type) +
+                (gate.m_theta > 0.0 ? " (" + std::to_string(gate.m_theta) + ")" : ""));
+
+            std::cout << "Compiling gate: " << gateNameToString(gate.m_type) << ", Theta: " << gate.m_theta << std::endl;
+
             GateCompiler Compiler;
             auto [PhysicalInstructions, InstructionCount] = Compiler.compile(gate);
+
+            std::cout << "Target qubits: " << gate.m_targets[0] << (InstructionCount > 1 ? ", " + std::to_string(gate.m_targets[1]) : "") << std::endl;
+			std::cout << "Generated " << InstructionCount << " physical instructions." << std::endl;
 
             for (natural_t i = 0; i < InstructionCount; ++i)
             {
@@ -103,6 +123,8 @@ namespace KetCat
         ///      i ∂/∂t |Ψ⟩ = Ĥ(t)|Ψ⟩
         void executeInstruction(const PhysicalInstruction& instruction)
         {
+			std::cout << "Executing instruction of type: " << static_cast<int>(instruction.m_type) << std::endl;
+
             auto PulseEnvelope = m_laserSequencer.calculateLaserEnvelope(instruction);
 
             // In case of Virtual Z pulses, frame changes are handled internally 
@@ -116,10 +138,15 @@ namespace KetCat
             real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
             real_t TimeShift = Envelope.getStartTime();
 
+			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << TransitionTimeLimit << " a.u." << std::endl;
+			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
+
+			LaserPulse Pump, Stokes;
+
             while (TimeMaster::Clock().getCurrentInstructionTime() < TransitionTimeLimit)
             {
                 // Obtain current Rabi amplitudes for Pump (Ωp) and Stokes (Ωs)
-                auto [Pump, Stokes] =
+                std::tie(Pump, Stokes) =
                     Envelope(TimeMaster::Clock().getCurrentInstructionTime() + TimeShift);
 
                 // Map laser fields to the corresponding energy levels in the operation space
@@ -130,11 +157,19 @@ namespace KetCat
                 // Propagate the global wavefunction by one time step Δt
                 evolveGlobalState(Lasers, instruction.m_targets[0]);
 
+				m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
+
                 TimeMaster::Clock().tick();
             }
 
+			// Ensure that the final state at the end of the pulse is captured
+            m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
+
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();
+
+			std::cout << "Completed pulse evolution for instruction." << std::endl;
+            std::cout << "------------------------------------------" << std::endl;
         }
 
         /// @brief Perform a single step of the Crank-Nicolson evolution.
@@ -160,19 +195,6 @@ namespace KetCat
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
             GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets, Hamiltonian.getMatrix());
-
-            // Diagnostic logging
-            static natural_t FrameCounter = 0;
-            static natural_t SaveNthFrame = 1E6;
-            if (FrameCounter % SaveNthFrame == 0)
-            {
-                for (natural_t i = 0; i < ConfigType::LevelCount; ++i)
-                {
-                    std::cout << "Probability of basis state " << i << ": " << m_GlobalStateVector[i].normSquared() * 100.0 << "%" << std::endl;
-                }
-                std::cout << "------------------------" << std::endl;
-            }
-            FrameCounter++;
         }
     };
 }
