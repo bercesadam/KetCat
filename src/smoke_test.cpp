@@ -24,11 +24,12 @@ int main()
         QuantumNumber<40, p>
         > Config;
         
-    auto Circuit = QuantumCircuit<1>().withGates(
-        QuantumGate<1, GateType::X>().toBits(0),
+    auto Circuit = QuantumCircuit<2>().withGates(
+        QuantumGate<1, GateType::X>().toBits(1),
+		QuantumGate<1, GateType::X>().toBits(0),
         QuantumGate<1, GateType::Y>().toBits(0),
         QuantumGate<1, GateType::H>().toBits(0)
     );
 
-    QuantumProcessor<1, Config>("smoke_test.kwf").execute(Circuit);
+    QuantumProcessor<2, Config>("smoke_test.kwf").execute(Circuit);
 }

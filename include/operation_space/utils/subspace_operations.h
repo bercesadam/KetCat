@@ -1,8 +1,12 @@
 #pragma once
 #include <functional>
+
 #include "hilbert_space/hilbert.h"        
 #include "hilbert_space/state_vector.h" 
+
 #include "solvers/crank_nicolson_solver.h"
+
+#include "local_state.h"
 
 
 namespace KetCat
@@ -538,7 +542,7 @@ namespace KetCat
         /// - Accept the pair only when all non-target digits agree
         ///   (partial-trace condition).
         /// - Accumulate:  ρ[dᵢ_q][dⱼ_q] += ψ[i] · ψ[j]*.
-      /*  static constexpr DensityMatrix<LocalDim>
+        static constexpr DensityMatrix<LocalDim>
         reducedDensityMatrix(const StateVector<FullHilbertSpace>& psi,
                              natural_t                            QubitIndex) noexcept
         {
@@ -696,7 +700,7 @@ namespace KetCat
             }
 
             return Info;
-        }*/
+        }
     };
 
 } 

@@ -25,7 +25,7 @@ namespace KetCat
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
     constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 5E6;
+    constexpr natural_t SimuSaveNthFrame = 1E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -157,13 +157,16 @@ namespace KetCat
                 // Propagate the global wavefunction by one time step Δt
                 evolveGlobalState(Lasers, instruction.m_targets[0]);
 
-				m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
+				//m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
 
                 TimeMaster::Clock().tick();
             }
 
+            auto q0 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 0);
+            auto q1 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 1);
+
 			// Ensure that the final state at the end of the pulse is captured
-            m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
+            //m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();
@@ -194,7 +197,7 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
-            GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets, Hamiltonian.getMatrix());
+             GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets, Hamiltonian.getMatrix());
         }
     };
 }
