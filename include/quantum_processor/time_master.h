@@ -34,27 +34,6 @@ namespace KetCat
         ///   Reset after completion of each pulse command 
         real_t m_currentInstructionTime = 0.0;
 
-        /// @brief Local cyclic STIRAP/Raman envelope time.
-        ///
-        /// @details
-        ///   Used for evaluating periodic pulse envelopes:
-        ///
-        ///     t_cycle ∈ [0, T_cycle)
-        ///
-        ///   Automatically wraps once the configured instruction
-        ///   time limit is reached.
-        real_t m_currentStirapCycleTime = 0.0;
-
-        /// @brief Indicates whether the current instruction timing was configured.
-        bool m_isInstructionTimeInitialized = false;
-
-        /// @brief Duration of a single pulse-cycle window.
-        ///
-        /// @details
-        ///   Defines the wrapping limit for:
-        ///     m_currentStirapCycleTime
-        real_t m_oneInstructionTimeLimit = 0.0;
-
         /// @brief Private constructor for singleton enforcement.
         TimeMaster() = default;
 
@@ -104,28 +83,6 @@ namespace KetCat
             m_isInitialized = true;
         }
 
-        /// @brief Set the active instruction cycle duration.
-        ///
-        /// @param timeLimit
-        ///   Pulse or instruction duration in atomic units.
-        ///
-        /// @details
-        ///   Defines the periodic wrapping interval used for:
-        ///
-        ///     m_currentStirapCycleTime
-        ///
-        ///   Once configured, repeated calls are ignored until
-        ///   the instruction state is reset externally.
-        void setInstructionTimeLimit(real_t timeLimit)
-        {
-            if (m_isInstructionTimeInitialized)
-            {
-                return;
-            }
-
-            m_oneInstructionTimeLimit = timeLimit;
-        }
-
         /// @brief Retrieve the fixed simulation timestep.
         ///
         /// @return
@@ -153,48 +110,17 @@ namespace KetCat
             return m_currentInstructionTime;
         }
 
-        /// @brief Retrieve the current STIRAP cycle time.
-        ///
-        /// @return
-        ///   Local cyclic envelope time.
-        real_t getCurrentStirapCycleTime() const
-        {
-            return m_currentStirapCycleTime;
-        }
-
         /// @brief Reset the instruction-local timer.
-        ///
-        ///   Without affecting:
-        ///
-        ///     • global simulation time
-        ///     • STIRAP cycle timing
         void resetCurrentInstructionClock()
         {
             m_currentInstructionTime = 0.0;
         }
 
         /// @brief Advance the global simulation clock by one timestep.
-        ///
-        ///   For:
-        ///
-        ///     • global time
-        ///     • instruction-local time
-        ///     • STIRAP cycle time
-        ///
-        ///   STIRAP cycle wrapping:
-        ///
-        ///     if t_cycle ≥ T_cycle:
-        ///         t_cycle → 0
         void tick()
         {
             m_globalTime += m_dt;
             m_currentInstructionTime += m_dt;
-            m_currentStirapCycleTime += m_dt;
-
-            if (m_currentStirapCycleTime >= m_oneInstructionTimeLimit)
-            {
-                m_currentStirapCycleTime = 0.0;
-            }
         }
     };
 }
