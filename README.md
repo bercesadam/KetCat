@@ -1,19 +1,18 @@
 # Ket Cat
 
 **Ab Initio Neutral Atom Quantum Computer Emulator**  
-|😾⟩, pronounced as "Ket Cat" is an independent first-principles simulation framework for modeling the coherent dynamics of quantum circuits from physical neutral atom qubit models and laser-atom interactions.
+|😾⟩, pronounced as "Ket Cat" is an independent quantum mechanics framework in modern C++ for simulating how neutral atom quantum circuits emerge from real atomic physics.
+Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
+The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
 <img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo.gif" alt="One qubit demonstration" width="1024" style="text-align:center">
 A successful test of single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
 
 ---
 
-### A bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
-
-KetCat is a modern C++ framework designed to unify the logical abstractions of quantum computing with the underlying physical reality of the **Time-Dependent Schrödinger Equation (TDSE)**. The project focuses on the ab initio modeling and visualization of neutral atom quantum processors. 
-
 ### Concept: The "Digital Quantum Observatory"
-KetCat is not a mass-market research tool; it is an independent, one-man development, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
+The project is intended to be a bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
+KetCat is not a mass-market research tool; it is an independent, one-man research and engineering project, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
 
 ### Current Focus: Neutral Atoms & STIRAP
@@ -30,14 +29,43 @@ As I am working as a System and SW Architect in the automotive industry, I've tr
 *   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
 *   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms abstract complex numbers into visual aesthetics and "simple" debugging.
 *   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more).
+
+### Known Limitations, Modeling Assumptions and Engineering Tradeoffs
+
+KetCat intentionally focuses on coherent single-atom and small-system dynamics with high temporal resolution, prioritizing physical interpretability, numerical stability and architectural clarity over exhaustive physical completeness. The current implementation therefore makes several deliberate modeling assumptions and simplifications:
+
+* **Ladder-type coupling topology**  
+  The TDSE solver exploits the tridiagonal structure of ladder-type interaction Hamiltonians for computational efficiency (see the numerical methods section). As a consequence, direct couplings are currently restricted to neighboring basis states. However, the simulator allows arbitrary user-defined basis construction, enabling the inclusion of auxiliary or weakly coupled states for leakage and population-drain modeling.
+
+* **Polarization simplification**  
+  Transition amplitudes are derived from dipole matrix elements computed directly from numerically integrated wavefunctions rather than from hardcoded selection rules. The present implementation performs this calculation on reduced radial wavefunctions, meaning that angular and polarization-dependent couplings are treated implicitly. Consequently, the simulator currently represents an effectively single-polarization interaction picture.
+
+* **No hyperfine or spin-resolved structure**  
+  The current quantum number abstraction and wavefunction generators model orbital states using the \((n,l,m)\) quantum numbers only. Spin, fine structure and hyperfine interactions are not yet included. While the project is conceptually inspired by neutral atom architectures such as QuEra's Cesium platforms, the present demonstrations utilize simplified orbital-state encodings (e.g. \(6s\) and \(7s\)) instead of hyperfine ground-state qubits.
+
+* **Single-particle approximation for most operations**  
+  Each qubit is primarily modeled as an individual atom evolving under its local Hamiltonian. Multi-atom effects are introduced only in dedicated interaction Hamiltonians (e.g. simplified Rydberg blockade modeling). Effects such as collective many-body dynamics, dense atomic interactions and relativistic corrections are currently outside the intended scope of the simulator.
+
+* **No open-system decoherence or measurement collapse**  
+  The framework presently models coherent unitary evolution only. Environmental decoherence, spontaneous emission channels, noise processes and wavefunction collapse during measurement are not yet incorporated. Reported state populations therefore correspond to idealized coherent probabilities derived from the propagated wavefunction.
 ---
 
 ### Quickstart
+
+As simple as:
+
 ```bash
 mkdir build && cd build
 cmake ..
 cmake --build .
+./smoke_test
 ```
+
+The project has no dependencies, other the standard library, you only need a C++23 compliant complier.
+
+Each simulation yields a KWF file, which is my own binary file format for simulation output data which is consumed by the supplied Python-based visu tool,
+which generates a series of PNG frames (see the visu showcase on the top of this page).
+
 ---
 
 ### Mathematical and Physical Foundations
