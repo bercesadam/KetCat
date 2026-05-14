@@ -188,13 +188,14 @@ namespace KetCat
                 return std::nullopt;
             }
 
-            // For X/Y rotations, the instruction phase defines the axis
-            // Update frame phase if relative phase tracking is required
-            AtomControl.m_framePhase += instruction.m_phase;
-
             // Generate physical parameters via Builder
             TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(AtomControl, instruction));
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
+
+
+            // For X/Y rotations, the instruction phase defines the axis
+            // Update frame phase if relative phase tracking is required
+            AtomControl.m_framePhase += instruction.m_phase;
 
             // Synchronize timing for adiabatic continuity
             // t_start allows resuming pulses from previous fractional steps
