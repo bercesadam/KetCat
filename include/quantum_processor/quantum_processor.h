@@ -98,7 +98,7 @@ namespace KetCat
 			m_SimulationObserver.setSimulationStepName(gateNameToString(gate.m_type) +
                 (gate.m_theta > 0.0 ? " (" + std::to_string(gate.m_theta) + ")" : ""));
 
-            std::cout << "Compiling gate: " << gateNameToString(gate.m_type) << ", Theta: " << gate.m_theta << std::endl;
+            std::cout << "Starting gate compilation: " << gateNameToString(gate.m_type) << std::endl;
 
             GateCompiler Compiler;
             auto [PhysicalInstructions, InstructionCount] = Compiler.compile(gate);

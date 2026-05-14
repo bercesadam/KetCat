@@ -1,8 +1,8 @@
 #pragma once
+#include <array>
 #include <utility>
 #include "quantum_gates/gate_operation.h"
 #include "physical_instruction.h"
-
 
 namespace KetCat
 {
@@ -10,30 +10,43 @@ namespace KetCat
     constexpr natural_t MaxInstructionsPerGate = 4;
 
     /// @brief Fixed-size container for compiled physical instructions.
-    using physical_instructions_list_t = std::array<PhysicalInstruction, MaxInstructionsPerGate>;
+    using physical_instructions_list_t =
+        std::array<PhysicalInstruction, MaxInstructionsPerGate>;
 
     /// @brief Logical-to-Physical translation layer (Instruction Selection).
     ///
     /// @details
-    ///    The GateCompiler maps abstract quantum gates to platform-specific 
-    ///    control primitives. It handles decomposition logic such as:
+    ///     Maps logical quantum gates to native hardware primitives.
     ///
-    ///      • Native Mapping: Direct translation (e.g., RX → RamanRotation).
-    ///      • Virtualization: Mapping logical Z-axis rotations to software phase updates.
-    ///      • Decomposition: Breaking down composite gates (e.g., H = Rz(π) -> Ry(π/2)).
+    ///     Supports:
+    ///         • Native gate mappings
+    ///         • Virtual Z rotations
+    ///         • Gate decompositions
+    ///         • Compile-time lowering paths
     class GateCompiler
     {
-        natural_t m_UsedInstructionsCount;
-        physical_instructions_list_t m_Instructions;
+    public:
+        using GateCompilerResult =
+            std::pair<physical_instructions_list_t, natural_t>;
 
-        /// @brief Internal helper to push a new physical primitive onto the local instruction buffer.
-        constexpr void append(PhysicalInstructionType type,
+    private:
+        natural_t m_UsedInstructionsCount = 0;
+        physical_instructions_list_t m_Instructions = {};
+
+    private:
+
+        /// @brief Append a native physical instruction.
+        constexpr void append(
+            PhysicalInstructionType type,
             std::initializer_list<natural_t> targets,
             natural_t targetCount,
             real_t theta,
             real_t phase)
         {
-            m_Instructions[m_UsedInstructionsCount] =
+            PhysicalInstruction& Instruction =
+                m_Instructions[m_UsedInstructionsCount];
+
+            Instruction =
             {
                 type,
                 {},
@@ -43,54 +56,79 @@ namespace KetCat
             };
 
             natural_t i = 0;
-            for (auto Target : targets)
+
+            for (natural_t Target : targets)
             {
-                m_Instructions[m_UsedInstructionsCount].m_targets[i++] = Target;
+                Instruction.m_targets[i++] = Target;
             }
 
-            m_UsedInstructionsCount++;
+            ++m_UsedInstructionsCount;
         }
 
-    public:
-        /// @brief Compiles a logical gate operation into an ordered sequence of physical instructions.
-        ///
-        /// @tparam QubitCount Total qubits in the register.
-        /// @param op The logical gate operation to be decomposed.
-        ///
-        /// @return A pair containing the fixed-size instruction array and the actual count of used elements.
-        template<natural_t QubitCount>
-        constexpr auto compile(const GateOperation<QubitCount>& op)
+        /// @brief Append all instructions from another compiler result.
+        constexpr void append(const GateCompilerResult& result)
         {
-            m_UsedInstructionsCount = 0;
-            m_Instructions = {};
+            for (natural_t i = 0; i < result.second; ++i)
+            {
+                m_Instructions[m_UsedInstructionsCount++] =
+                    result.first[i];
+            }
+        }
 
-            switch (op.m_type)
+    private:
+
+        /// @brief Compile-time gate lowering path.
+        template<GateType Type, natural_t QubitCount>
+        constexpr void compileGate(const GateOperation<QubitCount>& op)
+        {
+			std::cout << "Compiling gate: " << gateNameToString(Type) << " Theta: " << op.m_theta << std::endl;
+
+            //
+            // Pauli X
+            //
+            if constexpr (Type == GateType::X)
             {
-            case GateType::X:
-            {
-                append(
-                    PhysicalInstructionType::RamanRotation,
+                compileGate<GateType::RX>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RX,
                     { op.m_targets[0] },
-                    1,
-                    ConstexprMath::Pi,
-                    0.0);
-
-                break;
+                    ConstexprMath::Pi
+                });
             }
 
-            case GateType::Y:
+            //
+            // Pauli Y
+            //
+            else if constexpr (Type == GateType::Y)
             {
-                append(
-                    PhysicalInstructionType::RamanRotation,
+                compileGate<GateType::RY>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RY,
                     { op.m_targets[0] },
-                    1,
-                    ConstexprMath::Pi,
-                    ConstexprMath::Pi / 2.0);
-
-                break;
+                    ConstexprMath::Pi
+                });
             }
 
-            case GateType::RX:
+            //
+            // Pauli Z
+            //
+            else if constexpr (Type == GateType::Z)
+            {
+                compileGate<GateType::RZ>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RZ,
+                    { op.m_targets[0] },
+                    ConstexprMath::Pi
+                });
+            }
+
+            //
+            // RX
+            //
+            else if constexpr (Type == GateType::RX)
             {
                 append(
                     PhysicalInstructionType::RamanRotation,
@@ -98,11 +136,12 @@ namespace KetCat
                     1,
                     op.m_theta,
                     0.0);
-
-                break;
             }
 
-            case GateType::RY:
+            //
+            // RY
+            //
+            else if constexpr (Type == GateType::RY)
             {
                 append(
                     PhysicalInstructionType::RamanRotation,
@@ -110,11 +149,12 @@ namespace KetCat
                     1,
                     op.m_theta,
                     ConstexprMath::Pi / 2.0);
-
-                break;
             }
 
-            case GateType::RZ:
+            //
+            // RZ
+            //
+            else if constexpr (Type == GateType::RZ)
             {
                 append(
                     PhysicalInstructionType::VirtualZ,
@@ -122,31 +162,35 @@ namespace KetCat
                     1,
                     op.m_theta,
                     0.0);
-
-                break;
             }
 
-            case GateType::H:
+            //
+            // Hadamard
+            //
+            else if constexpr (Type == GateType::H)
             {
-                // Hadamard decomposition: H = Rz(π)Ry(π/2)
-                append(
-                    PhysicalInstructionType::VirtualZ,
-                    { op.m_targets[0] },
-                    1,
-                    ConstexprMath::Pi,
-                    0.0);
+                // H = Z * RY(pi/2)
 
-                append(
-                    PhysicalInstructionType::RamanRotation,
-                    { op.m_targets[0] },
-                    1,
-                    ConstexprMath::Pi / 2.0,
-                    ConstexprMath::Pi / 2.0);
+                compileGate<GateType::Z>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::Z,
+                    { op.m_targets[0] }
+                });
 
-                break;
+                compileGate<GateType::RY>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RY,
+                    { op.m_targets[0] },
+                        ConstexprMath::Pi / 2.0
+                });
             }
 
-            case GateType::CX:
+            //
+            // Controlled-X
+            //
+            else if constexpr (Type == GateType::CX)
             {
                 append(
                     PhysicalInstructionType::RydbergBlockade,
@@ -157,15 +201,220 @@ namespace KetCat
                     2,
                     0.0,
                     0.0);
-
-                break;
             }
+
+            //
+            // Controlled-Z (CPHASE / CZ)
+            //
+            else if constexpr (Type == GateType::CZ)
+            {
+                //
+                // Native Rydberg blockade controlled phase.
+                //
+                // Applies:
+                //
+                //      |11> -> -|11>
+                //
+                // while leaving all other computational basis
+                // states unchanged.
+                //
+
+                append(
+                    PhysicalInstructionType::RydbergBlockade,
+                    {
+                        op.m_targets[0], // control
+                        op.m_targets[1]  // target
+                    },
+                    2,
+                    ConstexprMath::Pi,
+                    0.0);
+            }
+
+            //
+            // Controlled-X (CNOT)
+            //
+            else if constexpr (Type == GateType::CX)
+            {
+                //
+                // CNOT decomposition:
+                //
+                //      CX = H(target) · CZ · H(target)
+                //
+
+                //
+                // H(target)
+                //
+                compileGate<GateType::H>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::H,
+                    { op.m_targets[1] }
+                });
+
+                //
+                // CZ(control, target)
+                //
+                compileGate<GateType::CZ>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::CZ,
+                    {
+                        op.m_targets[0],
+                        op.m_targets[1]
+                    }
+                });
+
+                //
+                // H(target)
+                //
+                compileGate<GateType::H>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::H,
+                    { op.m_targets[1] }
+                });
+            }
+
+            //
+            // Controlled-Controlled-X (CCX / Toffoli)
+            //
+            else if constexpr (Type == GateType::CCX)
+            {
+                const natural_t control1 = op.m_targets[0];
+                const natural_t control2 = op.m_targets[1];
+                const natural_t target = op.m_targets[2];
+
+                //
+                // CCX decomposition:
+                //
+                // CCX = H(t) · CCZ · H(t)
+                //
+
+                //
+                // H(target)
+                //
+                compileGate<GateType::H>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::H,
+                    { target }
+                });
+
+                //
+                // CCZ decomposition:
+                // CCZ = CZ(c1,t) · T(t) · CZ(c2,t) · T†(t) · CZ(c1,t)
+                //
+                // (standard Clifford+T decomposition without ancilla)
+                //
+
+                compileGate<GateType::CZ>(
+                    GateOperation<2>
+                {
+                    GateType::CZ,
+                    { control1, target }
+                });
+
+                compileGate<GateType::RZ>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RZ,
+                    { target },
+					ConstexprMath::Pi / 4.0
+                });
+
+                compileGate<GateType::CZ>(
+                    GateOperation<2>
+                {
+                    GateType::CZ,
+                    { control2, target }
+                });
+
+                compileGate<GateType::RZ>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::RZ,
+                    { target },
+                    -ConstexprMath::Pi / 4.0
+                });
+
+                compileGate<GateType::CZ>(
+                    GateOperation<2>
+                {
+                    GateType::CZ,
+                    { control1, target }
+                });
+
+                //
+                // H(target)
+                //
+                compileGate<GateType::H>(
+                    GateOperation<QubitCount>
+                {
+                    GateType::H,
+                    { target }
+                });
+            }
+        }
+
+    public:
+
+        /// @brief Compile a logical gate into physical primitives.
+        template<natural_t QubitCount>
+        constexpr GateCompilerResult compile(
+            const GateOperation<QubitCount>& op)
+        {
+			std::cout << "Decomposing gate: " << gateNameToString(op.m_type) << std::endl;
+
+            m_UsedInstructionsCount = 0;
+            m_Instructions = {};
+
+            switch (op.m_type)
+            {
+            case GateType::X:
+                compileGate<GateType::X>(op);
+                break;
+
+            case GateType::Y:
+                compileGate<GateType::Y>(op);
+                break;
+
+            case GateType::Z:
+                compileGate<GateType::Z>(op);
+                break;
+
+            case GateType::RX:
+                compileGate<GateType::RX>(op);
+                break;
+
+            case GateType::RY:
+                compileGate<GateType::RY>(op);
+                break;
+
+            case GateType::RZ:
+                compileGate<GateType::RZ>(op);
+                break;
+
+            case GateType::H:
+                compileGate<GateType::H>(op);
+                break;
+
+            case GateType::CZ:
+                compileGate<GateType::CZ>(op);
+                break;
+
+            case GateType::CX:
+                compileGate<GateType::CX>(op);
+                break;
+
+            case GateType::CCX:
+                compileGate<GateType::CCX>(op);
+				break;
 
             default:
                 break;
             }
 
-            return std::pair
+            return
             {
                 m_Instructions,
                 m_UsedInstructionsCount

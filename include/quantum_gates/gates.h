@@ -25,12 +25,8 @@ namespace KetCat
 
         CZ,
         CX,
-        CNOT,
-
-        SWAP,
-
         CCX,
-        TOFFOLI
+        SWAP,
     };
 
     std::string gateNameToString(GateType gate)
@@ -45,12 +41,10 @@ namespace KetCat
             case GateType::RX: return "Rx";
             case GateType::RY: return "Ry";
             case GateType::RZ: return "Rz";
-            case GateType::CZ: return "CZ";
-            case GateType::CX: return "CX";
-            case GateType::CNOT: return "CNOT";
+            case GateType::CZ: return "CPhase";
+            case GateType::CX: return "CNOT";
+            case GateType::CCX: return "Toffoli";
             case GateType::SWAP: return "SWAP";
-            case GateType::CCX: return "CCX";
-            case GateType::TOFFOLI: return "TOFFOLI";
             default: return "UnknownGate";
         }
 	}
@@ -283,22 +277,6 @@ namespace KetCat
         }
     };
 
-    template<>
-    struct GateTraits<GateType::CNOT>
-    {
-        static constexpr natural_t QubitCount = 2;
-
-        static constexpr auto unitary() noexcept
-        {
-            return GateTraits<GateType::CX>::unitary();
-        }
-
-        static constexpr const char* name() noexcept
-        {
-            return "CNOT";
-        }
-    };
-
     //========================================================
     // SWAP
     //========================================================
@@ -372,23 +350,6 @@ namespace KetCat
         static constexpr const char* name() noexcept
         {
             return "CCX";
-        }
-    };
-
-    template<>
-    struct GateTraits<GateType::TOFFOLI>
-    {
-        static constexpr natural_t QubitCount = 3;
-
-        static constexpr auto
-            unitary() noexcept
-        {
-            return GateTraits<GateType::CCX>::unitary();
-        }
-
-        static constexpr const char* name() noexcept
-        {
-            return "TOFFOLI";
         }
     };
 } 
