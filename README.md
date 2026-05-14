@@ -28,7 +28,7 @@ As I am working as a System and SW Architect in the automotive industry, I've tr
 
 *   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
 *   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms abstract complex numbers into visual aesthetics and "simple" debugging.
-*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more).
+*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more). Te program realizes a clean pipeline which compiles logical gates into physical instructions, then laser pulses, which finally results in a Hamiltonian used for TDSE evolution.
 
 ### Known Limitations, Modeling Assumptions and Engineering Tradeoffs
 
@@ -61,7 +61,7 @@ cmake --build .
 ./smoke_test
 ```
 
-The project has no dependencies, other the standard library, you only need a C++23 compliant complier.
+The project has no dependencies, other then the standard library, you only need a C++23 compliant complier.
 
 Each simulation yields a KWF file, which is my own binary file format for simulation output data which is consumed by the supplied Python-based visu tool,
 which generates a series of PNG frames (see the visu showcase on the top of this page).
