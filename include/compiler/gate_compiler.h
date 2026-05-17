@@ -188,22 +188,6 @@ namespace KetCat
             }
 
             //
-            // Controlled-X
-            //
-            else if constexpr (Type == GateType::CX)
-            {
-                append(
-                    PhysicalInstructionType::RydbergBlockade,
-                    {
-                        op.m_targets[0],
-                        op.m_targets[1]
-                    },
-                    2,
-                    0.0,
-                    0.0);
-            }
-
-            //
             // Controlled-Z (CPHASE / CZ)
             //
             else if constexpr (Type == GateType::CZ)
