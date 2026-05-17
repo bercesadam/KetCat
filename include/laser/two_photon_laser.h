@@ -167,24 +167,33 @@ namespace KetCat
 
         void setupStirap(EnvelopeParams& Parameters) const
         {
-            Parameters.m_sigma = 10.0 / m_config.m_peakRabiFrequency;
+			// Calculate the actual Rabi frequencies based on the dipole moments and the peak Rabi frequency.
+            real_t actualOmegaP = m_config.m_peakRabiFrequency * m_config.m_Mu12;
+            real_t actualOmegaS = m_config.m_peakRabiFrequency * m_config.m_Mu23;
+
+			// To ensure adiabaticity, we need to set the pulse width (sigma) based on the smaller of the two Rabi frequencies.
+            real_t minActualOmega = std::min(actualOmegaP, actualOmegaS);
+            Parameters.m_sigma = 100.0 / minActualOmega;
 
             if (m_config.m_protocol == TwoPhotonProtocol::STIRAP)
             {
-                Parameters.m_tS = 2.5 * Parameters.m_sigma;
-                Parameters.m_tP = 4.5 * Parameters.m_sigma;
+                Parameters.m_tS = 3.0 * Parameters.m_sigma;
+                Parameters.m_tP = 4.0 * Parameters.m_sigma;
             }
             else
             {
-                Parameters.m_tS = 4.5 * Parameters.m_sigma;
-                Parameters.m_tP = 2.5 * Parameters.m_sigma;
+                Parameters.m_tS = 4.0 * Parameters.m_sigma;
+                Parameters.m_tP = 3.0 * Parameters.m_sigma;
             }
 
+			// The theoretical transfer time for a full Pi rotation can be approximated as the
+            // time when the effective Rabi frequency integral reaches π.
             Parameters.m_PiTransferTime =
-                std::max(Parameters.m_tP, Parameters.m_tS) + 3.0 * Parameters.m_sigma;
+                std::max(Parameters.m_tP, Parameters.m_tS) + 4.0 * Parameters.m_sigma;
 
             if (ConstexprMath::floatNear(m_config.m_targetTheta, ConstexprMath::Pi))
             {
+				// For a full π rotation, we can set the time limit directly to the theoretical transfer time.
                 Parameters.m_tLimit = Parameters.m_PiTransferTime;
             }
             else
@@ -195,9 +204,13 @@ namespace KetCat
                 // a better solution would be a gentle logarithmic tail to be developed later
                 constexpr real_t SafetyMarginRatio = 0.005;
 
+				// The ratio of the desired rotation angle to a full π rotation determines how much longer we need to run the
+                // pulse beyond the theoretical transfer time.
                 const real_t Ratio = ConstexprMath::tan(m_config.m_targetTheta / 2.0);
                 const real_t DeltaT = Parameters.m_tP - Parameters.m_tS;
 
+				// The transition time limit is set based on the midpoint between the pulse centers, adjusted by a
+                // logarithmic factor that accounts for the desired rotation angle and a safety margin.
                 Parameters.m_tLimit = ((Parameters.m_tP + Parameters.m_tS) / 2.0)
                     + (Parameters.m_sigma * Parameters.m_sigma * ConstexprMath::log(Ratio)) / (2.0 * DeltaT)
                     + (Parameters.m_PiTransferTime * SafetyMarginRatio);

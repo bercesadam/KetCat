@@ -67,10 +67,10 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
     public:
-        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 5120, 2000.0>;
+        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 2560, 500.0>;
         //typename ConfigType::template HilbertSpaceStub<1_D>;
 
-        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 40.0>;
+        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 200.0>;
 
     private:
         /// @brief Reduced-energy Hilbert space used for time evolution.
@@ -225,6 +225,16 @@ namespace KetCat
                 );
 
             m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
+
+			std::cout << "Dipole matrix constructed:" << std::endl;
+			for (const auto& row : m_dipoleMatrix)
+			{
+				for (const auto& element : row)
+				{
+					std::cout << element.re << " ";
+				}
+				std::cout << std::endl;
+			}
 
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();

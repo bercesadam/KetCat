@@ -24,8 +24,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 1E7;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -56,7 +56,7 @@ namespace KetCat
         LaserPulseSequencer<Config, QubitCount> m_laserSequencer;
 
         /// @brief Helper class which generates the simulation data file output.
-        SimulationObserver<QubitCount, Config> m_SimulationObserver;
+        SimulationObserver<1, Config> m_SimulationObserver;
 
     public:
         /// @brief Initialize the processor with a specific time-step for TDSE.
@@ -157,16 +157,17 @@ namespace KetCat
                 // Propagate the global wavefunction by one time step Δt
                 evolveGlobalState(Lasers, instruction.m_targets[0]);
 
-				//m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
+                auto q0 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 0);
+				m_SimulationObserver.exportStep(q0.pureStateVector, Pump, Stokes);
 
                 TimeMaster::Clock().tick();
             }
 
+            
             auto q0 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 0);
-            auto q1 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 1);
 
 			// Ensure that the final state at the end of the pulse is captured
-            //m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
+            m_SimulationObserver.exportStep(q0.pureStateVector, Pump, Stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();

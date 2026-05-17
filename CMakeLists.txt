@@ -16,7 +16,7 @@ file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
 # Compiler-specific settings
 # ----------------------------
 if (MSVC)
-    add_compile_options(/W4 /permissive-)
+    add_compile_options(/W4 /permissive- /O3)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -g)
 endif()

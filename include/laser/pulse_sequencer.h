@@ -122,7 +122,7 @@ namespace KetCat
         const matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
             Manifold::getDipoleMatrix();
 
-        real_t m_peakRabiHz = 100e6;
+        real_t m_peakRabiHz = 50e6;
         real_t m_commonDetuningHz = 0;
 
         std::array<detail::AtomControlData, AtomCount> m_AtomControlState;
@@ -140,12 +140,22 @@ namespace KetCat
         {
             TwoPhotonConfig LaserConfig;
 
-            LaserConfig.m_Level1Energy = m_energies[ConfigType::Logical0Level];
-            LaserConfig.m_Level2Energy = m_energies[ConfigType::Logical0Level + 1];
-            LaserConfig.m_Level3Energy = m_energies[ConfigType::Logical1Level];
+			natural_t GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+				? ConfigType::RydbergLevel
+				: ConfigType::Logical0Level;
 
-            LaserConfig.m_Mu12 = m_dipoleMatrix[ConfigType::Logical0Level][ConfigType::Logical0Level + 1].re;
-            LaserConfig.m_Mu23 = m_dipoleMatrix[ConfigType::Logical0Level + 1][ConfigType::Logical1Level].re;
+            LaserConfig.m_Level1Energy = m_energies[GroundLevelIndex];
+            LaserConfig.m_Level2Energy = m_energies[GroundLevelIndex + 1];
+            LaserConfig.m_Level3Energy = m_energies[GroundLevelIndex + 2];
+
+            LaserConfig.m_Mu12 = m_dipoleMatrix[GroundLevelIndex][GroundLevelIndex + 1].re;
+            LaserConfig.m_Mu23 = m_dipoleMatrix[GroundLevelIndex + 1][GroundLevelIndex + 2].re;
+
+			std::cout << "Hartree energy differences: " << std::endl;
+			std::cout << "E1 - E0: " << LaserConfig.m_Level2Energy - LaserConfig.m_Level1Energy << " a.u." << std::endl;
+			std::cout << "E2 - E1: " << LaserConfig.m_Level3Energy - LaserConfig.m_Level2Energy << " a.u." << std::endl;
+			std::cout << "Dipole μ12: " << LaserConfig.m_Mu12 << " a.u." << std::endl;
+			std::cout << "Dipole μ23: " << LaserConfig.m_Mu23 << " a.u." << std::endl;
 
             LaserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
