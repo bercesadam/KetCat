@@ -64,10 +64,10 @@ The **initialization pipeline** (executed partially at compile time, limited by 
 
 - **Manifold Initialization**  
   A `NeutralAtomManifold` is constructed from the configuration.  
-  The full 2D eigenfunctions are calculated in an effectively infinite spatial Hilbert space, sampled on a predefined discretization grid according to the alkali atom model (see *Model Selection Logic* for details).
+  The full 2D eigenfunctions are calculated in an effectively infinite spatial Hilbert space, sampled on a predefined discretization grid according to the alkali atom model (see *Model Selection Logic* for details). The constructed bases set is then orthonormalized using Modified Gram-Schmidt method for correct operation space construction.
 
 - **Projection to Reduced Hilbert Space**  
-  The system projects the physical atom state into a reduced, finite-dimensional Hilbert space, where:
+  The system projects the physical atom state into a reduced, finite-dimensional Hilbert space (operation space), where:
   - Each eigenstate is represented by a single complex amplitude
   - All TDSE (Time-Dependent Schrödinger Equation) evolution is performed
 
@@ -92,29 +92,64 @@ The **main execution flow**, governed by the `QuantumProcessor` class, is struct
 
 ### Mathematical and Physical Foundations
 
-KetCat operates across multiple layers of abstraction to simulate a quantum processor from first principles. 
+#### **1. Atomic Structure & Hybrid Model Selection**
+For alkali atoms, the valence electron experiences a Coulomb-like potential at long range, but the tightly bound inner-shell electrons cause significant core polarization and screening. KetCat utilizes an automated, compile-time **Effective Radial Orbital** meta-generator (`EffectiveRadialOrbital` class) to select and construct the optimal **seed wavefunction**:
 
-#### **Atomic Structure & Hybrid Model Selection**
-For alkali atoms, the valence electron experiences a Coulomb-like potential at long range, but inner electrons cause significant screening. KetCat utilizes an **Effective Radial Orbital** meta-generator to create the initial **seed wavefunction**:
+* **Model Selection Logic**:
+    * **Hydrogenic / QDT Seed**: Selected for high angular momentum states ($l \geq 3$) or states with negligible quantum defects ($\delta_l < 0.05$). These are generated via the `HydrogenOrbitalRadial` class since the valence electron's probability density lies mostly outside the ionic core.
+    * **Slater-Type Orbital (STO) Seed**: Selected for low-l states where core penetration is highly significant, managed via the `SlaterOrbitalRadial` class.
 
-*   **Model Selection Logic**:
-    *   **Hydrogenic/QDT Seed**: Selected for high angular momentum states ($l \geq 3$) or states with negligible quantum defects ($\delta_l < 0.05$).
-    *   **Slater-Type Orbital (STO) Seed**: Selected for low-$l$ states where core penetration is significant.
-*   **Effective Nuclear Charge**: For STO seeds, the simulator calculates the screened nuclear charge ($Z_{eff}$) using **Slater's Rules**:
-    $$Z_{eff} = Z - \sigma$$
-    where $\sigma$ is the shielding constant derived from the electron configuration. The resulting orbital decay is governed by $\zeta = Z_{eff} / n^*$.
-    Electron configuration for each alkali metal atom is also calculated during compile time, all we need is the Z value as constant input, so the program has as      less hardcoded constants as possible.
+* **Effective Nuclear Charge & Screening**: For STO seeds, the framework computes the screened nuclear charge ($Z_{\text{eff}}$) at compile time using **Slater's Rules**:
 
-#### **Quantum Control & Laser Interaction**
-Quantum gates are implemented as physical transitions in a 3-level system ($|0\rangle \leftrightarrow |1\rangle \leftrightarrow |2\rangle$).
-*   **STIRAP Protocol**: Uses a counter-intuitive pulse sequence (Stokes before Pump) to transfer population via a "dark state," avoiding the lossy intermediate state.
-*   **Hamiltonian Construction**: The interaction Hamiltonian in the Rotating Wave Approximation (RWA) is:
-    $$\mathbf{H}_{int} = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta_P & \Omega_S(t) \\ 0 & \Omega_S(t) & 2(\Delta_P - \Delta_S) \end{pmatrix}$$
+    $$Z_{\text{eff}} = Z - \sigma$$
 
-#### **Numerical Propagation (Crank–Nicolson)**
-Temporal evolution is handled by solving the TDSE using the **Crank–Nicolson method**, ensuring **unitarity** (norm-preservation):
-$$\left( \mathbf{I} + \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^{n+1} = \left( \mathbf{I} - \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^n$$
-By utilizing a **tridiagonal Hamiltonian** matrix, the system is solved in $\mathcal{O}(N)$ time using the **Thomas algorithm**, allowing for millions of high-resolution time steps.
+    where $Z$ is the atomic number and $\sigma$ is the shielding constant derived from the atom's specific electron configuration. The electron configuration for each alkali metal is fully resolved during compilation based solely on the $Z$ constant input, minimizing hardcoded values. The resulting radial decay parameter $\zeta$ is defined as:
+
+    $$\zeta = \frac{Z_{\text{eff}}}{n^*}$$
+
+* **Quantum Defects and Hydrogenic Orbitals**: For higher (eg. Rydberg) states, KetCat integrates a static lookup table calibrated against **NIST spectroscopic data** to determine the effective principal quantum number:
+
+    $$n^* = n - \delta_l$$
+
+    To calculate the radial part of the wavefunction for non-integer $n^*$ values, the textbook associated Laguerre polynomials are generalized using **Kummer's Confluent Hypergeometric Function** (${}_1F_1$):
+
+```math
+u_{n^*l}(r) \propto r^{l+1} \cdot e^{-\frac{r}{n^* a_{\text{eff}}}} \cdot {}_{1}F_{1}\left(-(n^* - l - 1), 2l + 2, \frac{2r}{n^* a_{\text{eff}}}\right)
+```
+
+* **2D Wavefunction Slice Generation**: The angular part of the wavefunction is universal across models and is governed by the Spherical Harmonics $Y_l^m(\theta, \phi)$, computed using Associated Legendre Polynomials $P_l^m(\cos\theta)$. The main `Hydrogenic2D` class creates planar cross-sections on an $(x, z)$ grid. To avoids numerical singularity (division by zero at the nucleus), the slice is evaluated at a tightly constrained offset $y = R_{\text{min}}$.
+
+---
+
+#### **2. Quantum Control & Laser-Atom Interaction**
+Logical qubit states and quantum gate operations are mapped to coherent population transfers within an $N$-level ladder manifold (typically a 3-level system: $|0\rangle \leftrightarrow |1\rangle \leftrightarrow |2\rangle$).
+
+* **STIRAP Protocol**: Coherent population transfer is driven via **Stimulated Raman Adiabatic Passage** (STIRAP). By applying a counter-intuitive pulse sequence—where the Stokes laser ($\Omega_S$) precedes the Pump laser ($\Omega_P$)—the system is trapped in a time-dependent, radiationless **dark state**:
+
+    $$|\text{dark}(t)\rangle = \cos\vartheta(t)|0\rangle - \sin\vartheta(t)|2\rangle \quad \text{where} \quad \tan\vartheta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}$$
+
+    This approach achieves high-fidelity population transfer while bypassing the lossy intermediate state $|1\rangle$.
+
+* **RWA Hamiltonian Construction**: The time-dependent drive is modeled in the **Rotating Wave Approximation** (RWA). The `MultiRwaRabiHamiltonian` class constructs the effective tridiagonal Hamiltonian, explicitly incorporating cumulative multi-photon detunings $\Delta_i$ and second-order **AC Stark shifts** ($\Delta E_{\text{Stark}}$) coming from off-resonant channels:
+
+```math
+\mathbf{H}_{\text{RWA}}(t) = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta_P + 2\Delta E_{\text{Stark}, 1} & \Omega_S(t) \\ 0 & \Omega_S(t) & 2(\Delta_P - \Delta_S) + 2\Delta E_{\text{Stark}, 2} \end{pmatrix}
+```
+
+---
+
+#### **3. Numerical Propagation (Crank–Nicolson Solver)**
+The real-time quantum dynamics driven by the laser pulses are simulated by integrating the Time-Dependent Schrödinger Equation (TDSE):
+
+$$i\hbar \frac{\partial}{\partial t}|\Psi(t)\rangle = \mathbf{H}(t)|\Psi(t)\rangle$$
+
+* **Crank–Nicolson Discretization**: To maintain strict **unitarity** (norm-preservation) without numerical drift, an implicit midpoint integration scheme is implemented:
+
+    $$\left( \mathbf{I} + \frac{i \Delta t}{2\hbar} \mathbf{H}^{n+\frac{1}{2}} \right) |\Psi^{n+1}\rangle = \left( \mathbf{I} - \frac{i \Delta t}{2\hbar} \mathbf{H}^{n+\frac{1}{2}} \right) |\Psi^n\rangle$$
+
+* **Solver Execution Modes**:
+    * **Single-Atom Execution**: For single-qubit gates, the matrix $\mathbf{H}$ maintains a strict **tridiagonal** structure. The linear system is solved in optimal $\mathcal{O}(N)$ time using a specialized `CrankNicolsonSolver` leveraging the **Thomas Algorithm**. This routine is highly optimized and can execute millions of time steps efficiently.
+    * **Multi-Atom Execution**: When tracking multi-atom (e.g., 2-qubit) configurations or multi-channel Rydberg-Rydberg interactions, the spatial block-diagonal layout introduces non-tridiagonal coupling terms. The engine dynamically switches to a pivoting **Gaussian Elimination** linear solver to preserve numerical precision across the higher-dimensional tensor-product Hilbert space.
 
 ---
 
