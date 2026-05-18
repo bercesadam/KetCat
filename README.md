@@ -27,27 +27,9 @@ The project began as a fully `constexpr` logical circuit simulator. Today, the f
 As I am working as a System and SW Architect in the automotive industry, I've tried to bring my mindset into this project as well:
 
 *   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
-*   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms abstract complex numbers into visual aesthetics and "simple" debugging.
-*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more). Te program realizes a clean pipeline which compiles logical gates into physical instructions, then laser pulses, which finally results in a Hamiltonian used for TDSE evolution.
+*   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms state vectors into visual aesthetics and "simple" debugging-
+*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more). Te program realizes a clean pipeline which compiles logical gates into physical instructions, then laser pulses, which finally results in a Hamiltonian used for TDSE evolution. (See the architecture section below.)
 
-### Known Limitations, Modeling Assumptions and Engineering Tradeoffs
-
-KetCat intentionally focuses on coherent single-atom and small-system dynamics with high temporal resolution, prioritizing physical interpretability, numerical stability and architectural clarity over exhaustive physical completeness. The current implementation therefore makes several deliberate modeling assumptions and simplifications:
-
-* **Ladder-type coupling topology**  
-  The TDSE solver exploits the tridiagonal structure of ladder-type interaction Hamiltonians for computational efficiency (see the numerical methods section). As a consequence, direct couplings are currently restricted to neighboring basis states. However, the simulator allows arbitrary user-defined basis construction, enabling the inclusion of auxiliary or weakly coupled states for leakage and population-drain modeling.
-
-* **Polarization simplification**  
-  Transition amplitudes are derived from dipole matrix elements computed directly from numerically integrated wavefunctions rather than from hardcoded selection rules. The present implementation performs this calculation on reduced radial wavefunctions, meaning that angular and polarization-dependent couplings are treated implicitly. Consequently, the simulator currently represents an effectively single-polarization interaction picture.
-
-* **No hyperfine or spin-resolved structure**  
-  The current quantum number abstraction and wavefunction generators model orbital states using the \((n,l,m)\) quantum numbers only. Spin, fine structure and hyperfine interactions are not yet included. While the project is conceptually inspired by neutral atom architectures such as QuEra's Cesium platforms, the present demonstrations utilize simplified orbital-state encodings (e.g. \(6s\) and \(7s\)) instead of hyperfine ground-state qubits.
-
-* **Single-particle approximation for most operations**  
-  Each qubit is primarily modeled as an individual atom evolving under its local Hamiltonian. Multi-atom effects are introduced only in dedicated interaction Hamiltonians (e.g. simplified Rydberg blockade modeling). Effects such as collective many-body dynamics, dense atomic interactions and relativistic corrections are currently outside the intended scope of the simulator.
-
-* **No open-system decoherence or measurement collapse**  
-  The framework presently models coherent unitary evolution only. Environmental decoherence, spontaneous emission channels, noise processes and wavefunction collapse during measurement are not yet incorporated. Reported state populations therefore correspond to idealized coherent probabilities derived from the propagated wavefunction.
 ---
 
 ### Quickstart
@@ -68,11 +50,51 @@ which generates a series of PNG frames (see the visu showcase on the top of this
 
 ---
 
+### Architecture & Main Pipeline
+
+The project aims to establish a clean, maintainable, and reusable architecture, where the mathematical, physical and logical layers, as well the control logic is clearly separated.
+
+The **initialization pipeline** (executed partially at compile time, limited by `constexpr` depth of the compiler) operates as follows:
+
+- **Atom Configuration Input**  
+  The system receives an atom configuration (e.g., via the `main()` function), describing:
+  - The chemical element (currently elements from Main Group 1 are supported)
+  - The operation space: a set of eigenstates (e.g., 6s, 6p, 7s)
+  - The mapping of these states to logical levels \(|0\rangle\), \(|1\rangle\), and \(|r\rangle\)
+
+- **Manifold Initialization**  
+  A `NeutralAtomManifold` is constructed from the configuration.  
+  The full 2D eigenfunctions are calculated in an effectively infinite spatial Hilbert space, sampled on a predefined discretization grid according to the alkali atom model (see *Model Selection Logic* for details).
+
+- **Projection to Reduced Hilbert Space**  
+  The system projects the physical atom state into a reduced, finite-dimensional Hilbert space, where:
+  - Each eigenstate is represented by a single complex amplitude
+  - All TDSE (Time-Dependent Schrödinger Equation) evolution is performed
+
+  KetCat uses a **global full state vector** (similar to Qiskit), but defined over the operation space.  
+  Its size depends on the number of modeled eigenstates; however, at minimum (including logical, Rydberg, and intermediate states), it scales as: 5^QubitCount
+  The logical qubit state vector is obtained as a projection from this global state.
+
+- **Physical Parameter Computation**  
+  Dipole matrix elements and Hartree energies are computed for each eigenstate and injected into the reduced model, ensuring physical realism throughout the simulation.
+
+
+The **main execution flow**, governed by the `QuantumProcessor` class, is structured as follows:
+
+- A `QuantumCircuit` (composed of `QuantumGate`s) is specified using a compile-time, type-safe DSL interface.
+- Logical quantum gates are compiled into physical control instructions:
+- Laser parameters and pulse sequences are generated  
+  (currently based on two-photon adiabatic **STIRAP** protocols)
+- A time-dependent Hamiltonian is constructed for each time step based on the pulse envelope
+- The TDSE is numerically integrated over a selected subspace of the global state vector
+- The resulting state is projected into various subspaces for visualization and evaluation
+---
+
 ### Mathematical and Physical Foundations
 
-KetCat operates across multiple layers of abstraction to simulate a quantum processor from first principles.
+KetCat operates across multiple layers of abstraction to simulate a quantum processor from first principles. 
 
-#### **1. Atomic Structure & Hybrid Model Selection**
+#### **Atomic Structure & Hybrid Model Selection**
 For alkali atoms, the valence electron experiences a Coulomb-like potential at long range, but inner electrons cause significant screening. KetCat utilizes an **Effective Radial Orbital** meta-generator to create the initial **seed wavefunction**:
 
 *   **Model Selection Logic**:
@@ -81,25 +103,38 @@ For alkali atoms, the valence electron experiences a Coulomb-like potential at l
 *   **Effective Nuclear Charge**: For STO seeds, the simulator calculates the screened nuclear charge ($Z_{eff}$) using **Slater's Rules**:
     $$Z_{eff} = Z - \sigma$$
     where $\sigma$ is the shielding constant derived from the electron configuration. The resulting orbital decay is governed by $\zeta = Z_{eff} / n^*$.
+    Electron configuration for each alkali metal atom is also calculated during compile time, all we need is the Z value as constant input, so the program has as      less hardcoded constants as possible.
 
-#### **2. Wavefunction Physics (Seed Wavefunction)**
-The spatial wavefunction is decomposed into radial and angular components:
-$$\Psi_{n^*lm}(r, \theta, \phi) = \frac{u_{n^*l}(r)}{r} Y_l^m(\theta, \phi)$$
-*   **Angular Part**: Computed via Associated Legendre polynomials $P_l^m(x)$ normalized into Spherical Harmonics $Y_l^m$.
-*   **Radial Part ($u$)**: To support non-integer principal quantum numbers ($n^* = n - \delta_l$), KetCat generalizes the radial solution using the **Kummer Confluent Hypergeometric function** ($_{1}F_{1}$):
-    $$u_{n^*l}(r) \propto r^{l+1} \cdot e^{-\frac{r}{n^* a_{eff}}} \cdot {}_{1}F_{1}(-(n^* - l - 1), 2l + 2, \frac{2r}{n^* a_{eff}})$$
-    This ensures that nodal structures and phases correctly reflect core penetration effects.
-
-#### **3. Quantum Control & Laser Interaction**
+#### **Quantum Control & Laser Interaction**
 Quantum gates are implemented as physical transitions in a 3-level system ($|0\rangle \leftrightarrow |1\rangle \leftrightarrow |2\rangle$).
 *   **STIRAP Protocol**: Uses a counter-intuitive pulse sequence (Stokes before Pump) to transfer population via a "dark state," avoiding the lossy intermediate state.
 *   **Hamiltonian Construction**: The interaction Hamiltonian in the Rotating Wave Approximation (RWA) is:
     $$\mathbf{H}_{int} = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta_P & \Omega_S(t) \\ 0 & \Omega_S(t) & 2(\Delta_P - \Delta_S) \end{pmatrix}$$
 
-#### **4. Numerical Propagation (Crank–Nicolson)**
+#### **Numerical Propagation (Crank–Nicolson)**
 Temporal evolution is handled by solving the TDSE using the **Crank–Nicolson method**, ensuring **unitarity** (norm-preservation):
 $$\left( \mathbf{I} + \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^{n+1} = \left( \mathbf{I} - \frac{i \Delta t}{2\hbar} \mathbf{H} \right) \Psi^n$$
 By utilizing a **tridiagonal Hamiltonian** matrix, the system is solved in $\mathcal{O}(N)$ time using the **Thomas algorithm**, allowing for millions of high-resolution time steps.
 
+---
+
+### Known Limitations, Modeling Assumptions and Engineering Tradeoffs
+
+KetCat intentionally focuses on coherent single-atom and small-system dynamics with high temporal resolution, prioritizing physical interpretability, numerical stability and architectural clarity over exhaustive physical completeness. The current implementation therefore makes several deliberate modeling assumptions and simplifications, which I consider as intentional design decisions:
+
+* **Ladder-type coupling topology**  
+  The TDSE solver exploits the tridiagonal structure of ladder-type interaction Hamiltonians for computational efficiency (see the numerical methods section). As a consequence, direct couplings are currently restricted to neighboring basis states. However, the simulator allows arbitrary user-defined basis construction, enabling the inclusion of auxiliary or weakly coupled states for leakage and population-drain modeling.
+
+* **Assumptions on drive laser polarization**  
+  Transition amplitudes are derived from dipole matrix elements computed directly from numerically integrated wavefunctions rather than from hardcoded selection rules. The present implementation performs this calculation on reduced radial wavefunctions, meaning that angular and polarization-dependent couplings are treated implicitly. Consequently, the simulator currently represents an effectively single-polarization interaction picture.
+
+* **No hyperfine or spin-resolved structure**  
+  The current quantum number abstraction and wavefunction generators model orbital states using the \((n,l,m)\) quantum numbers only. Spin, fine structure and hyperfine interactions are not yet included. While the project is conceptually inspired by neutral atom architectures such as QuEra's Cesium platforms, the present demonstrations utilize simplified orbital-state encodings (e.g. \(6s\) and \(7s\)) instead of hyperfine ground-state qubits.
+
+* **Single-particle approximation for most operations**  
+  Each qubit is primarily modeled as an individual atom evolving under its local Hamiltonian. Multi-atom effects are introduced only in dedicated interaction Hamiltonians (e.g. simplified Rydberg blockade modeling). Effects such as collective many-body dynamics, dense atomic interactions and relativistic corrections are currently outside the intended scope of the simulator.
+
+* **No open-system decoherence or measurement collapse**  
+  The framework presently models coherent unitary evolution only. Environmental decoherence, spontaneous emission channels, noise processes and wavefunction collapse during measurement are not yet incorporated. Reported state populations therefore correspond to idealized coherent probabilities derived from the propagated wavefunction.
 
 
