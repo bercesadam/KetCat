@@ -229,7 +229,7 @@ namespace KetCat
                 // H(target)
                 //
                 compileGate<GateType::H>(
-                    GateOperation<QubitCount>
+                    GateOperation<1>
                 {
                     GateType::H,
                     { op.m_targets[1] }
@@ -239,7 +239,7 @@ namespace KetCat
                 // CZ(control, target)
                 //
                 compileGate<GateType::CZ>(
-                    GateOperation<QubitCount>
+                    GateOperation<2>
                 {
                     GateType::CZ,
                     {
@@ -252,7 +252,7 @@ namespace KetCat
                 // H(target)
                 //
                 compileGate<GateType::H>(
-                    GateOperation<QubitCount>
+                    GateOperation<1>
                 {
                     GateType::H,
                     { op.m_targets[1] }
