@@ -224,7 +224,15 @@ namespace KetCat
                     )
                 );
 
-            m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
+			// Extract quantum numbers (l, m) for each basis state at compile time.
+            constexpr auto QuantumNumbers = std::apply([](auto... levels) {
+                return std::array<std::pair<natural_t, natural_t>, ConfigType::LevelCount>{
+                    std::pair<natural_t, natural_t>{ decltype(levels)::l(), decltype(levels)::m() }...
+                };
+            }, typename ConfigType::QuantumNumbers{});
+
+			// Compute the dipole matrix using the constructed basis states and their quantum numbers.
+            m_dipoleMatrix = buildDipoleMatrix(*m_basisStates1D, QuantumNumbers);
 
 			std::cout << "Dipole matrix constructed:" << std::endl;
 			for (const auto& row : m_dipoleMatrix)
