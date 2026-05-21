@@ -12,8 +12,8 @@ int main()
         256, /* Spatial discretization steps count */
         100.0, /* Spatial extent in a.u. */
 
-        2, /* Index of the logical level 0 */
-        4, /* Index of the logical level 1*/
+        0, /* Index of the logical level 0 */
+        2, /* Index of the logical level 1*/
         5, /* Index of the Rydberg level */
 
         QuantumNumber<6, s>,  /*0*/

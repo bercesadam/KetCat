@@ -25,7 +25,7 @@ namespace KetCat
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
     constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 5E6;
+    constexpr natural_t SimuSaveNthFrame = 1E7;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///

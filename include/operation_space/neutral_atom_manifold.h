@@ -232,7 +232,7 @@ namespace KetCat
             }, typename ConfigType::QuantumNumbers{});
 
 			// Compute the dipole matrix using the constructed basis states and their quantum numbers.
-            m_dipoleMatrix = buildDipoleMatrix(*m_basisStates1D, QuantumNumbers);
+            m_dipoleMatrix = calculateDipoleMatrix(*m_basisStates1D, QuantumNumbers);
 
 			std::cout << "Dipole matrix constructed:" << std::endl;
 			for (const auto& row : m_dipoleMatrix)

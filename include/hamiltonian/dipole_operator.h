@@ -26,10 +26,11 @@ namespace KetCat
     /// @tparam HilbertSpace  A 1D spatial Hilbert space representing the radial grid [0, R_max].
     /// @tparam NumStates      The number of basis states to include in the matrix.
     ///
-    /// @param basisStates    A collection of normalized states containing quantum numbers (n, l, m) and radial wavefunctions.
+    /// @param basisStates    A collection of orthonormalized basis states
+    /// @param quantumNumbers A array of pairs of quantum numbers (in l, m order) corresponding to each basis state.
     /// @return               A complex-valued NumStates x NumStates dipole matrix.
     template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace, natural_t NumStates>
-    constexpr square_matrix_t<NumStates> buildDipoleMatrix(
+    constexpr square_matrix_t<NumStates> calculateDipoleMatrix(
         const basis_set_t<HilbertSpace, NumStates>& basisStates,
         const std::array<std::pair<natural_t, natural_t>, NumStates>& quantumNumbers) noexcept
     {

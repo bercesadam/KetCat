@@ -20,16 +20,14 @@ namespace KetCat
     {
         static constexpr complex_t get (
             const square_matrix_t<Dim>& M,
-            natural_t row,
-            natural_t col)
+            natural_t row, natural_t col)
         {
             return M[row][col];
         }
 
         static constexpr void set(
             square_matrix_t<Dim>& M,
-            natural_t row,
-            natural_t col,
+            natural_t row, natural_t col,
             complex_t value)
         {
             M[row][col] = value;
@@ -41,8 +39,7 @@ namespace KetCat
     {
         static constexpr complex_t get(
             const tridiagonal_matrix_t<Dim>& M,
-            natural_t row,
-            natural_t col)
+            natural_t row, natural_t col)
         {
             if (row == col)
             {
@@ -64,8 +61,7 @@ namespace KetCat
 
         static constexpr void set(
             tridiagonal_matrix_t<Dim>& M,
-            natural_t row,
-            natural_t col,
+            natural_t row, natural_t col,
             complex_t value)
         {
             if (row == col)

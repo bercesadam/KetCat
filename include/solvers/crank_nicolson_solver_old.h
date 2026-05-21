@@ -53,7 +53,7 @@ namespace KetCat
     ///   CrankNicolsonTimeEvolutionOperator&lt;Dim&gt; evol(hamiltonian, dt);
     ///   psi = evol(psi);
     template <hilbert_space_t HilbertSpace>
-    class CrankNicolsonSolver
+    class CrankNicolsonSolver2
     {
         static constexpr natural_t Dim = HilbertSpace::Dim;
 
@@ -69,7 +69,7 @@ namespace KetCat
         /// @details
         /// The constructor precomputes the Crank–Nicolson matrices A and B,
         /// which are reused for each time step.
-        constexpr CrankNicolsonSolver(const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
+        constexpr CrankNicolsonSolver2(const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
         {
             buildCrankNicolsonMatrices(hamiltonian, dt);
         }

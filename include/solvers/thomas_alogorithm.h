@@ -22,7 +22,7 @@ namespace KetCat
 
                 M[MAINDIAGONAL][i] = M[MAINDIAGONAL][i] - Multiplier * M[SUPERDIAGONAL][i - 1];
 
-                psi[i] = psi[i] - Multiplier * M[SUPERDIAGONAL][i - 1];
+                psi[i] = psi[i] - Multiplier * psi[i - 1];
             }
 
             // Back substitution
