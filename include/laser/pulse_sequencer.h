@@ -119,7 +119,7 @@ namespace KetCat
         const std::array<real_t, ConfigType::LevelCount> m_energies =
             Manifold::getHartreeEnergies();
 
-        const matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
+        const square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
             Manifold::getDipoleMatrix();
 
         real_t m_peakRabiHz = 50e6;

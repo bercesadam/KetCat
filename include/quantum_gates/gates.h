@@ -67,7 +67,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary() noexcept
+        static constexpr square_matrix_t<2> unitary() noexcept
         {
             return
             { {
@@ -91,7 +91,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary() noexcept
+        static constexpr square_matrix_t<2> unitary() noexcept
         {
             return
             { {
@@ -115,7 +115,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary() noexcept
+        static constexpr square_matrix_t<2> unitary() noexcept
         {
             return
             { {
@@ -139,7 +139,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary() noexcept
+        static constexpr square_matrix_t<2> unitary() noexcept
         {
             return
             { {
@@ -163,7 +163,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary() noexcept
+        static constexpr square_matrix_t<2> unitary() noexcept
         {
             constexpr real_t invsqrt2 =
                 0.7071067811865475244;
@@ -196,7 +196,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 1;
 
-        static constexpr matrix_t<2> unitary(real_t theta) noexcept
+        static constexpr square_matrix_t<2> unitary(real_t theta) noexcept
         {
             const real_t halfTheta =  theta / 2.0;
 
@@ -240,7 +240,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 2;
 
-        static constexpr matrix_t<4> unitary() noexcept
+        static constexpr square_matrix_t<4> unitary() noexcept
         {
             return
             { {
@@ -286,7 +286,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 2;
 
-        static constexpr matrix_t<4> unitary() noexcept
+        static constexpr square_matrix_t<4> unitary() noexcept
         {
             return
             { {
@@ -332,7 +332,7 @@ namespace KetCat
     {
         static constexpr natural_t QubitCount = 3;
 
-        static constexpr matrix_t<8>
+        static constexpr square_matrix_t<8>
             unitary() noexcept
         {
             return { {

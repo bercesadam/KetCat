@@ -40,7 +40,7 @@ namespace KetCat
 	/// @brief Square matrix type 
 	/// @tparam Rows  Number of rows and cols
 	template<natural_t Dim>
-	using matrix_t = std::array<std::array<complex_t, Dim>, Dim>;
+	using square_matrix_t = std::array<std::array<complex_t, Dim>, Dim>;
 
 	/// @brief Compact storage representation of a tridiagonal matrix for 1D Hamiltonians
 	/// as we have useful information only in the three non-zero diagonals and this way we

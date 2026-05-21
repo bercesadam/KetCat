@@ -131,7 +131,7 @@ namespace KetCat
         /// This matrix is computed from the radial parts of the wavefunctions
         /// and encodes allowed optical transitions under the electric-dipole
         /// approximation.
-        inline static matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
+        inline static square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
 
 		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
         inline static std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
@@ -215,7 +215,7 @@ namespace KetCat
         /// @details
         /// Uses effective radial orbitals to compute dipole matrix elements
         /// under the electric-dipole approximation.
-        void buildDipleMatrix() noexcept
+        void buildDipoleMatrix() noexcept
         {
             m_basisStates1D =
                 std::make_unique<BasisSet<SingleAtomRadialHilbertSpace>>(
@@ -347,7 +347,7 @@ namespace KetCat
         /// @return
         ///   Dipole matrix (radial part only, assuming no variations in laser polarizationm
         ///   hence no access to states with different 'm' quantum numbers)
-        static const matrix_t<ConfigType::LevelCount>& getDipoleMatrix() noexcept
+        static const square_matrix_t<ConfigType::LevelCount>& getDipoleMatrix() noexcept
         {
             return m_dipoleMatrix;
         }
@@ -371,7 +371,7 @@ namespace KetCat
 		///   4. Calculate Hartree energies for all states
         NeutralAtomManifold()
         {
-            buildDipleMatrix();
+            buildDipoleMatrix();
             buildFullBasisSet();
 			calculateHartreeEnergies();
         }

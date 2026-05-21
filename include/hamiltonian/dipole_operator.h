@@ -29,11 +29,11 @@ namespace KetCat
     /// @param basisStates    A collection of normalized states containing quantum numbers (n, l, m) and radial wavefunctions.
     /// @return               A complex-valued NumStates x NumStates dipole matrix.
     template<spatial_hilbert_space_with_dim_t<1_D> HilbertSpace, natural_t NumStates>
-    constexpr matrix_t<NumStates> buildDipoleMatrix(
+    constexpr square_matrix_t<NumStates> buildDipoleMatrix(
         const basis_set_t<HilbertSpace, NumStates>& basisStates,
         const std::array<std::pair<natural_t, natural_t>, NumStates>& quantumNumbers) noexcept
     {
-        matrix_t<NumStates> DipoleMatrix{};
+        square_matrix_t<NumStates> DipoleMatrix{};
 
         constexpr natural_t Steps = HilbertSpace::Steps;
         constexpr real_t dx = HilbertSpace::dx();

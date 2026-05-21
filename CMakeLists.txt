@@ -38,7 +38,7 @@ foreach(SRC_FILE ${ALL_SOURCES})
     string(REPLACE "/" "_" EXE_NAME ${REL_PATH})
     string(REPLACE ".cpp" "" EXE_NAME ${EXE_NAME})
 
-    add_executable(${EXE_NAME} ${SRC_FILE} "include/compiler/physical_instruction.h" "include/quantum_processor/simulation_observer.h")
+    add_executable(${EXE_NAME} ${SRC_FILE} "include/compiler/physical_instruction.h" "include/quantum_processor/simulation_observer.h" "include/solvers/thomas_alogorithm.h" "include/solvers/gauss_elimination.h" "include/solvers/backend_traits.h" "include/solvers/matrix_access.h")
 
     if (MSVC)
         set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864")

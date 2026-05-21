@@ -24,8 +24,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E7;
+    constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 5E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -187,7 +187,7 @@ namespace KetCat
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
 
-            static const matrix_t<ConfigType::LevelCount> DipoleMatrix =
+            static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
                 m_Manifold.getDipoleMatrix();
 
             MultiRwaRabiHamiltonian<ConfigType::LevelCount>

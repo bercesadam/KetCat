@@ -34,7 +34,7 @@ namespace KetCat
     struct Matrix
     {
         /// @brief Underlying matrix storage.
-        matrix_t<Dim> m{};
+        square_matrix_t<Dim> m{};
 
         /// INDEXING /////////////////////////////////////////////////////////
 

@@ -63,7 +63,7 @@ namespace KetCat
 		/// @brief Multiply this state vector by a matrix.
 		/// @param mat  The matrix to multiply with (Size x Size).
 		/// @return The resulting state vector.
-		constexpr StateVector<HilbertSpaceType> matMul(const matrix_t<Size>& mat) const noexcept
+		constexpr StateVector<HilbertSpaceType> matMul(const square_matrix_t<Size>& mat) const noexcept
 		{
 			StateVector<HilbertSpaceType> Result;
 			for (natural_t i = 0; i < Size; ++i)

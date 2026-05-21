@@ -12,8 +12,8 @@ int main()
         256, /* Spatial discretization steps count */
         100.0, /* Spatial extent in a.u. */
 
-        0, /* Index of the logical level 0 */
-        2, /* Index of the logical level 1*/
+        2, /* Index of the logical level 0 */
+        4, /* Index of the logical level 1*/
         5, /* Index of the Rydberg level */
 
         QuantumNumber<6, s>,  /*0*/
@@ -21,14 +21,14 @@ int main()
         QuantumNumber<7, s>,  /*2*/
         QuantumNumber<10, p>, /*3*/
         QuantumNumber<20, s>, /*4*/
-        QuantumNumber<20, p> /*5*/
+        QuantumNumber<20, p>  /*5*/
         > Config;
         
     auto Circuit = QuantumCircuit<1>().withGates(
-        QuantumGate<1, GateType::X>().toBits(0)
-		//QuantumGate<1, GateType::X>().toBits(0),
-        //QuantumGate<1, GateType::Y>().toBits(0),
-       // QuantumGate<1, GateType::H>().toBits(0)
+        QuantumGate<1, GateType::X>().toBits(0),
+		QuantumGate<1, GateType::X>().toBits(0),
+        QuantumGate<1, GateType::Y>().toBits(0),
+        QuantumGate<1, GateType::H>().toBits(0)
     );
 
     QuantumProcessor<1, Config>("smoke_test.kwf").execute(Circuit);

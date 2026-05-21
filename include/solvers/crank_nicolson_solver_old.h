@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "matrix_access.h"
-#include "thomas_alogorithm.h"
-#include "gauss_elimination.h"
 
+#include "core_types.h"
+#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
+    /// @file
     /// @brief Crank–Nicolson solver for the time-dependent Schrödinger equation.
     ///
     /// @details
@@ -47,22 +47,19 @@ namespace KetCat
     /// @details
     /// The operator precomputes the Crank–Nicolson matrices A and B and
     /// applies them to advance a quantum state vector by a single time step.
-    template<hilbert_space_t HilbertSpace,
-        LinearSolverBackend Backend = LinearSolverBackend::ThomasTridiagonal>
+    ///
+    /// Usage:
+    ///
+    ///   CrankNicolsonTimeEvolutionOperator&lt;Dim&gt; evol(hamiltonian, dt);
+    ///   psi = evol(psi);
+    template <hilbert_space_t HilbertSpace>
     class CrankNicolsonSolver
     {
         static constexpr natural_t Dim = HilbertSpace::Dim;
 
-        // Type alias for the matrix type used by the selected linear solver backend
-        using solver_traits_t = LinearSolverTraits<Backend, Dim>;
-        using matrix_type = typename solver_traits_t::matrix_type;
-
-		// Alias for matrix access traits
-        using Matrix = MatrixAccess<matrix_type>;
-
         // Precomputed matrices
-        matrix_type m_A;
-        matrix_type m_B;
+        tridiagonal_matrix_t<Dim> m_A;
+        tridiagonal_matrix_t<Dim> m_B;
 
     public:
         /// @brief  Constructs the time evolution operator.
@@ -72,7 +69,7 @@ namespace KetCat
         /// @details
         /// The constructor precomputes the Crank–Nicolson matrices A and B,
         /// which are reused for each time step.
-        constexpr CrankNicolsonSolver(const matrix_type& hamiltonian, real_t dt) noexcept
+        constexpr CrankNicolsonSolver(const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
         {
             buildCrankNicolsonMatrices(hamiltonian, dt);
         }
@@ -83,17 +80,15 @@ namespace KetCat
         ///
         /// @details
         /// The function computes the right-hand side B · ψⁿ and then solves
-        /// the linear system A · ψⁿ⁺¹ = RHS, resulting in unitary time evolution
-        /// using the selected linear solver backend.
+        /// the linear system A · ψⁿ⁺¹ = RHS, resulting in unitary time evolution.
         constexpr StateVector<HilbertSpace>
-            operator()(const StateVector<HilbertSpace>& psi) const noexcept
+        operator()(const StateVector<HilbertSpace>& psi) const noexcept
         {
             // RHS = B · ψⁿ
-            const auto Rhs = multiply(m_B, psi);
+            auto rhs = multiplyTrigiagonal(m_B, psi);
 
             // Solve A · ψⁿ⁺¹ = RHS
-            return LinearSolver<Backend, Dim>::
-                template solve<HilbertSpace>(m_A, Rhs);
+            return solveTridiagonal(m_A, rhs);
         }
 
     private:
@@ -112,52 +107,112 @@ namespace KetCat
         /// If the Hamiltonian matrix is tridiagonal, both A and B remain
         /// tridiagonal, enabling efficient O(N) time stepping.
         constexpr void buildCrankNicolsonMatrices(
-            const matrix_type& H,
-            real_t dt) noexcept
+            const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
         {
+            const tridiagonal_matrix_t<Dim>& H = hamiltonian;
+
             // i * dt / (2ℏ)
-            // where we set ℏ = 1 in atomic units, so the factor simplifies to i * dt / 2
             const complex_t Factor(0.0, dt / 2.0);
 
-            // Construct A = I + i·dt/(2ℏ)·H and B = I - i·dt/(2ℏ)·H
             for (natural_t i = 0; i < Dim; ++i)
             {
-                for (natural_t j = 0; j < Dim; ++j)
-                {
-                    Matrix::set(m_A, i, j, 
-                        Factor * Matrix::get(H, i, j));
+                // Build main diagonal
+                m_A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
+                m_B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
-                    Matrix::set(m_B, i, j, 
-                        -Factor * Matrix::get(H, i, j));
+                //  Build lower diagonal
+                if (i > 0)
+                {
+                    m_A[SUBDIAGONAL][i] = Factor * H[SUBDIAGONAL][i];
+                    m_B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
                 }
 
-                // Add the identity matrix contribution to the main diagonals
-                Matrix::set(m_A, i, i, 
-                    complex_t::fromReal(1.0) + Matrix::get(m_A, i, i));
-                Matrix::set(m_B, i, i, 
-                    complex_t::fromReal(1.0) + Matrix::get(m_B, i, i));
+                //  Build upper diagonal
+                if (i + 1 < Dim)
+                {
+                    m_A[SUPERDIAGONAL][i] = Factor * H[SUPERDIAGONAL][i];
+                    m_B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
+                }
             }
         }
 
         /// @brief  Helper function to compute the product of an instance of the helper tridiagonal matrix type
         ///         and a state vector.
         /// @tparam Dim     Dimension of the vector space.
-        /// @param  M       Tridiagonal/square matrix.
-        /// @param  psi    Input vector.
-        /// @return         Resulting vector M · psi.
+        /// @param  M       Tridiagonal matrix.
+        /// @param  x       Input vector.
+        /// @return         Resulting vector M · x.
+        ///
+        /// @details
+        /// This routine performs an efficient matrix–vector multiplication
+        /// exploiting the tridiagonal structure of the matrix. It is primarily
+        /// used to construct the right-hand side of the Crank–Nicolson system.
+        template <natural_t Dim>
         constexpr StateVector<HilbertSpace>
-            multiply(const matrix_type& M,
-                const StateVector<HilbertSpace>& psi) const noexcept
+        multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
+                            const StateVector<HilbertSpace>& x) const noexcept
         {
             StateVector<HilbertSpace> Result{ complex_t::zero() };
 
             for (natural_t i = 0; i < Dim; ++i)
             {
-                for (natural_t j = 0; j < Dim; ++j)
+                // Main diagonal contribution
+                Result[i] += M[MAINDIAGONAL][i] * x[i];
+
+                // Lower diagonal contribution
+                if (i > 0)
                 {
-                    Result[i] = Result[i] +
-                        Matrix::get(M, i, j) * psi[j];
+                    Result[i] += M[SUBDIAGONAL][i] * x[i - 1];
                 }
+
+                // Upper diagonal contribution
+                if (i + 1 < Dim)
+                {
+                    Result[i] += M[SUPERDIAGONAL][i] * x[i + 1];
+                }
+            }
+
+            return Result;
+        }
+
+        /// @brief  Solves a tridiagonal linear system using the Thomas algorithm.
+        /// @tparam Dim     Dimension of the linear system.
+        /// @param  M       Tridiagonal coefficient matrix.
+        /// @param  d       Right-hand-side vector.
+        /// @return         Solution vector x satisfying M · x = d.
+        ///
+        /// @details
+        /// This function implements the Thomas algorithm, consisting of a
+        /// forward elimination phase followed by backward substitution.
+        /// The algorithm achieves linear time complexity by exploiting the
+        /// tridiagonal structure of the system.
+        ///
+        /// The matrix is passed by value and modified internally.
+        template <natural_t Dim>
+        constexpr StateVector<HilbertSpace> solveTridiagonal(
+            tridiagonal_matrix_t<Dim> M, StateVector<HilbertSpace> psi) const noexcept
+        {
+            // --- FORWARD ELIMINATION ---
+            for (natural_t i = 1; i < Dim; ++i)
+            {
+                // Elimination multiplier
+                const complex_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
+
+                // Update main diagonal
+                M[MAINDIAGONAL][i] = M[MAINDIAGONAL][i] - w * M[SUPERDIAGONAL][i - 1];
+
+                // Update right-hand side
+                psi[i] = psi[i] - w * psi[i - 1];
+            }
+
+            // --- BACK SUBSTITUTION ---
+            StateVector<HilbertSpace> Result{};
+
+            Result[Dim - 1] = psi[Dim - 1] / M[MAINDIAGONAL][Dim - 1];
+
+            for (natural_t i = Dim - 1; i-- > 0;)
+            {
+                Result[i] = (psi[i] - M[SUPERDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
             }
 
             return Result;

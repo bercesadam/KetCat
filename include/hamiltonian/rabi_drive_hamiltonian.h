@@ -42,7 +42,7 @@ namespace KetCat
     {
     public:
         using ReducedMatrix = tridiagonal_matrix_t<LevelCount>;
-        using FullDipoleMatrix = matrix_t<LevelCount>;
+        using FullDipoleMatrix = square_matrix_t<LevelCount>;
 
         using laser_array_t = std::array<LaserPulse, LevelCount - 1>;
 
