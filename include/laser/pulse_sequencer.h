@@ -141,7 +141,7 @@ namespace KetCat
             TwoPhotonConfig LaserConfig;
 
 			natural_t GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
-				? ConfigType::RydbergLevel
+				? ConfigType::Logical1Level
 				: ConfigType::Logical0Level;
 
             LaserConfig.m_Level1Energy = m_energies[GroundLevelIndex];

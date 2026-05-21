@@ -24,8 +24,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 50; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E7;
+    constexpr real_t CrankNicolsonTimeStep = 1000; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 1E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -138,7 +138,7 @@ namespace KetCat
             real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
             real_t TimeShift = Envelope.getStartTime();
 
-			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << TransitionTimeLimit << " a.u." << std::endl;
+			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << (Units::AtomicTimeToSeconds * TransitionTimeLimit) << " ns" << std::endl;
 			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
 
 			LaserPulse Pump, Stokes;
@@ -151,8 +151,11 @@ namespace KetCat
 
                 // Map laser fields to the corresponding energy levels in the operation space
                 typename MultiRwaRabiHamiltonian<ConfigType::LevelCount>::template laser_array_t Lasers;
-                Lasers[ConfigType::Logical0Level] = Pump;
-                Lasers[ConfigType::Logical0Level + 1] = Stokes;
+                natural_t GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+                    ? ConfigType::Logical1Level
+                    : ConfigType::Logical0Level;
+                Lasers[GroundLevelIndex] = Pump;
+                Lasers[GroundLevelIndex + 1] = Stokes;
 
                 // Propagate the global wavefunction by one time step Δt
                 evolveGlobalState(Lasers, instruction.m_targets[0]);
