@@ -21,6 +21,7 @@ namespace KetCat
     /// @brief Physical configuration for a coherent two-photon transition.
     struct TwoPhotonConfig
     {
+        natural_t m_GroundLevelIndex; ///< The first affected bases state index to fill the resulting laser array
         real_t m_Level1Energy;        ///< Energy of state |1⟩ (ground state, logical |0⟩)
         real_t m_Level2Energy;        ///< Energy of state |2⟩ (intermediate state)
         real_t m_Level3Energy;        ///< Energy of state |3⟩ (excited state, logical |1⟩)
@@ -39,15 +40,16 @@ namespace KetCat
     /// @details Contains the precalculated values required for the Gaussian envelope generation.
     struct EnvelopeParams
     {
-        real_t m_omegaP;    ///< Pump frequency
-        real_t m_omegaS;    ///< Stokes frequency
-        real_t m_peakRabi;  ///< Peak amplitude
-        real_t m_phaseP;    ///< Pump phase
-        real_t m_sigma;     ///< Gaussian width
-        real_t m_tP;        ///< Pump center
-        real_t m_tS;        ///< Stokes center
-        real_t m_tLimit;    ///< Evaluation cutoff
-        real_t m_tStart;    ///< Start time in case of fractional STIRAP
+        natural_t m_GroundLevelIndex;  ///< The first affected bases state index to fill the resulting laser array
+        real_t m_omegaP;         ///< Pump frequency
+        real_t m_omegaS;         ///< Stokes frequency
+        real_t m_peakRabi;       ///< Peak amplitude
+        real_t m_phaseP;         ///< Pump phase
+        real_t m_sigma;          ///< Gaussian width
+        real_t m_tP;             ///< Pump center
+        real_t m_tS;             ///< Stokes center
+        real_t m_tLimit;         ///< Evaluation cutoff
+        real_t m_tStart;         ///< Start time in case of fractional STIRAP
         real_t m_PiTransferTime; ///< Theoretical transfer time needed for a full Pi transition
     };
 
@@ -76,6 +78,11 @@ namespace KetCat
         /// @brief Construct from pre-calculated parameters.
         constexpr TwoPhotonLaserEnvelope(const EnvelopeParams& params) noexcept
             : m_Parameters(params) {
+        }
+
+        constexpr natural_t getGroundLevelIndex() const noexcept
+        {
+            return m_Parameters.m_GroundLevelIndex;
         }
 
         /// @brief Evaluate pump and Stokes pulses at time t.
@@ -123,6 +130,9 @@ namespace KetCat
         TwoPhotonLaserEnvelope build() const
         {
             EnvelopeParams Parameters;
+
+			// Copy the index of the first affected base state which will be used to fill the lasers array
+			Parameters.m_GroundLevelIndex = m_config.m_GroundLevelIndex;
 
             // 1. Calculate base frequencies
             Parameters.m_omegaP = (m_config.m_Level2Energy - m_config.m_Level1Energy) + m_config.m_commonDetuning;

@@ -150,10 +150,8 @@ namespace KetCat
                     Envelope(TimeMaster::Clock().getCurrentInstructionTime() + TimeShift);
 
                 // Map laser fields to the corresponding energy levels in the operation space
+                const natural_t GroundLevelIndex = Envelope.getGroundLevelIndex();
                 typename MultiRwaRabiHamiltonian<ConfigType::LevelCount>::template laser_array_t Lasers;
-                natural_t GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
-                    ? ConfigType::Logical1Level
-                    : ConfigType::Logical0Level;
                 Lasers[GroundLevelIndex] = Pump;
                 Lasers[GroundLevelIndex + 1] = Stokes;
 
@@ -192,10 +190,11 @@ namespace KetCat
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
 
+            static CrankNicolsonSolver<typename GlobalStateManager::
+                template OperationSpace<1>> Solver;
+
 			Hamiltonian.updateMainDiagonal(lasers);
 			Hamiltonian.updateOffDiagonal(lasers);
-
-            static CrankNicolsonSolver<typename GlobalStateManager::template OperationSpace<1>> Solver;
 			Solver.updateMatrices(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
