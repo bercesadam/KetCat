@@ -23,13 +23,22 @@ int main()
         QuantumNumber<20, s>, /*4*/
         QuantumNumber<20, p>  /*5*/
         > Config;
-        
-    auto Circuit = QuantumCircuit<1>().withGates(
+    
+    auto Circuit2 = QuantumCircuit<2>().withGates(
         QuantumGate<1, GateType::X>().toBits(0),
-		QuantumGate<1, GateType::X>().toBits(0),
-        QuantumGate<1, GateType::Y>().toBits(0),
-        QuantumGate<1, GateType::H>().toBits(0)
+        QuantumGate<2, GateType::CZ>().toBits(0, 1),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1)
     );
 
-    QuantumProcessor<1, Config>("smoke_test.kwf").execute(Circuit);
+    QuantumProcessor<2, Config>("smoke_test2.kwf").execute(Circuit2);
+
+    auto Circuit3 = QuantumCircuit<2>().withGates(
+        QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1)
+    );
+
+    QuantumProcessor<2, Config>("smoke_test3.kwf").execute(Circuit3);
+
+
+   
 }

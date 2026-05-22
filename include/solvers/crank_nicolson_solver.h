@@ -65,18 +65,6 @@ namespace KetCat
         matrix_type m_B;
 
     public:
-        /// @brief  Constructs the time evolution operator.
-        /// @param  hamiltonian  Hamiltonian operator of the system.
-        /// @param  dt           Time step size.
-        ///
-        /// @details
-        /// The constructor precomputes the Crank–Nicolson matrices A and B,
-        /// which are reused for each time step.
-        constexpr CrankNicolsonSolver(const matrix_type& hamiltonian, real_t dt) noexcept
-        {
-            buildCrankNicolsonMatrices(hamiltonian, dt);
-        }
-
         /// @brief  Advances the state vector by one time step.
         /// @param  psi     State vector at time step n.
         /// @return         State vector at time step n+1.
@@ -89,15 +77,14 @@ namespace KetCat
             operator()(const StateVector<HilbertSpace>& psi) const noexcept
         {
             // RHS = B · ψⁿ
-            const auto Rhs = multiply(m_B, psi);
+            auto Rhs = multiply(m_B, psi);
 
             // Solve A · ψⁿ⁺¹ = RHS
             return LinearSolver<Backend, Dim>::
                 template solve<HilbertSpace>(m_A, Rhs);
         }
 
-    private:
-        /// @brief  Helper function to construct the Crank–Nicolson system matrices A and B.
+        /// @brief  Construct/update the Crank–Nicolson system matrices A and B.
         /// @tparam Dim     Dimension of the Hilbert space.
         /// @param  hamiltonian  Hamiltonian operator of the system.
         /// @param  dt           Time step size.
@@ -111,7 +98,7 @@ namespace KetCat
         ///
         /// If the Hamiltonian matrix is tridiagonal, both A and B remain
         /// tridiagonal, enabling efficient O(N) time stepping.
-        constexpr void buildCrankNicolsonMatrices(
+        constexpr void updateMatrices(
             const matrix_type& H,
             real_t dt) noexcept
         {
@@ -139,6 +126,7 @@ namespace KetCat
             }
         }
 
+    private:
         /// @brief  Helper function to compute the product of an instance of the helper tridiagonal matrix type
         ///         and a state vector.
         /// @tparam Dim     Dimension of the vector space.

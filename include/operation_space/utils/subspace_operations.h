@@ -360,11 +360,12 @@ namespace KetCat
         ///
         /// This abstraction allows different operations (copy, transform,
         /// accumulate, etc.) to reuse the same indexing logic.
-        template <natural_t K>
+        template <natural_t K, typename Op>
         static constexpr void
-        tileOperationsCore(const qdit_list_t<K> targetQdits,
+            tileOperationsCore(
+                const qdit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
-                const std::function<void(natural_t, natural_t)>& operation) noexcept
+                Op&& operation) noexcept
         {
             // `targetQdits` is a function parameter and may not be a compile-time
             // constant. Use a runtime check instead of static_assert which
@@ -503,16 +504,15 @@ namespace KetCat
         template <natural_t K>
         static constexpr void applyHamiltonian(CrankNicolsonSolver<OperationSpace<K>>& solver,
                                             StateVector<FullHilbertSpace>& psi,
-                                            qdit_list_t<K> targetQdits,
-                                            const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
+                                            qdit_list_t<K> targetQdits) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
-            StateVector<OperationSpace<K>> local{};
             StateVector<FullHilbertSpace> psiUpdated = psi;
 
-            for (natural_t b = 0; b < BlockCount; ++b)
+            for (int b = 0; b < BlockCount; ++b)
             {
+                StateVector<OperationSpace<K>> local{};
                 gatherTile<K>(psi, targetQdits, b, local);
                 auto updatedLocal = solver(local);
                 scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);

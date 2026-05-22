@@ -32,14 +32,16 @@ namespace KetCat
     template <natural_t QubitCount, NeutralAtomTypeConfig Config>
     class SimulationObserver
     {
-        using FullHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomFullHilbertSpace;
-        using OperationHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomOperationHilbertSpace;
+        using ConfigType = std::remove_cvref_t<decltype(Config)>;
+        using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
+        using VisuHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomFullHilbertSpace;
+        using FullHilbertSpace = typename GlobalStateManager::FullHilbertSpace;
 
         /// @brief Transformer to map numerical simulation data to visualizable structures.
         SimulationViewBuilder<Config> m_ViewBuilder;
 
         /// @brief Binary stream handler for simulation data persistence.
-        StateVectorExporter<FullHilbertSpace> m_Exporter;
+        StateVectorExporter<VisuHilbertSpace> m_Exporter;
 
         /// @brief Label for the current logical operation being recorded.
         std::string m_SimulationStepName;
@@ -82,26 +84,29 @@ namespace KetCat
         /// @details
         ///    Calculates the instantaneous basis state probabilities and passes 
         ///    the formatted view to the binary exporter if the capture criteria are met.
-        void exportStep(const StateVector<OperationHilbertSpace>& psi,
+        void exportStep(const StateVector<FullHilbertSpace>& psi,
             const LaserPulse& laser1, const LaserPulse& laser2,
             const bool isKeyFrame = false)
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
+                auto q0 = GlobalStateManager::extractLocalState(psi, 0);
+
                 auto SimulationView =
                     m_ViewBuilder.build(
                         m_SimulationStepName, TimeMaster::Clock().getGlobalTime(),
-                        psi, laser1, laser2);
+                        q0.pureStateVector, laser1, laser2);
 
                 m_Exporter.writeTimestep(SimulationView);
 
                 std::cout << "Exported frame " << m_FrameCounter << ": " << m_SimulationStepName
-					<< " at time " << SimulationView.m_time * 1E9 << " ns" << std::endl;
+					<< " at time " << SimulationView.m_time * 1E9 << " ns" << std::endl << std::endl;
 
                 // Diagnostic terminal output, only for debugging, to be prettified or removed
                 for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
                 {
-                    std::cout << "Probability of basis state " << i << ": " << psi[i].normSquared() * 100.0 << "%" << std::endl;
+                    std::cout << "Probability of basis state " << i << ": " << q0.pureStateVector[i].normSquared() * 100.0 << "%\t";
+                    std::cout << "Re: " << q0.pureStateVector[i].re << "\tIm: " << q0.pureStateVector[i].im << std::endl;
                 }
                 std::cout << "------------------------" << std::endl;
             }

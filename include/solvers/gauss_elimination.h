@@ -12,7 +12,7 @@ namespace KetCat
         template<hilbert_space_t HilbertSpace>
         static constexpr StateVector<HilbertSpace>
             solve(square_matrix_t<Dim> M,
-                StateVector<HilbertSpace> psi) noexcept
+                StateVector<HilbertSpace>& psi) noexcept
         {
             // Forward elimination
             for (natural_t k = 0; k < Dim; ++k)

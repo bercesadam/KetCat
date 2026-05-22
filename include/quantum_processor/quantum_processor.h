@@ -24,8 +24,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 1000; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 1E7;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -56,7 +56,7 @@ namespace KetCat
         LaserPulseSequencer<Config, QubitCount> m_laserSequencer;
 
         /// @brief Helper class which generates the simulation data file output.
-        SimulationObserver<1, Config> m_SimulationObserver;
+        SimulationObserver<QubitCount, Config> m_SimulationObserver;
 
     public:
         /// @brief Initialize the processor with a specific time-step for TDSE.
@@ -138,7 +138,7 @@ namespace KetCat
             real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
             real_t TimeShift = Envelope.getStartTime();
 
-			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << (Units::AtomicTimeToSeconds * TransitionTimeLimit) << " ns" << std::endl;
+			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << (Units::AtomicTimeToSeconds * TransitionTimeLimit) * 1E9 << " ns" << std::endl;
 			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
 
 			LaserPulse Pump, Stokes;
@@ -159,18 +159,14 @@ namespace KetCat
 
                 // Propagate the global wavefunction by one time step Δt
                 evolveGlobalState(Lasers, instruction.m_targets[0]);
-
-                auto q0 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 0);
-				m_SimulationObserver.exportStep(q0.pureStateVector, Pump, Stokes);
+               
+				m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
 
                 TimeMaster::Clock().tick();
             }
 
-            
-            auto q0 = GlobalStateManager::extractLocalState(m_GlobalStateVector, 0);
-
 			// Ensure that the final state at the end of the pulse is captured
-            m_SimulationObserver.exportStep(q0.pureStateVector, Pump, Stokes, KEYFRAME);
+            m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();
@@ -193,15 +189,18 @@ namespace KetCat
             static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
                 m_Manifold.getDipoleMatrix();
 
-            MultiRwaRabiHamiltonian<ConfigType::LevelCount>
+            static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
 
-            CrankNicolsonSolver<typename GlobalStateManager::template OperationSpace<1>>
-                Solver(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
+			Hamiltonian.updateMainDiagonal(lasers);
+			Hamiltonian.updateOffDiagonal(lasers);
+
+            static CrankNicolsonSolver<typename GlobalStateManager::template OperationSpace<1>> Solver;
+			Solver.updateMatrices(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
-             GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets, Hamiltonian.getMatrix());
+             GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets);
         }
     };
 }
