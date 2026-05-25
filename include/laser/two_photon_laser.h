@@ -97,8 +97,8 @@ namespace KetCat
                 gaussian(evalTime, m_Parameters.m_tS, m_Parameters.m_sigma);
 
             return {
-                LaserPulse{ m_Parameters.m_omegaP, ampP, m_Parameters.m_phaseP },
-                LaserPulse{ m_Parameters.m_omegaS, ampS, 0.0 }
+                LaserPulse{ m_Parameters.m_GroundLevelIndex, m_Parameters.m_omegaP, ampP, m_Parameters.m_phaseP },
+                LaserPulse{ m_Parameters.m_GroundLevelIndex, m_Parameters.m_omegaS, ampS, 0.0 }
             };
         }
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "hilbert_space/matrix.h"
+#include "operation_space/utils/matrix.h"
 #include "hilbert_space/state_vector.h"
 #include "quantum_gates/gates.h"
 
@@ -63,7 +63,7 @@ namespace KetCat
             {
                 for (natural_t row = 0; row < Dim; ++row)
                 {
-                    Result(row, col) =
+                    Result.at(row, col) =
                         basisOutputs[col][row];
                 }
             }

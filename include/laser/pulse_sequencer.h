@@ -127,6 +127,7 @@ namespace KetCat
 
         std::array<detail::AtomControlData, AtomCount> m_AtomControlState;
 
+
         /// @brief Construct physical laser configuration for a pulse command.
         ///
         /// @details
@@ -159,16 +160,25 @@ namespace KetCat
 
             LaserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
-            LaserConfig.m_targetTheta = instruction.m_theta;
 
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             LaserConfig.m_pumpPhase = instruction.m_phase - atomControl.m_framePhase;
             LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
 
+            //
+            LaserConfig.m_targetTheta =
+                (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP ?
+                ConstexprMath::Pi - instruction.m_theta : instruction.m_theta);
+
             return LaserConfig;
         }
 
     public:
+        constexpr void initializeAtomAsLogical1(natural_t index)
+        {
+            m_AtomControlState[index].m_stirapCycleTheta = ConstexprMath::Pi;
+        }
+
         /// @brief Generate the time-dependent envelope for a physical instruction.
         ///
         /// @param instruction The logical gate/pulse to be implemented.

@@ -3,6 +3,8 @@
 #include <variant>
 #include <tuple>
 #include <utility>
+#include <algorithm> 
+#include <ranges>
 #include <type_traits>
 
 #include "operation_space/neutral_atom_manifold.h"
@@ -25,7 +27,7 @@ namespace KetCat
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
     constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E7;
+    constexpr natural_t SimuSaveNthFrame = 5E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -59,16 +61,31 @@ namespace KetCat
         SimulationObserver<QubitCount, Config> m_SimulationObserver;
 
     public:
+		decltype(m_GlobalStateVector) globalStateVector() const
+        {
+            return m_GlobalStateVector;
+        }
+
         /// @brief Initialize the processor with a specific time-step for TDSE.
         ///
         /// @param simulationOutputFileName Output filename for the simulation data
-        constexpr QuantumProcessor(std::string simulationOutputFileName) :
+        constexpr QuantumProcessor(std::string simulationOutputFileName)
+        {
+            QuantumProcessor(simulationOutputFileName, std::bitset<QubitCount>{});
+        }
+
+        constexpr QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
             m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
         {
             TimeMaster::Clock().init(CrankNicolsonTimeStep);
-            StateVector<decltype(m_Manifold)::SingleAtomOperationHilbertSpace>
-                OneAtomSeed = m_Manifold.getOperationSeed();
-            m_GlobalStateVector = GlobalStateManager::productStateFromSeed(OneAtomSeed);
+
+            m_GlobalStateVector = 
+                GlobalStateManager::basisStateFromBitstring(initialBitString,
+                    ConfigType::Logical0Level, ConfigType::Logical1Level);
+
+            std::ranges::for_each(std::views::iota(0U, QubitCount) |
+                std::views::filter([&](auto i) { return initialBitString.test(i); }),
+                [&](auto i) { m_laserSequencer.initializeAtomAsLogical1(i); });
         }
 
         /// @brief Execute a logical quantum circuit.
@@ -199,7 +216,7 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
-             GlobalStateManager::applyHamiltonian<1>(Solver, m_GlobalStateVector, targets);
+             GlobalStateManager::performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
         }
     };
 }
