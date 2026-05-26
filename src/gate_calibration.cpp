@@ -222,6 +222,14 @@ namespace KetCat
         {
             std::array<GlobalStateVectorType, 2> basis_outputs;
 
+            // Running from pure |0> state
+            {
+                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
+                auto QPU = QPUType("x_calib_0_" + std::to_string(theta) + ".kwf", 0);
+                QPU.execute<1>(Circuit);
+                basis_outputs[0] = QPU.globalStateVector();
+            }
+        
             // Running from pure |1> state
             {
                 auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
@@ -230,14 +238,6 @@ namespace KetCat
                 basis_outputs[1] = QPU.globalStateVector();
             }
 
-            // Running from pure |0> state
-            {
-                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
-                auto QPU = QPUType("x_calib_0_" + std::to_string(theta) + ".kwf", 0);
-                QPU.execute<1>(Circuit);
-                basis_outputs[0] = QPU.globalStateVector();
-            }
-    
 
             // Build the effective 2x2 matrix using your GateDiagnostic class
             Matrix<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(basis_outputs);
@@ -247,40 +247,42 @@ namespace KetCat
             real_t err = GateDiagnostic<2>::globalPhase(U_eff, U_ideal);
             rx_phase_errors.push_back(err);
         }
-        PolyCoefficients rx_coeffs = GateCalibrator::fitQuadratic(theta_points, rx_phase_errors);
-        std::cout << " -> Rx Polynomial: c2=" << rx_coeffs.c2 << ", c1=" << rx_coeffs.c1 << ", c0=" << rx_coeffs.c0 << std::endl;
 
-        /*
-        // -------------------------------------------------------------------------
-        // 2. SWEEP: Ry Gate calibration
-        // -------------------------------------------------------------------------
-        std::cout << "\n[2/3] Running Ry gate sweep..." << std::endl;
         for (real_t theta : theta_points)
         {
-            std::array<StateVector<SixLevelAtom>, 2> basis_outputs;
+            std::array<GlobalStateVectorType, 2> basis_outputs;
 
+            // Running from pure |1> state
             {
-                QpuSimulator sim;
-                sim.setInitialState(0);
-                sim.runPhysicalPulse(GateType::RY, theta);
-                basis_outputs[0] = sim.getGlobalStateVector();
-            }
-            {
-                QpuSimulator sim;
-                sim.setInitialState(2);
-                sim.runPhysicalPulse(GateType::RY, theta);
-                basis_outputs[1] = sim.getGlobalStateVector();
+                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RY>().withTheta(theta).toBits(0));
+                auto QPU = QPUType("y_calib_1_" + std::to_string(theta) + ".kwf", 1);
+                QPU.execute<1>(Circuit);
+                basis_outputs[1] = QPU.globalStateVector();
             }
 
-            square_matrix_t<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(basis_outputs);
-            square_matrix_t<2> U_ideal = GateCalibrator::buildIdealRy(theta);
+            // Running from pure |0> state
+            {
+                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RY>().withTheta(theta).toBits(0));
+                auto QPU = QPUType("y_calib_0_" + std::to_string(theta) + ".kwf", 0);
+                QPU.execute<1>(Circuit);
+                basis_outputs[0] = QPU.globalStateVector();
+            }
 
+            // Build the effective 2x2 matrix using your GateDiagnostic class
+            Matrix<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(basis_outputs);
+            Matrix<2> U_ideal = GateCalibrator::buildIdealRy(theta);
+
+            // Compute the phase error between the theoretical and effective representations
             real_t err = GateDiagnostic<2>::globalPhase(U_eff, U_ideal);
             ry_phase_errors.push_back(err);
         }
+
+        PolyCoefficients rx_coeffs = GateCalibrator::fitQuadratic(theta_points, rx_phase_errors);
+        std::cout << " -> Rx Polynomial: c2=" << rx_coeffs.c2 << ", c1=" << rx_coeffs.c1 << ", c0=" << rx_coeffs.c0 << std::endl;
+
         PolyCoefficients ry_coeffs = GateCalibrator::fitQuadratic(theta_points, ry_phase_errors);
         std::cout << " -> Ry Polynomial: c2=" << ry_coeffs.c2 << ", c1=" << ry_coeffs.c1 << ", c0=" << ry_coeffs.c0 << std::endl;
-
+        /*
         // -------------------------------------------------------------------------
         // 3. CALIBRATION: Two-qubit CPhase (36x36 Hamiltonian space)
         // -------------------------------------------------------------------------
@@ -303,12 +305,12 @@ namespace KetCat
         std::cout << " -> Control local error: " << cz_result.controlFramePhaseError << " rad." << std::endl;
         std::cout << " -> Target local error: " << cz_result.targetFramePhaseError << " rad." << std::endl;
         std::cout << " -> Actual Rydberg phase twist: " << cz_result.actualCzPhase << " rad." << std::endl;
-
+        */
         // -------------------------------------------------------------------------
         // HEADER EXPORT
         // -------------------------------------------------------------------------
-        generateCalibrationHeader(rx_coeffs, ry_coeffs, cz_result);
-        */
+        generateCalibrationHeader(rx_coeffs, ry_coeffs, TwoQubitCalibResult{});
+        
         return 0;
     }
 }
