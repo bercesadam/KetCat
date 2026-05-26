@@ -212,7 +212,11 @@ namespace KetCat
                 // a little bit longer than the time yielded from the theoretical formula
                 // This is a simple solution to avoid issues because of abrupted pulses
                 // a better solution would be a gentle logarithmic tail to be developed later
-                constexpr real_t SafetyMarginRatio = 0.005;
+                real_t SafetyMarginRatio = 0.005;
+                if (m_config.m_protocol == TwoPhotonProtocol::InvertedSTIRAP)
+                {
+                    SafetyMarginRatio *= -1.0;
+                }
 
 				// The ratio of the desired rotation angle to a full π rotation determines how much longer we need to run the
                 // pulse beyond the theoretical transfer time.

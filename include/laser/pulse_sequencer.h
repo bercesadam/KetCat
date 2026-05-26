@@ -166,9 +166,12 @@ namespace KetCat
             LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
 
             //
-            LaserConfig.m_targetTheta =
-                (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP ?
-                ConstexprMath::Pi - instruction.m_theta : instruction.m_theta);
+            LaserConfig.m_targetTheta = instruction.m_theta;
+            if (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP &&
+                !(ConstexprMath::floatNear(ConstexprMath::Pi, LaserConfig.m_targetTheta)))
+            {
+                LaserConfig.m_targetTheta = ConstexprMath::Pi - instruction.m_theta;
+            }
 
             return LaserConfig;
         }
