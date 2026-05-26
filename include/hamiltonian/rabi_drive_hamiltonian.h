@@ -145,6 +145,11 @@ namespace KetCat
                             continue;
                         }
 
+                        if ((level == i && j == i + 1) || (level == i - 1 && j == i - 1))
+                        {
+                            continue;
+                        }
+
                         const real_t DipoleElm = m_DipoleMatrix[i][j].re;
 
                         /// Half Rabi frequency:
