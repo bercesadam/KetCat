@@ -715,18 +715,19 @@ namespace KetCat
 
             Info.rho = reducedDensityMatrix(psi, QubitIndex);
             Info.purityValue = purity(Info.rho);
+            Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
 
             constexpr real_t PurityThreshold = real_t(1) - real_t(1e-10);
 
             if (Info.purityValue >= PurityThreshold)
             {
                 Info.kind = LocalStateQualifier::Pure;
-                Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
+               // Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
             }
             else
             {
                 Info.kind = LocalStateQualifier::Entangled;
-                Info.pureStateVector = StateVector<OneQubitSpace>{};  // zeroed, intentionally invalid
+               // Info.pureStateVector = StateVector<OneQubitSpace>{};  // zeroed, intentionally invalid
             }
 
             return Info;
