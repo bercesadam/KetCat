@@ -22,6 +22,13 @@ namespace KetCat
             /// @brief Current position in the continuous STIRAP cycle θ_accum.
             /// @details Tracks the total mixing angle in the range [0, 2π).
             real_t m_stirapCycleTheta = 0.0;
+              
+			/// @brief Flag indicating if the atom is currently in the Rydberg state.
+			/// @details As Rydberg excitations are always complete STIRAP cycles
+			/// and also it's independent from the logical state, we  track this separately
+            /// to don't mix with the concept behind m_stirapCycleTheta, but still
+			/// allowing the control logic to know if STIRAP or Inverted STIRAP should be used
+			bool m_isRydbergExcited = false;  
 
             bool m_isInitialized = false;
 
@@ -163,9 +170,32 @@ namespace KetCat
 
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             LaserConfig.m_pumpPhase = instruction.m_phase - atomControl.m_framePhase;
-            LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
+            
+            // For performing Rydberg blockades, which is independent from the control state
+            // betweem the energy levels corresponding to the logical states we  toggle between
+			// STIRAP and Inverted STIRAP protocols based on the excitation flag stored in atom control data.
+            if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+            {
+                if (!atomControl.m_isRydbergExcited)
+                {
+					LaserConfig.m_protocol = TwoPhotonProtocol::STIRAP;
+                    atomControl.m_isRydbergExcited = true;
+                }
+                else
+                {
+					LaserConfig.m_protocol = TwoPhotonProtocol::InvertedSTIRAP;
+                    atomControl.m_isRydbergExcited = false;
+                }
+            }
+			// For performing one qubit logical rotations (X/Y), we toggle between STIRAP and Inverted STIRAP protocols
+            // based on the accumulated rotation angle stored in atom control data.
+            else
+            {
+                LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
+            }
 
-            //
+			// In case in inverted STIRAP sequences we need to adjust the target theta to be the
+            // complementary angle to ensure the correct rotation direction
             LaserConfig.m_targetTheta = instruction.m_theta;
             if (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP &&
                 !(ConstexprMath::floatNear(ConstexprMath::Pi, LaserConfig.m_targetTheta)))
