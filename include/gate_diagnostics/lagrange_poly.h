@@ -48,20 +48,20 @@ namespace KetCat
         ///
         /// @param x Sample x coordinates.
         /// @param y Sample y coordinates.
-        constexpr void PolynomialInterpolator(const std::array<real_t, DataPoints>& x, const std::array<real_t, DataPoints>& y) noexcept
+        constexpr PolynomialInterpolator(const std::array<real_t, DataPoints>& x, const std::array<real_t, DataPoints>& y) noexcept
             : m_X(x), m_Coefficients(y)
         {
             // Build upper-triangular divided-difference table in-place.
             //
             // After completion:
             //   m_coefficients[i] contains Newton coefficient aᵢ.
-            for (natural_t Order = 1; Order < n; ++Order)
+            for (natural_t Order = 1; Order < DataPoints; ++Order)
             {
                 for (natural_t i = DataPoints; i >= Order; --i)
                 {
-                    const real_t dx =  m_x[i] - m_x[i - Order];
+                    const real_t Dx =  m_X[i] - m_X[i - Order];
 
-                    m_Coefficients[i] = (m_Coefficients[i] - m_Coefficients[i - 1]) / dx;
+                    m_Coefficients[i] = (m_Coefficients[i] - m_Coefficients[i - 1]) / Dx;
 
                     // Prevent unsigned wraparound.
                     if (i == Order)
