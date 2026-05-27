@@ -1,6 +1,6 @@
 #pragma once
 #include "core_types.h"
-#include 
+#include "operation_space/utils/matrix.h"
 
 namespace KetCat
 {
@@ -35,14 +35,14 @@ namespace KetCat
     ///
     /// @return Dense tensor-product matrix.
     template<natural_t DimA, natural_t DimB>
-    constexpr square_matrix_t<DimA* DimB>
+    constexpr Matrix<DimA * DimB>
         tensorProduct(
-            const tridigonal_matrix_t<DimA>& A,
-            const tridigonal_matrix_t<DimB>& B) noexcept
+            const tridiagonal_matrix_t<DimA>& A,
+            const tridiagonal_matrix_t<DimB>& B) noexcept
     {
         constexpr natural_t ResultDim = DimA * DimB;
 
-        square_matrix_t<ResultDim> Result{};
+        Matrix<ResultDim> Result{};
 
         // Helper lambda for reading tridigonal elements
         auto getTridigonalElement =
@@ -52,17 +52,17 @@ namespace KetCat
         {
             if (row == col)
             {
-                return M[MAINDiGONAL][row];
+                return M[MAINDIAGONAL][row];
             }
 
             if (col == row + 1)
             {
-                return M[SUPERDiGONAL][row];
+                return M[SUPERDIAGONAL][row];
             }
 
             if (row == col + 1)
             {
-                return M[SUBDiGONAL][row];
+                return M[SUBDIAGONAL][row];
             }
 
             return complex_t::zero();

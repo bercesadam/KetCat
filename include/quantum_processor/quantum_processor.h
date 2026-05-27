@@ -16,6 +16,7 @@
 #include "laser/pulse_sequencer.h"
 
 #include "hamiltonian/rabi_drive_hamiltonian.h"
+#include "hamiltonian/two_atom_rydberg.h"
 #include "solvers/crank_nicolson_solver.h"
 
 #include "simulation_observer.h"
