@@ -11,7 +11,7 @@ namespace KetCat
     template <natural_t LevelCount>
     class TwoAtomRydbergBlockage
     {
-        constexpr natural_t Dim = LevelCount * LevelCount;
+        static constexpr natural_t Dim = LevelCount * LevelCount;
 
         /// @brief Bare energy levels of the system (e.g. Hartree units).
         std::array<real_t, LevelCount> m_Energies{};
@@ -26,7 +26,7 @@ namespace KetCat
         natural_t m_RydbergLevelIndex;
 
         /// @brief 
-        real_t m_VanDerWaals;
+        real_t m_VVanDerWaals;
 
     public:
         constexpr TwoAtomRydbergBlockage(
@@ -38,12 +38,12 @@ namespace KetCat
               m_DipoleMatrix(dipoleMatrix),
               m_RydbergLevelIndex(rydbergLevel)
         {
-            calculateVanDerWaals(atomDistance, rydbergLevel);
+            calculateVVanDerWaals(atomDistance, rydbergLevel);
         }
             
-        constexpr Matrix<Dim> getMatrix(tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
+        const Matrix<Dim> getMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
         {
-            tridiagonal_matrix_t<LevelCount> I;
+            tridiagonal_matrix_t<LevelCount> I{};
             std::fill(I[MAINDIAGONAL].begin(),
                 I[MAINDIAGONAL].end(),
                 complex_t::fromReal(1.0));
@@ -52,10 +52,16 @@ namespace KetCat
             Matrix<Dim> Atom2Excitation = tensorProduct(I, singleAtomRydbergExcitation);
 
             m_hamiltonianMatrix = Atom1Excitation + Atom2Excitation;
+
+			const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
+			m_hamiltonianMatrix.at(VrrIndex, VrrIndex) =
+                m_hamiltonianMatrix.at(VrrIndex, VrrIndex) + complex_t::fromReal(m_VVanDerWaals);
+
+			return m_hamiltonianMatrix;
         }
 
     private:
-        real_t calculateVanDerWaals(real_t atomDistanceR, natural_t rydbergIndex)
+        void calculateVVanDerWaals(real_t atomDistanceR, natural_t rydbergIndex)
         {
             real_t Sum = 0.0;
             real_t E_r = m_Energies[rydbergIndex];
@@ -88,7 +94,7 @@ namespace KetCat
 
             // V_vdw = C6 / R^6
             real_t r6 = std::pow(atomDistanceR, 6.0);
-            m_VanDerWaals = Sum / r6;
+            m_VVanDerWaals = Sum / r6;
         }
     };
 }

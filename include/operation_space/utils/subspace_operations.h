@@ -531,8 +531,8 @@ namespace KetCat
         ///    a. Gathers the relevant amplitudes from the global state vector into a local tile vector.
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
-        template <natural_t K>
-        static constexpr void performTimeEvolution(CrankNicolsonSolver<OperationSpace<K>>& solver,
+        template <natural_t K, LinearSolverBackend L>
+        static constexpr void performTimeEvolution(CrankNicolsonSolver<OperationSpace<K>, L>& solver,
                                             StateVector<FullHilbertSpace>& psi,
                                             qdit_list_t<K> targetQdits) noexcept
         {

@@ -144,6 +144,10 @@ namespace ConstexprMath
             return *this;
         }
 
+		/// @brief Three-way comparison operator for lexicographical ordering (first by real part, then by imaginary part).
+		/// @param other The complex number to compare with.
+        constexpr bool operator== (const Complex& other) const noexcept = default;
+
         /// @brief Complex conjugate.
         /// @return Conjugate (re, -im).
         constexpr Complex conj() const noexcept

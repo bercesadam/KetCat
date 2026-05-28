@@ -25,12 +25,12 @@ int main()
         > Config;
     
     auto Circuit = QuantumCircuit<2>().withGates(
-        QuantumGate<1, GateType::X>().toBits(0),
-        QuantumGate<2, GateType::CZ>().toBits(0, 1),
+        //QuantumGate<1, GateType::X>().toBits(0),
         QuantumGate<2, GateType::CZ>().toBits(0, 1)
+        //QuantumGate<2, GateType::CZ>().toBits(0, 1)
     );
 
-    QuantumProcessor<2, Config> QPU("smoke_test2.kwf", 0);
+    QuantumProcessor<2, Config> QPU("smoke_test", 3);
     QPU.execute(Circuit);
 
    

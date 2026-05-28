@@ -20,6 +20,9 @@ namespace KetCat::Units
     // 1 a.u. angular frequency in Hz: omega_au / AtomicTimeToSeconds
     constexpr real_t AuOmegaToHz = 1.0 / AtomicTimeToSeconds;
 
+	// 1 a.u. of length in meters (Bohr radius)
+	constexpr real_t MeterToAtomicLength = 1.0 / 5.29177210903e-11; // a.u. of length per meter
+
     
     // -------------------------------------------------------------------------
     // Angular frequency conversions

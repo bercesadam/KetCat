@@ -17,6 +17,7 @@
 
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "hamiltonian/two_atom_rydberg.h"
+
 #include "solvers/crank_nicolson_solver.h"
 
 #include "simulation_observer.h"
@@ -27,8 +28,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 5E6;
+    constexpr real_t CrankNicolsonTimeStep = 200; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 1E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -174,8 +175,18 @@ namespace KetCat
                 Lasers[GroundLevelIndex + 1] = Stokes;
 
                 // Propagate the global wavefunction by one time step Δt
-                evolveGlobalState(Lasers, instruction.m_targets[0]);
+				// Depending on the instruction type, we evolve either a single qubit (Raman rotation) or two qubits (Rydberg blockade).
+                if (instruction.m_type == PhysicalInstructionType::RamanRotation)
+                {
+                    evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
+                }
+                else if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+                {
+                    evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
+                }
+                else { }
                
+				/// Capture the current state and laser configuration for visualization/export.
 				m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
 
                 TimeMaster::Clock().tick();
@@ -197,7 +208,9 @@ namespace KetCat
         ///    1. Constructs the local RWA Hamiltonian Ĥ(t).
         ///    2. Builds the unitary propagator U(Δt) via Crank-Nicolson.
         ///    3. Applies U(Δt) to the target qubit in the global state vector.
-        void evolveGlobalState(const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers, const natural_t affectedQubit)
+        void evolveOneQubitGlobalState(
+            const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers,
+            const natural_t affectedQubit)
         {
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
@@ -218,6 +231,37 @@ namespace KetCat
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
              GlobalStateManager::performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
+        }
+
+        void evolveTwoQubitGlobalState(
+            const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers,
+            const natural_t controlAtom, const natural_t targetAtom)
+        {
+            static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
+                m_Manifold.getHartreeEnergies();
+
+            static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
+                m_Manifold.getDipoleMatrix();
+
+            static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
+                SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
+
+            static TwoAtomRydbergBlockage<ConfigType::LevelCount>
+                RydbergBlockage(Units::MeterToAtomicLength * 1E-9,
+                    ConfigType::RydbergLevel,
+                    HartreeEnergies,
+				DipoleMatrix);
+
+            // Use GaussianElimination backend for two-qubit dense Hamiltonians
+            static CrankNicolsonSolver<typename GlobalStateManager::
+                template OperationSpace<2>, LinearSolverBackend::GaussianElimination> Solver;
+
+            Solver.updateMatrices(RydbergBlockage.getMatrix(SingleAtomExcitation.getMatrix()).m,
+                TimeMaster::Clock().getTimeStep());
+
+            // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
+            std::array<natural_t, 2> targets = { controlAtom, targetAtom };
+            GlobalStateManager::performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
         }
     };
 }

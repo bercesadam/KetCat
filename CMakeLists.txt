@@ -16,7 +16,7 @@ file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
 # Compiler-specific settings
 # ----------------------------
 if (MSVC)
-    add_compile_options(/W4 /permissive- /O3)
+    add_compile_options(/W4 /permissive- /arch:AVX2 /O2 /GL /Gy /Gw /fp:fast /Oi /Ot /Ob3 /Oy /GF /Gm- /EHsc- /GR- /MP)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -g)
 endif()
@@ -41,7 +41,7 @@ foreach(SRC_FILE ${ALL_SOURCES})
     add_executable(${EXE_NAME} ${SRC_FILE})
 
     if (MSVC)
-        set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864")
+        set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864 /LTCG")
     else()
         # Linux/GCC
         target_link_options(${EXE_NAME} PRIVATE "-Wl,-z,stack-size=67108864")

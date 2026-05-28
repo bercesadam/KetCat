@@ -41,7 +41,7 @@ namespace KetCat
         SimulationViewBuilder<Config> m_ViewBuilder;
 
         /// @brief Binary stream handler for simulation data persistence.
-        StateVectorExporter<VisuHilbertSpace> m_Exporter;
+        std::array<std::unique_ptr<StateVectorExporter<VisuHilbertSpace>>, QubitCount> m_Exporter;
 
         /// @brief Label for the current logical operation being recorded.
         std::string m_SimulationStepName;
@@ -61,11 +61,15 @@ namespace KetCat
         SimulationObserver(const NeutralAtomManifold<Config>& manifold,
             const std::string fileName, const natural_t saveNthFrame)
             : m_ViewBuilder(manifold),
-            m_Exporter(fileName, ExportMode::RealImag),
-            m_SaveNthFrame(saveNthFrame)
+              m_SaveNthFrame(saveNthFrame)
         {
-            std::cout << "SimulationObserver initialized with file: " << fileName
-				<< " and save frequency: " << saveNthFrame << std::endl;
+            for (natural_t q = 0; q < QubitCount; ++q)
+            {
+                std::string qubitFileName = fileName + "_qubit" + std::to_string(q) + ".kwf";
+                m_Exporter[q] = std::make_unique<StateVectorExporter<VisuHilbertSpace>>(qubitFileName);
+                std::cout << "SimulationObserver initialized with file: " << qubitFileName << std::endl;
+			}
+            
         }
 
         /// @brief Update the metadata label for the current sequence of frames.
@@ -90,25 +94,30 @@ namespace KetCat
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
-                auto q0 = GlobalStateManager::extractLocalState(psi, 0);
-
-                auto SimulationView =
-                    m_ViewBuilder.build(
-                        m_SimulationStepName, TimeMaster::Clock().getGlobalTime(),
-                        q0.pureStateVector, laser1, laser2);
-
-                m_Exporter.writeTimestep(SimulationView);
-
-                std::cout << "Exported frame " << m_FrameCounter << ": " << m_SimulationStepName
-					<< " at time " << SimulationView.m_time * 1E9 << " ns" << std::endl << std::endl;
-
-                // Diagnostic terminal output, only for debugging, to be prettified or removed
-                for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                for (natural_t q = 0; q < QubitCount; ++q)
                 {
-                    std::cout << "Probability of basis state " << i << ": " << q0.pureStateVector[i].normSquared() * 100.0 << "%\t";
-                    std::cout << "Re: " << q0.pureStateVector[i].re << "\tIm: " << q0.pureStateVector[i].im << std::endl;
+                    auto qubitLocalState = GlobalStateManager::extractLocalState(psi, q);
+
+                    auto SimulationView =
+                        m_ViewBuilder.build(
+                            m_SimulationStepName, TimeMaster::Clock().getGlobalTime(),
+                            qubitLocalState.pureStateVector, laser1, laser2);
+
+                    m_Exporter[q]->writeTimestep(SimulationView);
+
+ 					std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
+
+                    // Diagnostic terminal output, only for debugging, to be prettified or removed
+                    for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                    {
+                        std::cout << "Probability of basis state " << i << ": " << qubitLocalState.pureStateVector[i].normSquared() * 100.0 << "%\t";
+                        std::cout << "Re: " << qubitLocalState.pureStateVector[i].re << "\tIm: " << qubitLocalState.pureStateVector[i].im << std::endl;
+                    }
                 }
-                std::cout << "------------------------" << std::endl;
+
+                std::cout << "Exported timeframe " << m_FrameCounter << ": " << m_SimulationStepName
+                    << " at time " << TimeMaster::Clock().getGlobalTime() * Units::AtomicTimeToSeconds * 1E9 << " ns" << std::endl;
+                std::cout << "------------------------" << std::endl << std::endl;
             }
 
             m_FrameCounter++;

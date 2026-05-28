@@ -172,9 +172,7 @@ namespace KetCat
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Result[i][j] =
-                        m[i][j]
-                        + rhs[i][j];
+                    Result.m[i][j] = m[i][j] + rhs.m[i][j];
                 }
             }
 
@@ -191,9 +189,7 @@ namespace KetCat
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Result[i][j] =
-                        m[i][j]
-                        - rhs[i][j];
+                    Result.m[i][j] = m[i][j] - rhs.m[i][j];
                 }
             }
 

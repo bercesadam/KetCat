@@ -96,7 +96,7 @@ namespace KetCat
 
                         const natural_t Row = i * DimB + n;
                         const natural_t Col = j * DimB + m;
-                        Result[Row][Col] = ContrnA * ContribB;
+                        Result.at(Row, Col) = ContrnA * ContribB;
                     }
                 }
             }
