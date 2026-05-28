@@ -133,21 +133,31 @@ namespace KetCat
         /// @param  M       Tridiagonal/square matrix.
         /// @param  psi    Input vector.
         /// @return         Resulting vector M · psi.
-        constexpr StateVector<HilbertSpace>
-            multiply(const matrix_type& M,
-                const StateVector<HilbertSpace>& psi) const noexcept
+        constexpr StateVector<HilbertSpace> multiply(const matrix_type& M, const StateVector<HilbertSpace>& psi) const noexcept
         {
             StateVector<HilbertSpace> Result{ complex_t::zero() };
 
-            for (natural_t i = 0; i < Dim; ++i)
+            if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
             {
-                for (natural_t j = 0; j < Dim; ++j)
+                Result[0] = M[MAINDIAGONAL][0] * psi[0] + M[SUPERDIAGONAL][0] * psi[1];
+
+                for (natural_t i = 1; i < Dim - 1; ++i)
                 {
-                    Result[i] = Result[i] +
-                        Matrix::get(M, i, j) * psi[j];
+                    Result[i] = M[SUBDIAGONAL][i] * psi[i - 1] +
+                        M[MAINDIAGONAL][i] * psi[i] +
+                        M[SUPERDIAGONAL][i] * psi[i + 1];
+                }
+
+                Result[Dim - 1] = M[SUBDIAGONAL][Dim - 1] * psi[Dim - 2] + M[MAINDIAGONAL][Dim - 1] * psi[Dim - 1];
+            }
+            else
+            {
+                for (natural_t i = 0; i < Dim; ++i) {
+                    for (natural_t j = 0; j < Dim; ++j) {
+                        Result[i] = Result[i] + M[i][j] * psi[j];
+                    }
                 }
             }
-
             return Result;
         }
     };

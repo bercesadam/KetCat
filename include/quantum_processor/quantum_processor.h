@@ -28,8 +28,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 200; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr real_t CrankNicolsonTimeStep = 5000; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 2E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -255,6 +255,9 @@ namespace KetCat
             // Use GaussianElimination backend for two-qubit dense Hamiltonians
             static CrankNicolsonSolver<typename GlobalStateManager::
                 template OperationSpace<2>, LinearSolverBackend::GaussianElimination> Solver;
+
+            SingleAtomExcitation.updateMainDiagonal(lasers);
+            SingleAtomExcitation.updateOffDiagonal(lasers);
 
             Solver.updateMatrices(RydbergBlockage.getMatrix(SingleAtomExcitation.getMatrix()).m,
                 TimeMaster::Clock().getTimeStep());
