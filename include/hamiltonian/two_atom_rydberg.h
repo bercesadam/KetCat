@@ -43,17 +43,28 @@ namespace KetCat
             
         const Matrix<Dim> getMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
         {
-            tridiagonal_matrix_t<LevelCount> I{};
-            std::fill(I[MAINDIAGONAL].begin(),
-                I[MAINDIAGONAL].end(),
-                complex_t::fromReal(1.0));
+            static const tridiagonal_matrix_t<LevelCount> I = []() {
+                tridiagonal_matrix_t<LevelCount> tmp{};
+                std::fill(tmp[MAINDIAGONAL].begin(),
+                    tmp[MAINDIAGONAL].end(),
+                    complex_t::fromReal(1.0));
+                return tmp;
+            }();
 
             Matrix<Dim> Atom1Excitation = tensorProduct(singleAtomRydbergExcitation, I);
             Matrix<Dim> Atom2Excitation = tensorProduct(I, singleAtomRydbergExcitation);
 
-            m_hamiltonianMatrix = Atom1Excitation + Atom2Excitation;
+            constexpr natural_t TotalElements = Dim * Dim;
+            const auto* Ptr1 = &Atom1Excitation.m[0][0];
+            const auto* Ptr2 = &Atom2Excitation.m[0][0];
+            auto* Dest = &m_hamiltonianMatrix.m[0][0];
 
-			const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
+            for (natural_t i = 0; i < TotalElements; ++i)
+            {
+                Dest[i] = Ptr1[i] + Ptr2[i];
+            }
+
+			static const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
 			m_hamiltonianMatrix.at(VrrIndex, VrrIndex) =
                 m_hamiltonianMatrix.at(VrrIndex, VrrIndex) + complex_t::fromReal(m_VVanDerWaals);
 
