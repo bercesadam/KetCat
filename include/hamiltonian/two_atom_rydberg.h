@@ -76,10 +76,13 @@ namespace KetCat
         ///   VrrIndex = r · LevelCount + r
         const pentadiagonal_matrix_t<Dim> getMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
         {
-            tridiagonal_matrix_t<LevelCount> I{};
-            std::fill(I[MAINDIAGONAL].begin(),
-                I[MAINDIAGONAL].end(),
-                complex_t::fromReal(1.0));
+            static const tridiagonal_matrix_t<LevelCount> I = []() {
+                tridiagonal_matrix_t<LevelCount> tmp{};
+                std::fill(tmp[MAINDIAGONAL].begin(),
+                    tmp[MAINDIAGONAL].end(),
+                    complex_t::fromReal(1.0));
+                return tmp;
+            }();
 
             pentadiagonal_matrix_t<Dim> Atom1Excitation = tensorProduct(singleAtomRydbergExcitation, I);
             pentadiagonal_matrix_t<Dim> Atom2Excitation = tensorProduct(I, singleAtomRydbergExcitation);

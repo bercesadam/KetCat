@@ -81,12 +81,10 @@ namespace KetCat
         /// time integration scheme. The loops are highly optimized via constexpr branch
         /// selection to ensure only the occupied bands are mapped from the source Hamiltonian.
         constexpr void updateMatrices(
-            const matrix_type& H,
-            real_t dt) noexcept
-        {
-            // i * dt / (2ℏ)
-            // where we set ℏ = 1 in atomic units, so the factor simplifies to i * dt / 2
-            const complex_t Factor(0.0, dt / 2.0);
+        const matrix_type& H,
+        real_t dt) noexcept
+    {
+        const complex_t Factor(0.0, dt / 2.0);
 
             if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
             {
@@ -139,6 +137,7 @@ namespace KetCat
                 }
             }
         }
+    }
 
     private:
         /// @brief  Computes the matrix-vector product of a banded matrix and a state vector.

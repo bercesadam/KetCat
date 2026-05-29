@@ -28,8 +28,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 200; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
+    constexpr natural_t SimuSaveNthFrame = 5E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -230,7 +230,7 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { affectedQubit };
-             GlobalStateManager::performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
+             GlobalStateManager::template performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
         }
 
         void evolveTwoQubitGlobalState(
@@ -261,7 +261,7 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
-            GlobalStateManager::performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
+            GlobalStateManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
         }
     };
 }
