@@ -99,32 +99,66 @@ namespace KetCat
         /// If the Hamiltonian matrix is tridiagonal, both A and B remain
         /// tridiagonal, enabling efficient O(N) time stepping.
         constexpr void updateMatrices(
-            const matrix_type& H,
-            real_t dt) noexcept
-        {
-            // i * dt / (2ℏ)
-            // where we set ℏ = 1 in atomic units, so the factor simplifies to i * dt / 2
-            const complex_t Factor(0.0, dt / 2.0);
+        const matrix_type& H,
+        real_t dt) noexcept
+    {
+        const complex_t Factor(0.0, dt / 2.0);
 
-            // Construct A = I + i·dt/(2ℏ)·H and B = I - i·dt/(2ℏ)·H
+        if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
+        {
+            // --- Főátlók ---
+            for (natural_t i = 0; i < Dim; ++i)
+            {
+                const complex_t h_ii = H[MAINDIAGONAL][i];
+
+                // A = I + i*dt/2 * H
+                m_A[MAINDIAGONAL][i] =
+                    complex_t::fromReal(1.0) + Factor * h_ii;
+
+                // B = I - i*dt/2 * H
+                m_B[MAINDIAGONAL][i] =
+                    complex_t::fromReal(1.0) - Factor * h_ii;
+            }
+
+            // --- Felső átló ---
+            for (natural_t i = 0; i < Dim - 1; ++i)
+            {
+                const complex_t h_sup = H[SUPERDIAGONAL][i];
+
+                m_A[SUPERDIAGONAL][i] = Factor * h_sup;
+                m_B[SUPERDIAGONAL][i] = -Factor * h_sup;
+            }
+
+            // --- Alsó átló ---
+            for (natural_t i = 1; i < Dim; ++i)
+            {
+                const complex_t h_sub = H[SUBDIAGONAL][i];
+
+                m_A[SUBDIAGONAL][i] = Factor * h_sub;
+                m_B[SUBDIAGONAL][i] = -Factor * h_sub;
+            }
+        }
+        else
+        {
+            // fallback: teljes mátrix
             for (natural_t i = 0; i < Dim; ++i)
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Matrix::set(m_A, i, j, 
-                        Factor * Matrix::get(H, i, j));
+                    const complex_t hij = Matrix::get(H, i, j);
 
-                    Matrix::set(m_B, i, j, 
-                        -Factor * Matrix::get(H, i, j));
+                    Matrix::set(m_A, i, j, Factor * hij);
+                    Matrix::set(m_B, i, j, -Factor * hij);
                 }
 
-                // Add the identity matrix contribution to the main diagonals
-                Matrix::set(m_A, i, i, 
+                Matrix::set(m_A, i, i,
                     complex_t::fromReal(1.0) + Matrix::get(m_A, i, i));
-                Matrix::set(m_B, i, i, 
+
+                Matrix::set(m_B, i, i,
                     complex_t::fromReal(1.0) + Matrix::get(m_B, i, i));
             }
         }
+    }
 
     private:
         /// @brief  Helper function to compute the product of an instance of the helper tridiagonal matrix type
