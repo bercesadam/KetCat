@@ -58,6 +58,14 @@ namespace KetCat
 	constexpr natural_t SUPERDIAGONAL = 0;
 	constexpr natural_t MAINDIAGONAL = 1;
 	constexpr natural_t SUBDIAGONAL = 2;
+
+	/// @brief Compact storage representation of a pentadiagonal matrix for 2D Hamiltonians
+	template<natural_t Dim>
+	using pentadiagonal_matrix_t = std::array<std::array<complex_t, Dim>, 5U>;
+
+	/// @brief Additional named constant indices for pentadiagonal_matrix_t
+	constexpr natural_t SUPERDIAGONAL2 = 3;
+	constexpr natural_t SUBDIAGONAL2 = 4;
 }
 
 ///@brief Tag struct to hold the spatial dimension's number

@@ -5,7 +5,8 @@
 
 namespace KetCat
 {
-    /// @brief Dense Gaussian elimination backend.
+	/// @brief Dense Gaussian elimination backend - currently unused and superseded by the Pentadiagonal solvers,
+    /// but retained for potential future use in non-banded systems.
     template<natural_t Dim>
     struct LinearSolver<LinearSolverBackend::GaussianElimination, Dim>
     {

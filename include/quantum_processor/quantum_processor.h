@@ -254,9 +254,9 @@ namespace KetCat
 
             // Use GaussianElimination backend for two-qubit dense Hamiltonians
             static CrankNicolsonSolver<typename GlobalStateManager::
-                template OperationSpace<2>, LinearSolverBackend::GaussianElimination> Solver;
+                template OperationSpace<2>, LinearSolverBackend::Pentadiagonal> Solver;
 
-            Solver.updateMatrices(RydbergBlockage.getMatrix(SingleAtomExcitation.getMatrix()).m,
+            Solver.updateMatrices(RydbergBlockage.getMatrix(SingleAtomExcitation.getMatrix()),
                 TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector

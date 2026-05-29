@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "matrix_access.h"
-#include "thomas_alogorithm.h"
-#include "gauss_elimination.h"
+#include "thomas_algorithm.h"
+#include "pentadiagonal_elimination.h"
 
 
 namespace KetCat
@@ -18,35 +18,23 @@ namespace KetCat
     /// where ψ(t) is a state vector in a finite-dimensional Hilbert space and
     /// H is the Hamiltonian operator of the system.
     ///
-    /// The Hamiltonian is provided explicitly as a matrix representation,
-    /// typically originating from a spatial discretization of the kinetic
-    /// and potential energy operators (e.g. finite-difference approximation
-    /// of the Laplacian plus a potential term).
+    /// The Hamiltonian is provided explicitly as a matrix representation. Depending
+    /// on the chosen backend, it targets specific grid-based structures:
+    ///  - ThomasTridiagonal: Designed for 1-dimensional finite-difference stencils.
+    ///  - Pentadiagonal: Designed for 2-dimensional Hamiltonians originating from the 
+    ///    2D Laplace operator, which can be expressed as the tensor product of two 
+    ///    independent 1D tridiagonal sub-operators.
     ///
     /// Time integration is performed using the Crank–Nicolson scheme, which
     /// corresponds to an implicit midpoint discretization in time:
     ///
     ///   ( I + i·Δt/(2ℏ) · H ) · ψⁿ⁺¹ = ( I - i·Δt/(2ℏ) · H ) · ψⁿ
     ///
-    /// This scheme is:
-    ///  - second-order accurate in time,
-    ///  - unconditionally stable,
-    ///  - norm-preserving for Hermitian Hamiltonians,
-    ///  - and therefore suitable for unitary quantum time evolution.
+    /// This scheme is second-order accurate in time, unconditionally stable,
+    /// and norm-preserving for Hermitian Hamiltonians.
     ///
-    /// In this implementation, the Hamiltonian is assumed to be time-independent
-    /// (or piecewise constant in time). As a consequence, the Crank–Nicolson
-    /// system matrices are constructed once and reused for each time step.
-    ///
-    /// If the Hamiltonian matrix is tridiagonal—as is the case for many
-    /// one-dimensional finite-difference discretizations—the resulting linear
-    /// system can be solved efficiently in O(N) time using the Thomas algorithm.
-
-    /// @brief Callable object performing one Crank–Nicolson time step.
-    ///
-    /// @details
-    /// The operator precomputes the Crank–Nicolson matrices A and B and
-    /// applies them to advance a quantum state vector by a single time step.
+    /// @tparam HilbertSpace The underlying quantum Hilbert space structure.
+    /// @tparam Backend      The linear solver backend to utilize (Tridiagonal or Pentadiagonal).
     template<hilbert_space_t HilbertSpace,
         LinearSolverBackend Backend = LinearSolverBackend::ThomasTridiagonal>
     class CrankNicolsonSolver
@@ -57,7 +45,7 @@ namespace KetCat
         using solver_traits_t = LinearSolverTraits<Backend, Dim>;
         using matrix_type = typename solver_traits_t::matrix_type;
 
-		// Alias for matrix access traits
+        // Alias for matrix access traits
         using Matrix = MatrixAccess<matrix_type>;
 
         // Precomputed matrices
@@ -85,19 +73,13 @@ namespace KetCat
         }
 
         /// @brief  Construct/update the Crank–Nicolson system matrices A and B.
-        /// @tparam Dim     Dimension of the Hilbert space.
-        /// @param  hamiltonian  Hamiltonian operator of the system.
+        /// @param  H            Hamiltonian operator of the system.
         /// @param  dt           Time step size.
-        /// @param  A            Output matrix A = I + i·dt/(2ℏ)·H.
-        /// @param  B            Output matrix B = I - i·dt/(2ℏ)·H.
         ///
         /// @details
         /// This function builds the two matrices required by the Crank–Nicolson
-        /// time integration scheme. The matrices arise from the implicit midpoint
-        /// discretization of the time-dependent Schrödinger equation.
-        ///
-        /// If the Hamiltonian matrix is tridiagonal, both A and B remain
-        /// tridiagonal, enabling efficient O(N) time stepping.
+        /// time integration scheme. The loops are highly optimized via constexpr branch
+        /// selection to ensure only the occupied bands are mapped from the source Hamiltonian.
         constexpr void updateMatrices(
             const matrix_type& H,
             real_t dt) noexcept
@@ -106,45 +88,96 @@ namespace KetCat
             // where we set ℏ = 1 in atomic units, so the factor simplifies to i * dt / 2
             const complex_t Factor(0.0, dt / 2.0);
 
-            // Construct A = I + i·dt/(2ℏ)·H and B = I - i·dt/(2ℏ)·H
-            for (natural_t i = 0; i < Dim; ++i)
+            if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
             {
-                for (natural_t j = 0; j < Dim; ++j)
+                // Standard O(N) tridiagonal assembly loop
+                for (natural_t i = 0; i < Dim; ++i)
                 {
-                    Matrix::set(m_A, i, j, 
-                        Factor * Matrix::get(H, i, j));
+                    for (natural_t j = 0; j < Dim; ++j)
+                    {
+                        Matrix::set(m_A, i, j, Factor * Matrix::get(H, i, j));
+                        Matrix::set(m_B, i, j, -Factor * Matrix::get(H, i, j));
+                    }
 
-                    Matrix::set(m_B, i, j, 
-                        -Factor * Matrix::get(H, i, j));
+                    // Add the identity matrix contribution to the main diagonals
+                    Matrix::set(m_A, i, i, complex_t::fromReal(1.0) + Matrix::get(m_A, i, i));
+                    Matrix::set(m_B, i, i, complex_t::fromReal(1.0) + Matrix::get(m_B, i, i));
                 }
+            }
+            else if constexpr (Backend == LinearSolverBackend::Pentadiagonal)
+            {
+                // Highly optimized O(N) pentadiagonal assembly loop targeting only populated diagonals
+                for (natural_t i = 0; i < Dim; ++i)
+                {
+                    // Main diagonal processing including identity addition
+                    Matrix::set(m_A, i, i, complex_t::fromReal(1.0) + Factor * Matrix::get(H, i, i));
+                    Matrix::set(m_B, i, i, complex_t::fromReal(1.0) - Factor * Matrix::get(H, i, i));
 
-                // Add the identity matrix contribution to the main diagonals
-                Matrix::set(m_A, i, i, 
-                    complex_t::fromReal(1.0) + Matrix::get(m_A, i, i));
-                Matrix::set(m_B, i, i, 
-                    complex_t::fromReal(1.0) + Matrix::get(m_B, i, i));
+                    // Immediate sub and super diagonals
+                    if (i > 0)
+                    {
+                        Matrix::set(m_A, i, i - 1, Factor * Matrix::get(H, i, i - 1));
+                        Matrix::set(m_B, i, i - 1, -Factor * Matrix::get(H, i, i - 1));
+                    }
+                    if (i < Dim - 1)
+                    {
+                        Matrix::set(m_A, i, i + 1, Factor * Matrix::get(H, i, i + 1));
+                        Matrix::set(m_B, i, i + 1, -Factor * Matrix::get(H, i, i + 1));
+                    }
+
+                    // Furthest sub and super diagonals (2nd order offsets from 2D Kronecker laplacian)
+                    if (i > 1)
+                    {
+                        Matrix::set(m_A, i, i - 2, Factor * Matrix::get(H, i, i - 2));
+                        Matrix::set(m_B, i, i - 2, -Factor * Matrix::get(H, i, i - 2));
+                    }
+                    if (i < Dim - 2)
+                    {
+                        Matrix::set(m_A, i, i + 2, Factor * Matrix::get(H, i, i + 2));
+                        Matrix::set(m_B, i, i + 2, -Factor * Matrix::get(H, i, i + 2));
+                    }
+                }
             }
         }
 
     private:
-        /// @brief  Helper function to compute the product of an instance of the helper tridiagonal matrix type
-        ///         and a state vector.
-        /// @tparam Dim     Dimension of the vector space.
-        /// @param  M       Tridiagonal/square matrix.
-        /// @param  psi    Input vector.
-        /// @return         Resulting vector M · psi.
+        /// @brief  Computes the matrix-vector product of a banded matrix and a state vector.
+        /// @param  M       Banded matrix storage framework instance.
+        /// @param  psi     Input quantum state vector.
+        /// @return         Resulting state vector M · psi.
+        ///
+        /// @details
+        /// Dispatches at compile time to the most efficient multiplication algorithm.
+        /// Eradicates dense O(N^2) loops in favor of strict O(N) banded traversals.
         constexpr StateVector<HilbertSpace>
             multiply(const matrix_type& M,
                 const StateVector<HilbertSpace>& psi) const noexcept
         {
             StateVector<HilbertSpace> Result{ complex_t::zero() };
 
-            for (natural_t i = 0; i < Dim; ++i)
+            if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
             {
-                for (natural_t j = 0; j < Dim; ++j)
+                // Standard tridiagonal matrix-vector multiplication
+                for (natural_t i = 0; i < Dim; ++i)
                 {
-                    Result[i] = Result[i] +
-                        Matrix::get(M, i, j) * psi[j];
+                    for (natural_t j = 0; j < Dim; ++j)
+                    {
+                        Result[i] = Result[i] +
+                            Matrix::get(M, i, j) * psi[j];
+                    }
+                }
+            }
+            else if constexpr (Backend == LinearSolverBackend::Pentadiagonal)
+            {
+                // Unrolled O(N) pentadiagonal matrix-vector multiplication skipping outer zero fields
+                for (natural_t i = 0; i < Dim; ++i)
+                {
+                    Result[i] = M[MAINDIAGONAL][i] * psi[i];
+
+                    if (i > 0)       Result[i] = Result[i] + M[SUBDIAGONAL][i] * psi[i - 1];
+                    if (i > 1)       Result[i] = Result[i] + M[SUBDIAGONAL2][i] * psi[i - 2];
+                    if (i < Dim - 1) Result[i] = Result[i] + M[SUPERDIAGONAL][i] * psi[i + 1];
+                    if (i < Dim - 2) Result[i] = Result[i] + M[SUPERDIAGONAL2][i] * psi[i + 2];
                 }
             }
 
