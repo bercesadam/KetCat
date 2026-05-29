@@ -104,4 +104,49 @@ namespace KetCat
 
         return Result;
     }
+
+    template<natural_t Dim>
+    constexpr void make_kronecker_sum_indices(
+        std::array<std::array<natural_t, 5>, Dim*Dim>& indices,
+        std::array<natural_t, Dim*Dim>& counts) noexcept
+    {
+        constexpr natural_t FullDim = Dim * Dim;
+
+        for (natural_t row = 0; row < FullDim; ++row)
+        {
+            const natural_t i = row / Dim;
+            const natural_t j = row % Dim;
+
+            natural_t count = 0;
+
+            // center
+            indices[row][count++] = row;
+
+            // (i-1, j)
+            if (i > 0)
+            {
+                indices[row][count++] = (i - 1) * Dim + j;
+            }
+
+            // (i+1, j)
+            if (i + 1 < Dim)
+            {
+                indices[row][count++] = (i + 1) * Dim + j;
+            }
+
+            // (i, j-1)
+            if (j > 0)
+            {
+                indices[row][count++] = i * Dim + (j - 1);
+            }
+
+            // (i, j+1)
+            if (j + 1 < Dim)
+            {
+                indices[row][count++] = i * Dim + (j + 1);
+            }
+
+            counts[row] = count;
+        }
+    }
 }

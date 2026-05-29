@@ -96,7 +96,10 @@ namespace KetCat
             m_File.open(filename, std::ios::binary | std::ios::out);
 
             if (!m_File.is_open())
-                throw std::runtime_error("Failed to open binary export file: " + filename);
+            {
+                std::cout << "Failed to open binary export file: " + filename << std::endl;
+                exit(1);
+            }
 
             writeFileHeader();
         }

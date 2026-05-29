@@ -16,9 +16,30 @@ file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
 # Compiler-specific settings
 # ----------------------------
 if (MSVC)
-    add_compile_options(/W4 /permissive- /arch:AVX2 /O2 /GL /Gy /Gw /fp:fast /Oi /Ot /Ob3 /Oy /GF /Gm- /EHsc- /GR- /MP)
+    add_compile_options(
+        /W4 /permissive- /arch:AVX2 /O2 /GL /Gy /Gw
+        /fp:fast /Oi /Ot /Ob3 /Oy /GF /Gm-
+        /EHsc- /GR- /MP
+    )
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -g)
+    add_compile_options(
+        -Wall -Wextra -Wpedantic
+        -O3
+        -mavx2
+        -ffast-math
+        -flto
+        -ffunction-sections
+        -fdata-sections
+        -fomit-frame-pointer
+        -finline-functions
+        -fno-exceptions
+        -fno-rtti
+    )
+
+    add_link_options(
+        -flto
+        -Wl,--gc-sections
+    )
 endif()
 
 if (MSVC)

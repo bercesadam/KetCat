@@ -123,7 +123,7 @@ namespace KetCat
         {
             if (!m_isTrained) 
             {
-                [] { throw "Orthonormalizer: learn() must be called before apply()!"; }();
+                std::cout << "Orthonormalizer: learn() must be called before apply()!" << std::endl;
             }
 
             basis_set_t<HilbertSpace, Dim> Transformed;
