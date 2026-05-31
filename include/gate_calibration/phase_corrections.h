@@ -4,6 +4,13 @@
 
 namespace KetCat
 {
+    /// @brief Calibration result structure for a two-qubit gate
+    struct TwoQubitCalibResult
+    {
+        real_t controlFramePhaseError = 0.0;
+        real_t targetFramePhaseError = 0.0;
+        real_t actualCzPhase = 0.0;
+    };
 
     /// @brief Exact polynomial interpolator using Newton divided differences.
     ///

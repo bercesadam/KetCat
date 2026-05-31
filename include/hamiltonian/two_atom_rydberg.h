@@ -1,7 +1,5 @@
 #pragma once
 #include "core_types.h"
-#include "matrix_utils/tridiagonal_kronecker.h"
-#include "operation_space/utils/matrix.h"
 
 
 namespace KetCat
@@ -26,10 +24,10 @@ namespace KetCat
     ///
     /// @tparam LevelCount The number of internal electronic energy levels resolved per single atom.
     template <natural_t LevelCount>
-    class TwoAtomRydbergBlockage
+    class TwoAtomRydbergBlockade
     {
-        /// @brief Global dimension of the joint 2-atom Hilbert space (Dim = LevelCount²).
-        static constexpr natural_t Dim = LevelCount * LevelCount;
+        /// @brief Global dimension of the joint 2-atom Hilbert space (LevelCount = LevelCount²).
+        static constexpr natural_t OutputDim = LevelCount * LevelCount;
 
         /// @brief Bare energy levels of the atomic system (e.g., in Hartree or atomic units).
         std::array<real_t, LevelCount> m_Energies{};
@@ -38,7 +36,7 @@ namespace KetCat
         square_matrix_t<LevelCount> m_DipoleMatrix{};
 
         /// @brief Cached compact pentadiagonal matrix representation of the joint 2-atom Hamiltonian.
-        pentadiagonal_matrix_t<Dim> m_hamiltonianMatrix;
+        five_band_matrix_t<LevelCount> m_hamiltonianMatrix;
 
         /// @brief Target electronic index corresponding to the highly excited Rydberg state |r⟩.
         natural_t m_RydbergLevelIndex;
@@ -52,7 +50,7 @@ namespace KetCat
         /// @param  rydbergLevel   The state index designating the target Rydberg level.
         /// @param  energies       The bare single-atom energy spectrum vector.
         /// @param  dipoleMatrix   The transition dipole moment matrix.
-        constexpr TwoAtomRydbergBlockage(
+        constexpr TwoAtomRydbergBlockade(
             const real_t atomDistance,
             const natural_t rydbergLevel,
             const std::array<real_t, LevelCount>& energies,
@@ -64,9 +62,18 @@ namespace KetCat
             calculateVVanDerWaals(atomDistance, rydbergLevel);
         }
 
+        /// @brief Get the current Hamiltonian matrix.
+        ///
+        /// @return
+        ///   Reference to the internal tridiagonal matrix.
+        constexpr const five_band_matrix_t<LevelCount>& getMatrix() const noexcept
+        {
+            return m_hamiltonianMatrix;
+        }
+
         /// @brief  Assembles and returns the joint pentadiagonal Hamiltonian matrix.
         /// @param  singleAtomRydbergExcitation Single-atom driving matrix (Rabi frequencies and detunings).
-        /// @return Const reference or value of the populated pentadiagonal_matrix_t.
+        /// @return Const reference or value of the populated five_band_matrix_t.
         ///
         /// @details
         /// Maps individual atomic operators to the tensor space via H = H₁ ⊗ I + I ⊗ H₂.
@@ -74,34 +81,14 @@ namespace KetCat
         /// diagonal element representing the doubly excited state:
         ///
         ///   VrrIndex = r · LevelCount + r
-        const pentadiagonal_matrix_t<Dim> getMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
+        constexpr void updateMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
         {
-            static const tridiagonal_matrix_t<LevelCount> I = []() {
-                tridiagonal_matrix_t<LevelCount> tmp{};
-                std::fill(tmp[MAINDIAGONAL].begin(),
-                    tmp[MAINDIAGONAL].end(),
-                    complex_t::fromReal(1.0));
-                return tmp;
-            }();
-
-            pentadiagonal_matrix_t<Dim> Atom1Excitation = tensorProduct(singleAtomRydbergExcitation, I);
-            pentadiagonal_matrix_t<Dim> Atom2Excitation = tensorProduct(I, singleAtomRydbergExcitation);
-
-            // Directly compute linear combination using continuous memory blocks
-            for (natural_t d = 0; d < 5U; ++d)
-            {
-                for (natural_t i = 0; i < Dim; ++i)
-                {
-                    m_hamiltonianMatrix[d][i] = Atom1Excitation[d][i] + Atom2Excitation[d][i];
-                }
-            }
+            m_hamiltonianMatrix = create2DHamiltonian(singleAtomRydbergExcitation);
 
             // Apply the non-local Rydberg interaction penalty V_vdW to the diagonal state |r,r⟩
             const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
             m_hamiltonianMatrix[MAINDIAGONAL][VrrIndex] =
                 m_hamiltonianMatrix[MAINDIAGONAL][VrrIndex] + complex_t::fromReal(m_VVanDerWaals);
-
-            return m_hamiltonianMatrix;
         }
 
     private:
@@ -117,7 +104,7 @@ namespace KetCat
         ///
         /// This assumes a geometric coupling coefficient of 4.0 matching quantizations along the 
         /// interatomic z-axis. The final energy penalty isscaled as V_vdW = C₆ / R⁶.
-        void calculateVVanDerWaals(real_t atomDistanceR, natural_t rydbergIndex)
+        constexpr void calculateVVanDerWaals(real_t atomDistanceR, natural_t rydbergIndex)
         {
             real_t Sum = 0.0;
             real_t E_r = m_Energies[rydbergIndex];
@@ -135,7 +122,7 @@ namespace KetCat
                     real_t Denominator = (2.0 * E_r) - (E_n1 + E_n2);
 
                     // Protect against near-resonant degeneracies where perturbation theory fails
-                    if (std::abs(Denominator) < 1e-12) continue;
+                    if (ConstexprMath::abs(Denominator) < 1e-12) continue;
 
                     // Fetch single-atom transition dipole matrix elements (r -> n1 and r -> n2)
                     real_t mu_1 = m_DipoleMatrix[rydbergIndex][n1].re;
@@ -151,6 +138,79 @@ namespace KetCat
             // Apply scaling: V_vdw = C6 / R^6
             real_t r6 = std::pow(atomDistanceR, 6.0);
             m_VVanDerWaals = Sum / r6;
+        }
+
+        /// @brief Constructs a 2D Hamiltonian pentadiagonal matrix from a 1D tridiagonal operator
+        ///        by computing the symmetric operator sum: H_2D = H_1D ⊗ I + I ⊗ H_1D
+        ///
+        /// @details
+        /// This function exploits the exact sparse layout of the 2D Hamiltonian for two identical
+        /// coupled subsystems (atoms). It maps the 1D physical couplings directly into the 
+        /// optimized 5-band matrix framework in O(N²) time complexity, completely avoiding 
+        /// the cross-diagonal terms that an unconstrained tensor product would generate.
+        ///
+        /// @tparam LevelCount Dimension of the 1D Hilbert space (number of energy levels for one atom).
+        /// @param H_1D        The 1D tridiagonal Hamiltonian operator matrix.
+        /// @return            The populated, compact five_band_matrix_t representation for the 2D system.
+        constexpr five_band_matrix_t<LevelCount>
+            create2DHamiltonian(const tridiagonal_matrix_t<LevelCount>& H_1D) noexcept
+        {
+            five_band_matrix_t<LevelCount> H_2D{};
+
+            // STEP 1: Populate the main diagonal (MAINDIAGONAL)
+            // E_2D = E_x + E_y -> H_2D[Row][Row] = H_1D[i][i] + H_1D[n][n]
+            for (natural_t i = 0; i < LevelCount; ++i)
+            {
+                for (natural_t n = 0; n < LevelCount; ++n)
+                {
+                    const natural_t Row = i * LevelCount + n;
+                    H_2D[MAINDIAGONAL][Row] = H_1D[MAINDIAGONAL][i] + H_1D[MAINDIAGONAL][n];
+                }
+            }
+
+            // STEP 2: Populate the immediate sub and super diagonals (SUPERDIAGONAL and SUBDIAGONAL)
+            // Derived from the I ⊗ H_1D term (y-directional hops on the 2D grid)
+            for (natural_t i = 0; i < LevelCount; ++i)
+            {
+                for (natural_t n = 0; n < LevelCount; ++n)
+                {
+                    const natural_t Row = i * LevelCount + n;
+
+                    // Immediate upper neighbor (y + 1 transition)
+                    if (n < LevelCount - 1)
+                    {
+                        H_2D[SUPERDIAGONAL][Row] = H_1D[SUPERDIAGONAL][n];
+                    }
+                    // Immediate lower neighbor (y - 1 transition)
+                    if (n > 0)
+                    {
+                        H_2D[SUBDIAGONAL][Row] = H_1D[SUBDIAGONAL][n];
+                    }
+                }
+            }
+
+            // STEP 3: Populate the far upper and lower diagonals (UPPER_FAR and LOWER_FAR)
+            // Derived from the H_1D ⊗ I term (x-directional hops on the 2D grid, spaced by ±LevelCount)
+            for (natural_t i = 0; i < LevelCount; ++i)
+            {
+                for (natural_t n = 0; n < LevelCount; ++n)
+                {
+                    const natural_t Row = i * LevelCount + n;
+
+                    // Far upper band (x + 1 transition)
+                    if (i < LevelCount - 1)
+                    {
+                        H_2D[UPPER_FAR][Row] = H_1D[SUPERDIAGONAL][i];
+                    }
+                    // Far lower band (x - 1 transition)
+                    if (i > 0)
+                    {
+                        H_2D[LOWER_FAR][Row] = H_1D[SUBDIAGONAL][i];
+                    }
+                }
+            }
+
+            return H_2D;
         }
     };
 }

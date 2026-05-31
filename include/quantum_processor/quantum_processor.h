@@ -29,7 +29,7 @@ namespace KetCat
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
     constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 5E6;
+    constexpr natural_t SimuSaveNthFrame = 4E6;
 
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
@@ -182,6 +182,7 @@ namespace KetCat
                 }
                 else if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
                 {
+                    //evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
                     evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
                 }
                 else { }
@@ -221,8 +222,7 @@ namespace KetCat
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
 
-            static CrankNicolsonSolver<typename GlobalStateManager::
-                template OperationSpace<1>> Solver;
+            static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::ThomasTridiagonal> Solver;
 
 			Hamiltonian.updateMainDiagonal(lasers);
 			Hamiltonian.updateOffDiagonal(lasers);
@@ -246,18 +246,43 @@ namespace KetCat
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
-            static TwoAtomRydbergBlockage<ConfigType::LevelCount>
-                RydbergBlockage(Units::MeterToAtomicLength * 1E-9,
+            static TwoAtomRydbergBlockade<ConfigType::LevelCount>
+                RydbergBlockade(Units::MeterToAtomicLength * 1E-9,
                     ConfigType::RydbergLevel,
                     HartreeEnergies,
 				DipoleMatrix);
 
-            // Use GaussianElimination backend for two-qubit dense Hamiltonians
-            static CrankNicolsonSolver<typename GlobalStateManager::
-                template OperationSpace<2>, LinearSolverBackend::Pentadiagonal> Solver;
+            // Use FiveBandGaussianElimination backend for two-qubit dense Hamiltonians
+            static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::FiveBandGaussianElimination> Solver;
 
-            Solver.updateMatrices(RydbergBlockage.getMatrix(SingleAtomExcitation.getMatrix()),
-                TimeMaster::Clock().getTimeStep());
+            SingleAtomExcitation.updateMainDiagonal(lasers);
+            SingleAtomExcitation.updateOffDiagonal(lasers);
+            auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
+
+            /*
+			for (size_t i = 0; i < ConfigType::LevelCount; ++i)
+			{
+				// Print tridiagonal matrix for debugging
+				std::cout << "Index " << i << ": "
+					<< "MAINDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[MAINDIAGONAL][i].re << " + " << SingleAtomHamiltonian[MAINDIAGONAL][i].im << "i, "
+					<< "SUPERDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUPERDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUPERDIAGONAL][i].im << "i, "<< ", "
+					<< "SUBDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUBDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUBDIAGONAL][i].im << "i, "  << std::endl;
+			}*/
+
+            RydbergBlockade.updateMatrix(SingleAtomHamiltonian);
+
+			/*auto RBMatrix = RydbergBlockade.getMatrix();
+            for (size_t i = 0; i < ConfigType::LevelCount * ConfigType::LevelCount; ++i)
+            {
+                // Print five-band matrix for debugging
+                std::cout << "Index " << i << ": " << "MAINDIAGONAL[" << i << "] = " << RBMatrix[MAINDIAGONAL][i].re << " + " << RBMatrix[MAINDIAGONAL][i].im << "i, "
+                    << "UPPER_FAR[" << i << "] = " << RBMatrix[UPPER_FAR][i].re << " + " << RBMatrix[UPPER_FAR][i].im << "i, " << ", "
+                    << "SUPERDIAGONAL[" << i << "] = " << RBMatrix[SUPERDIAGONAL][i].re << " + " << RBMatrix[SUPERDIAGONAL][i].im << "i, "<< ", "
+                    << "SUBDIAGONAL[" << i << "] = " << RBMatrix[SUBDIAGONAL][i].re << " + " << RBMatrix[SUBDIAGONAL][i].im << "i, " << ", "
+                    << "LOWER_FAR[" << i << "] = " << RBMatrix[LOWER_FAR][i].re << " + " << RBMatrix[LOWER_FAR][i].im << "i, "<< std::endl;
+            }*/
+
+            Solver.updateMatrices(RydbergBlockade.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };

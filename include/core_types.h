@@ -19,8 +19,8 @@ namespace KetCat
 	/// @brief Alias for complex numbers using the custom constexpr Complex type.
 	using complex_t = ConstexprMath::Complex<real_t>;
 
-	template<natural_t SpatialDimensions>
-	using coordinate_t = std::array<natural_t, SpatialDimensions>;
+	template<natural_t SpatialLevelCountensions>
+	using coordinate_t = std::array<natural_t, SpatialLevelCountensions>;
 
 	/// @brief State vector with compile-time fixed size (array of complex amplitudes).
 	template<natural_t StateCount>
@@ -39,8 +39,8 @@ namespace KetCat
 
 	/// @brief Square matrix type 
 	/// @tparam Rows  Number of rows and cols
-	template<natural_t Dim>
-	using square_matrix_t = std::array<std::array<complex_t, Dim>, Dim>;
+	template<natural_t LevelCount>
+	using square_matrix_t = std::array<std::array<complex_t, LevelCount>, LevelCount>;
 
 	/// @brief Compact storage representation of a tridiagonal matrix for 1D Hamiltonians
 	/// as we have useful information only in the three non-zero diagonals and this way we
@@ -50,8 +50,13 @@ namespace KetCat
 	/// The major index 0 corresponds to the superdiagonal,
 	///           index 1 corresponds to the main diagonal,
 	///       and index 2 corresponds to the subdiagonal.
-	template<natural_t Dim>
-	using tridiagonal_matrix_t = std::array<std::array<complex_t, Dim>, 3U>;
+	template<natural_t LevelCount>
+	struct tridiagonal_matrix_t {
+		std::array<std::array<complex_t, LevelCount>, 3U> data;
+
+		constexpr auto& operator[](size_t idx) { return data[idx]; }
+		constexpr const auto& operator[](size_t idx) const { return data[idx]; }
+	};
 
 	/// @brief Named constant indices for tridiagonal_matrix_t
 	/// for convenience and intuitive usage.
@@ -59,13 +64,27 @@ namespace KetCat
 	constexpr natural_t MAINDIAGONAL = 1;
 	constexpr natural_t SUBDIAGONAL = 2;
 
-	/// @brief Compact storage representation of a pentadiagonal matrix for 2D Hamiltonians
-	template<natural_t Dim>
-	using pentadiagonal_matrix_t = std::array<std::array<complex_t, Dim>, 5U>;
+	/// @brief Compact storage representation of a pentadiagonal matrix for 2D Hamiltonians, which is calculated
+	/// as a tensor product of two tridiagonal_matrix_t's.
+	/// This exploits the sparse structure of these matrices, where the main diagonal, the fist upper and lower
+	/// diagonal is occupied alongside with the ±LevelCount diagonals. The tensor product yields LevelCount²
+	/// elements in the main diagonal, and likewise in the tridiagonal typedef, for simplicity we allocate
+	/// this size for all the five diagonals and accepting that a certain amount of values are being unused
+	//template<natural_t LevelCount>
+	//using five_band_matrix_t = std::array<std::array<complex_t, LevelCount * LevelCount>, 5U>;
+	template<natural_t LevelCount>
+	struct five_band_matrix_t {
+		std::array<std::array<complex_t, LevelCount* LevelCount>, 5U> data;
 
-	/// @brief Additional named constant indices for pentadiagonal_matrix_t
-	constexpr natural_t SUPERDIAGONAL2 = 3;
-	constexpr natural_t SUBDIAGONAL2 = 4;
+		constexpr auto& operator[](size_t idx) { return data[idx]; }
+		constexpr const auto& operator[](size_t idx) const { return data[idx]; }
+	};
+
+	/// @brief Additional named constant indices for five_band_matrix_t
+	constexpr natural_t UPPER_FAR = 3;
+	constexpr natural_t LOWER_FAR = 4;
+
+
 }
 
 ///@brief Tag struct to hold the spatial dimension's number
