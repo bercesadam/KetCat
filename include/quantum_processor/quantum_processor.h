@@ -247,7 +247,7 @@ namespace KetCat
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
-                RydbergBlockade(Units::MeterToAtomicLength * 50E-9,
+                RydbergBlockade(Units::MeterToAtomicLength * 100E-9,
                     ConfigType::RydbergLevel,
                     HartreeEnergies,
 				DipoleMatrix);
@@ -259,7 +259,7 @@ namespace KetCat
             SingleAtomExcitation.updateOffDiagonal(lasers);
             auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
 
-        /*
+     /*
 			for (size_t i = 0; i < ConfigType::LevelCount; ++i)
 			{
 				// Print tridiagonal matrix for debugging
@@ -268,10 +268,9 @@ namespace KetCat
 					<< "SUPERDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUPERDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUPERDIAGONAL][i].im << "i, "<< ", "
 					<< "SUBDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUBDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUBDIAGONAL][i].im << "i, "  << std::endl;
 			}*/
-
             RydbergBlockade.updateMatrix(SingleAtomHamiltonian);
-
-			/*auto RBMatrix = RydbergBlockade.getMatrix();
+            /*
+			auto RBMatrix = RydbergBlockade.getMatrix();
             for (size_t i = 0; i < ConfigType::LevelCount * ConfigType::LevelCount; ++i)
             {
                 // Print five-band matrix for debugging
@@ -280,8 +279,8 @@ namespace KetCat
                     << "SUPERDIAGONAL[" << i << "] = " << RBMatrix[SUPERDIAGONAL][i].re << " + " << RBMatrix[SUPERDIAGONAL][i].im << "i, "<< ", "
                     << "SUBDIAGONAL[" << i << "] = " << RBMatrix[SUBDIAGONAL][i].re << " + " << RBMatrix[SUBDIAGONAL][i].im << "i, " << ", "
                     << "LOWER_FAR[" << i << "] = " << RBMatrix[LOWER_FAR][i].re << " + " << RBMatrix[LOWER_FAR][i].im << "i, "<< std::endl;
-            }*/
-
+            }
+			exit(0);*/
             Solver.updateMatrices(RydbergBlockade.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector

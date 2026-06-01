@@ -84,7 +84,7 @@ namespace KetCat
         ///   VrrIndex = r · LevelCount + r
         constexpr void updateMatrix(const tridiagonal_matrix_t<LevelCount>& singleAtomRydbergExcitation)
         {
-            m_hamiltonianMatrix = create2DHamiltonian(singleAtomRydbergExcitation);
+            create2DHamiltonian(singleAtomRydbergExcitation);
 
             // Apply the non-local Rydberg interaction penalty V_vdW to the diagonal state |r,r⟩
             const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
@@ -142,7 +142,7 @@ namespace KetCat
         }
 
         /// @brief Constructs a 2D Hamiltonian pentadiagonal matrix from a 1D tridiagonal operator
-        ///        by computing the symmetric operator sum: H_2D = H_1D ⊗ I + I ⊗ H_1D
+        ///        by computing the symmetric operator sum: m_hamiltonianMatrix = H_1D ⊗ I + I ⊗ H_1D
         ///
         /// @details
         /// This function exploits the exact sparse layout of the 2D Hamiltonian for two identical
@@ -153,65 +153,48 @@ namespace KetCat
         /// @tparam LevelCount Dimension of the 1D Hilbert space (number of energy levels for one atom).
         /// @param H_1D        The 1D tridiagonal Hamiltonian operator matrix.
         /// @return            The populated, compact five_band_matrix_t representation for the 2D system.
-        constexpr five_band_matrix_t<LevelCount>
-            create2DHamiltonian(const tridiagonal_matrix_t<LevelCount>& H_1D) noexcept
+        constexpr void create2DHamiltonian(const tridiagonal_matrix_t<LevelCount>& H_1D) noexcept
         {
-            five_band_matrix_t<LevelCount> H_2D{};
+            m_hamiltonianMatrix = {};
 
-            // STEP 1: Populate the main diagonal (MAINDIAGONAL)
-            // E_2D = E_x + E_y -> H_2D[Row][Row] = H_1D[i][i] + H_1D[n][n]
-            for (natural_t i = 0; i < LevelCount; ++i)
+            constexpr natural_t TotalDim = LevelCount * LevelCount;
+
+            // 2. A 2D Kronecker-szorzatok felépítése O(N) sávos bejárással
+            // 2. Sávok feltöltése a solver belső indexelési sémájának megfelelően
+            for (natural_t Row = 0; Row < TotalDim; ++Row)
             {
-                for (natural_t n = 0; n < LevelCount; ++n)
+                const natural_t i = Row / LevelCount; // Első atom állapota
+                const natural_t n = Row % LevelCount; // Második atom állapota
+
+                // FŐÁTLÓ: H_1D ⊗ I + I ⊗ H_1D
+                m_hamiltonianMatrix[MAINDIAGONAL][Row] = H_1D[MAINDIAGONAL][i] + H_1D[MAINDIAGONAL][n];
+
+                // KÖZELI SÁVOK: I ⊗ H_1D (Második atom ugrásai a blokkon belül)
+                if (n < LevelCount - 1)
                 {
-                    const natural_t Row = i * LevelCount + n;
-                    H_2D[MAINDIAGONAL][Row] = H_1D[MAINDIAGONAL][i] + H_1D[MAINDIAGONAL][n];
+                    m_hamiltonianMatrix[SUPERDIAGONAL][Row] = H_1D[SUPERDIAGONAL][n];
+                }
+                if (n > 0)
+                {
+                    // A tridiagonális mátrixod konvenciója alapján a SUBDIAGONAL[Row] 
+                    // a (Row, Row-1) elemet jelenti. Mivel a blokkon belül vagyunk, n indexel.
+                    m_hamiltonianMatrix[SUBDIAGONAL][Row] = H_1D[SUBDIAGONAL][n];
+                }
+
+                // TÁVOLI SÁVOK: H_1D ⊗ I (Első atom ugrásai a blokkok között)
+                // Ha i < LevelCount - 1, akkor van ugrás előre (i -> i+1) blokkszinten.
+                // Ez a solvernél az UPPER_FAR[Row] sávban lakik.
+                if (i < LevelCount - 1)
+                {
+                    m_hamiltonianMatrix[UPPER_FAR][Row] = H_1D[SUPERDIAGONAL][i];
+                }
+                // Ha i > 0, akkor van ugrás hátra (i -> i-1) blokkszinten.
+                // Ez a solvernél a LOWER_FAR[Row] sávban lakik.
+                if (i > 0)
+                {
+                    m_hamiltonianMatrix[LOWER_FAR][Row] = H_1D[SUBDIAGONAL][i];
                 }
             }
-
-            // STEP 2: Populate the immediate sub and super diagonals (SUPERDIAGONAL and SUBDIAGONAL)
-            // Derived from the I ⊗ H_1D term (y-directional hops on the 2D grid)
-            for (natural_t i = 0; i < LevelCount; ++i)
-            {
-                for (natural_t n = 0; n < LevelCount; ++n)
-                {
-                    const natural_t Row = i * LevelCount + n;
-
-                    // Immediate upper neighbor (y + 1 transition)
-                    if (n < LevelCount - 1)
-                    {
-                        H_2D[SUPERDIAGONAL][Row] = H_1D[SUPERDIAGONAL][n];
-                    }
-                    // Immediate lower neighbor (y - 1 transition)
-                    if (n > 0)
-                    {
-                        H_2D[SUBDIAGONAL][Row] = H_1D[SUBDIAGONAL][n];
-                    }
-                }
-            }
-
-            // STEP 3: Populate the far upper and lower diagonals (UPPER_FAR and LOWER_FAR)
-            // Derived from the H_1D ⊗ I term (x-directional hops on the 2D grid, spaced by ±LevelCount)
-            for (natural_t i = 0; i < LevelCount; ++i)
-            {
-                for (natural_t n = 0; n < LevelCount; ++n)
-                {
-                    const natural_t Row = i * LevelCount + n;
-
-                    // Far upper band (x + 1 transition)
-                    if (i < LevelCount - 1)
-                    {
-                        H_2D[UPPER_FAR][Row] = H_1D[SUPERDIAGONAL][i];
-                    }
-                    // Far lower band (x - 1 transition)
-                    if (i > 0)
-                    {
-                        H_2D[LOWER_FAR][Row] = H_1D[SUBDIAGONAL][i];
-                    }
-                }
-            }
-
-            return H_2D;
         }
     };
 }
