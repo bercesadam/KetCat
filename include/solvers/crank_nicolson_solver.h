@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "matrix_access.h"
 #include "thomas_algorithm.h"
 #include "gauss_elimination.h"
 
@@ -44,9 +43,6 @@ namespace KetCat
         using solver_traits_t = LinearSolverTraits<Backend, LevelCount>;
         using matrix_type = typename solver_traits_t::matrix_type;
 
-        // Alias for matrix access traits
-        using Matrix = MatrixAccess<matrix_type>;
-
         // Precomputed matrices
         matrix_type m_A;
         matrix_type m_B;
@@ -85,75 +81,44 @@ namespace KetCat
             const complex_t Factor(0.0, dt / 2.0);
 
             // Construct A = I + i·dt/(2ℏ)·H and B = I - i·dt/(2ℏ)·H with
-            // optimized O(N) five band matrix assembly loop targeting only populated diagonals
-
-            if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
+            // optimized O(N) three/five band matrix assembly loop targeting only populated diagonals
+            for (natural_t i = 0; i < SystemLevelCount; ++i)
             {
-                for (natural_t i = 0; i < SystemLevelCount; ++i)
-                {
-                    // Main diagonal processing including identity addition
-                    Matrix::set(m_A, i, i, complex_t::fromReal(1.0) + Factor * Matrix::get(H, i, i));
-                    Matrix::set(m_B, i, i, complex_t::fromReal(1.0) - Factor * Matrix::get(H, i, i));
+                // Build main diagonal including identity operator addition
+                m_A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
+                m_B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
-                    // Immediate sub and super diagonals
-                    if (i > 0)
-                    {
-                        Matrix::set(m_A, i, i - 1, Factor * Matrix::get(H, i, i - 1));
-                        Matrix::set(m_B, i, i - 1, -Factor * Matrix::get(H, i, i - 1));
-                    }
-                    if (i < SystemLevelCount - 1)
-                    {
-                        Matrix::set(m_A, i, i + 1, Factor * Matrix::get(H, i, i + 1));
-                        Matrix::set(m_B, i, i + 1, -Factor * Matrix::get(H, i, i + 1));
-                    }
+                // Map immediate subdiagonal elements
+                if (i > 0)
+                {
+                    m_A[SUBDIAGONAL][i] =  Factor * H[SUBDIAGONAL][i];
+                    m_B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
                 }
-            }
-            else if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
-            {
-                
-                for (natural_t i = 0; i < SystemLevelCount; ++i)
+
+                // Map immediate superdiagonal elements
+                if (i + 1 < SystemLevelCount)
                 {
-                    // Main diagonal processing including identity addition
-                    Matrix::set(m_A, i, i,
-                        complex_t::fromReal(1.0) + Factor * Matrix::get(H, i, i));
-                    Matrix::set(m_B, i, i,
-                        complex_t::fromReal(1.0) - Factor * Matrix::get(H, i, i));
+                    m_A[SUPERDIAGONAL][i] =  Factor * H[SUPERDIAGONAL][i];
+                    m_B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
+                }
 
-                    // Immediate sub and super diagonals
-                    if (i > 0)
+                // Map 2D tensor-product far diagonals only for the FiveBand backend
+                if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
+                {
+                    // Upper far diagonal (i + LevelCount spatial offset)
+                    if (i >= LevelCount)
                     {
-                        Matrix::set(m_A, i, i - 1,
-                            Factor * Matrix::get(H, i, i - 1));
-                        Matrix::set(m_B, i, i - 1,
-                           -Factor * Matrix::get(H, i, i - 1));
-                    }
-                    if (i < SystemLevelCount - 1)
-                    {
-                        Matrix::set(m_A, i, i + 1,
-                            Factor * Matrix::get(H, i, i + 1));
-                        Matrix::set(m_B, i, i + 1,
-                           -Factor * Matrix::get(H, i, i + 1));
-                    }
-
-                    // Far upper and lower diagonals
-                    if (i >= LevelCount) 
-                    {
-                        Matrix::set(m_A, i, i - LevelCount,
-                            Factor * Matrix::get(H, i, i - LevelCount)); // i - 2 helyett
-                        Matrix::set(m_B, i, i - LevelCount,
-                           -Factor * Matrix::get(H, i, i - LevelCount));
+                        m_A[LOWER_FAR][i] = Factor * H[LOWER_FAR][i];
+                        m_B[LOWER_FAR][i] = -Factor * H[LOWER_FAR][i];
                     }
                     if (i < SystemLevelCount - LevelCount)
                     {
-                        Matrix::set(m_A, i, i + LevelCount,
-                            Factor * Matrix::get(H, i, i + LevelCount)); // i + 2 helyett
-                        Matrix::set(m_B, i, i + LevelCount,
-                           -Factor * Matrix::get(H, i, i + LevelCount));
+                        m_A[UPPER_FAR][i] = Factor * H[UPPER_FAR][i];
+                        m_B[UPPER_FAR][i] = -Factor * H[UPPER_FAR][i];
                     }
                 }
             }
         }
-
 
     private:
         /// @brief  Computes the matrix-vector product of a banded matrix and a state vector.
@@ -171,44 +136,36 @@ namespace KetCat
         {
             StateVector<HilbertSpace> Result{ complex_t::zero() };
 
-            if constexpr (Backend == LinearSolverBackend::ThomasTridiagonal)
+            // Unified O(N) matrix-vector multiplication loop targeting active diagonals
+            for (natural_t i = 0; i < SystemLevelCount; ++i)
             {
-                // Unrolled O(N) tridiagonal matrix-vector multiplication skipping outer zero fields
-                for (natural_t i = 0; i < LevelCount; ++i)
+                // Core tridiagonal component mapping (shared across all backends)
+                Result[i] = M[MAINDIAGONAL][i] * psi[i];
+
+                // Immediate subdiagonal interaction
+                if (i > 0)
                 {
-                    Result[i] = M[MAINDIAGONAL][i] * psi[i];
-
-                    if (i > 0)
-                    {
-                        Result[i] = Result[i] + M[SUBDIAGONAL][i] * psi[i - 1];
-                    }
-
-                    if (i < LevelCount - 1)
-                    {
-                        Result[i] = Result[i] + M[SUPERDIAGONAL][i] * psi[i + 1];
-                    }
+                    Result[i] = Result[i] + M[SUBDIAGONAL][i] * psi[i - 1];
                 }
-            }
-            else if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
-            {
-                // Unrolled O(N) pentadiagonal matrix-vector multiplication skipping outer zero fields
-                for (natural_t i = 0; i < SystemLevelCount; ++i) {
-                    Result[i] = M[MAINDIAGONAL][i] * psi[i];
 
-                    // Közvetlen alsó szomszéd (y-irányú átmenetek)
-                    if (i > 0) {
-                        Result[i] = Result[i] + M[SUBDIAGONAL][i] * psi[i - 1];
-                    }
-                    // Távoli alsó sáv (x-irányú átmenetek, távolság: LevelCount)
-                    if (i >= LevelCount) {
+                // Immediate superdiagonal interaction
+                if (i < SystemLevelCount - 1)
+                {
+                    Result[i] = Result[i] + M[SUPERDIAGONAL][i] * psi[i + 1];
+                }
+
+                // Inject 2D tensor-product spatial strides only for the FiveBand backend
+                if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
+                {
+                    // Lower far diagonal interaction (spatial stride: LevelCount)
+                    if (i >= LevelCount)
+                    {
                         Result[i] = Result[i] + M[LOWER_FAR][i] * psi[i - LevelCount];
                     }
-                    // Közvetlen felső szomszéd (y-irányú átmenetek)
-                    if (i < SystemLevelCount - 1) {
-                        Result[i] = Result[i] + M[SUPERDIAGONAL][i] * psi[i + 1];
-                    }
-                    // Távoli felső sáv (x-irányú átmenetek, távolság: LevelCount)
-                    if (i < SystemLevelCount - LevelCount) {
+
+                    // Upper far diagonal interaction (spatial stride: LevelCount)
+                    if (i < SystemLevelCount - LevelCount)
+                    {
                         Result[i] = Result[i] + M[UPPER_FAR][i] * psi[i + LevelCount];
                     }
                 }
