@@ -247,7 +247,7 @@ namespace KetCat
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
-                RydbergBlockade(Units::MeterToAtomicLength * 1E-9,
+                RydbergBlockade(Units::MeterToAtomicLength * 50E-9,
                     ConfigType::RydbergLevel,
                     HartreeEnergies,
 				DipoleMatrix);
@@ -259,7 +259,7 @@ namespace KetCat
             SingleAtomExcitation.updateOffDiagonal(lasers);
             auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
 
-            /*
+        /*
 			for (size_t i = 0; i < ConfigType::LevelCount; ++i)
 			{
 				// Print tridiagonal matrix for debugging

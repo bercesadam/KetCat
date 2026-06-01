@@ -60,6 +60,7 @@ namespace KetCat
             m_RydbergLevelIndex(rydbergLevel)
         {
             calculateVVanDerWaals(atomDistance, rydbergLevel);
+			std::cout << "Rydberg blockade energy shift V_vdW: " << m_VVanDerWaals << " atomic units" << std::endl;
         }
 
         /// @brief Get the current Hamiltonian matrix.
