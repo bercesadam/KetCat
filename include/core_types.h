@@ -52,7 +52,8 @@ namespace KetCat
 	///       and index 2 corresponds to the subdiagonal.
 	template<natural_t LevelCount>
 	struct tridiagonal_matrix_t {
-		std::array<std::array<complex_t, LevelCount>, 3U> data{};
+		static constexpr natural_t Dim = LevelCount;
+		std::array<std::array<complex_t, Dim>, 3U> data{};
 
 		constexpr auto& operator[](size_t idx) { return data[idx]; }
 		constexpr const auto& operator[](size_t idx) const { return data[idx]; }
@@ -74,7 +75,8 @@ namespace KetCat
 	//using five_band_matrix_t = std::array<std::array<complex_t, LevelCount * LevelCount>, 5U>;
 	template<natural_t LevelCount>
 	struct five_band_matrix_t {
-		std::array<std::array<complex_t, LevelCount* LevelCount>, 5U> data{};
+		static constexpr natural_t Dim = LevelCount * LevelCount;
+		std::array<std::array<complex_t, Dim>, 5U> data{};
 
 		constexpr auto& operator[](size_t idx) { return data[idx]; }
 		constexpr const auto& operator[](size_t idx) const { return data[idx]; }
