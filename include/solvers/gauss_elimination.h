@@ -14,67 +14,102 @@ namespace KetCat
     template<natural_t LevelCount>
     struct LinearSolver<LinearSolverBackend::FiveBandGaussianElimination, LevelCount>
     {
-        static constexpr natural_t SystemLevelCount = LevelCount * LevelCount;
-
-        /// @brief Solves the linear system M · psi_next = psi using optimized banded Gaussian elimination.
-        /// @param FiveBandM Compact storage of the 5-band input matrix operator.
-        /// @param psi Right-hand side state vector (mutated in-place during elimination).
-        /// @return The solved state vector at the next time step.
-        template<hilbert_space_t HilbertSpace>
-        static constexpr StateVector<HilbertSpace>
-            solve(const five_band_matrix_t<LevelCount>& FiveBandM,
-                StateVector<HilbertSpace>& psi) noexcept
+        template<hilbert_space_t HilbertSpace, natural_t LevelCount>
+        static constexpr StateVector<HilbertSpace> solve(const five_band_matrix_t<LevelCount>& FiveBandM, StateVector<HilbertSpace>& psi) noexcept
         {
-            // Dense upper-triangular target matrix for back substitution (zero-initialized)
+            // 1. Initialize the full dense matrix  
+			static constexpr natural_t SystemLevelCount = std::remove_cvref_t<decltype(FiveBandM)>::Dim;
             square_matrix_t<SystemLevelCount> M{};
 
-            // Forward elimination with localized banded window execution
+            // Copy the banded structure into the dense NxN matrix
             for (natural_t k = 0; k < SystemLevelCount; ++k)
             {
-                // Stream current row operator elements from 5-band representation
                 M[k][k] = FiveBandM[MAINDIAGONAL][k];
 
-                const natural_t n_k = k % LevelCount;
-                if (k + 1 < SystemLevelCount && n_k < LevelCount - 1)
+                // Superdiagonal (forward jump within the block)
+                if (k + 1 < SystemLevelCount && (k % LevelCount) < LevelCount - 1)
                 {
                     M[k][k + 1] = FiveBandM[SUPERDIAGONAL][k];
                 }
+                // Subdiagonal (backward jump within the block)
+                if (k > 0 && (k % LevelCount) > 0)
+                {
+                    M[k][k - 1] = FiveBandM[SUBDIAGONAL][k];
+                }
+                // Upper far band (jump to the next block)
                 if (k + LevelCount < SystemLevelCount)
                 {
                     M[k][k + LevelCount] = FiveBandM[UPPER_FAR][k];
                 }
+                // Lower far band (jump to the previous block)
+                if (k >= LevelCount)
+                {
+                    M[k][k - LevelCount] = FiveBandM[LOWER_FAR][k];
+                }
+            }
 
-                // Normalize the pivot row within the upper band boundary
+            // 2. Gaussian elimination with partial pivoting
+            for (natural_t k = 0; k < SystemLevelCount; ++k)
+            {
+                // -- FIND PIVOT --
+                // To ensure safe constexpr execution, we evaluate the squared magnitude (re^2 + im^2)
+                natural_t pivot_row = k;
+                real_t max_mag_sq = (M[k][k].re * M[k][k].re) + (M[k][k].im * M[k][k].im);
+
+                for (natural_t i = k + 1; i < SystemLevelCount; ++i)
+                {
+                    real_t current_mag_sq = (M[i][k].re * M[i][k].re) + (M[i][k].im * M[i][k].im);
+
+                    if (current_mag_sq > max_mag_sq)
+                    {
+                        max_mag_sq = current_mag_sq;
+                        pivot_row = i;
+                    }
+                }
+
+                // -- SWAP ROWS --
+                // If a numerically larger element is found, swap the rows
+                if (pivot_row != k)
+                {
+                    for (natural_t j = k; j < SystemLevelCount; ++j)
+                    {
+                        complex_t temp = M[k][j];
+                        M[k][j] = M[pivot_row][j];
+                        M[pivot_row][j] = temp;
+                    }
+                    // Swap the corresponding elements in the right-hand side vector (psi)
+                    complex_t temp_psi = psi[k];
+                    psi[k] = psi[pivot_row];
+                    psi[pivot_row] = temp_psi;
+                }
+
                 const complex_t Pivot = M[k][k];
-                const natural_t max_col = (k + LevelCount < SystemLevelCount) ? (k + LevelCount + 1) : SystemLevelCount;
 
-                for (natural_t j = k; j < max_col; ++j)
+                // Safeguard against singular matrices (physically unlikely, but prevents division by zero)
+                if (Pivot.re == 0.0 && Pivot.im == 0.0)
+                {
+                    continue;
+                }
+
+                // -- NORMALIZE PIVOT ROW --
+                for (natural_t j = k; j < SystemLevelCount; ++j)
                 {
                     M[k][j] = M[k][j] / Pivot;
                 }
                 psi[k] = psi[k] / Pivot;
 
-                // Eliminate sub-diagonal entries within the lower band boundary
-                const natural_t max_row = (k + LevelCount < SystemLevelCount) ? (k + LevelCount + 1) : SystemLevelCount;
-
-                for (natural_t i = k + 1; i < max_row; ++i)
+                // -- ELIMINATE ROWS BELOW --
+                for (natural_t i = k + 1; i < SystemLevelCount; ++i)
                 {
-                    // Fetch lower band element if not yet modified by fill-in processing
-                    if (M[i][k] == complex_t{ 0.0, 0.0 })
+                    const complex_t Factor = M[i][k];
+
+                    // Skip calculations if the factor is already exactly zero
+                    if (Factor.re == 0.0 && Factor.im == 0.0)
                     {
-                        if (i == k + 1 && (k % LevelCount) < LevelCount - 1) {
-                            M[i][k] = FiveBandM[SUBDIAGONAL][i];
-                        }
-                        else if (i == k + LevelCount) {
-                            M[i][k] = FiveBandM[LOWER_FAR][i];
-                        }
+                        continue;
                     }
 
-                    const complex_t Factor = M[i][k];
-                    if (Factor == complex_t{ 0.0, 0.0 }) continue;
-
-                    // Compute row subtraction limited to the current active band window
-                    for (natural_t j = k; j < max_col; ++j)
+                    for (natural_t j = k; j < SystemLevelCount; ++j)
                     {
                         M[i][j] = M[i][j] - Factor * M[k][j];
                     }
@@ -82,13 +117,12 @@ namespace KetCat
                 }
             }
 
-            // Back substitution phase utilizing the populated upper-triangular matrix
+            // 3. Back substitution
+            // Accurately determine the solution vector from the upper triangular matrix
             StateVector<HilbertSpace> Result{};
-
             for (natural_t i = SystemLevelCount; i-- > 0;)
             {
                 complex_t Sum = psi[i];
-
                 for (natural_t j = i + 1; j < SystemLevelCount; ++j)
                 {
                     Sum = Sum - M[i][j] * Result[j];
