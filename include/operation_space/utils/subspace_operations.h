@@ -1,8 +1,12 @@
 #pragma once
-#include <functional>
+#include <bitset>
+
 #include "hilbert_space/hilbert.h"        
 #include "hilbert_space/state_vector.h" 
+
 #include "solvers/crank_nicolson_solver.h"
+
+#include "local_state.h"
 
 
 namespace KetCat
@@ -243,14 +247,14 @@ namespace KetCat
         localTileIndex(const qdit_list_t<K>& targetDigits) noexcept
         {
             // little-endian
-            natural_t idx = 0;
-            natural_t mul = 1;
+            natural_t Index = 0;
+            natural_t Multiplier = 1;
             for (natural_t i = 0; i < K; ++i)
             {
-                idx += targetDigits[i] * mul;
-                mul *= LocalDim;
+                Index += targetDigits[i] * Multiplier;
+                Multiplier *= LocalDim;
             }
-            return idx;
+            return Index;
         }
 
         /// @brief  Decode a local tile index into base-d digits.
@@ -273,13 +277,13 @@ namespace KetCat
         template <natural_t K>
         static constexpr qdit_list_t<K> decodeLocalTileIndex(natural_t local) noexcept
         {
-            std::array<natural_t, K> tdigits{};
+            std::array<natural_t, K> Digits{};
             for (natural_t i = 0; i < K; ++i)
             {
-                tdigits[i] = local % LocalDim;
+                Digits[i] = local % LocalDim;
                 local /= LocalDim;
             }
-            return tdigits;
+            return Digits;
         }
 
         /// @brief  Compute the base global index of a tile.
@@ -356,11 +360,12 @@ namespace KetCat
         ///
         /// This abstraction allows different operations (copy, transform,
         /// accumulate, etc.) to reuse the same indexing logic.
-        template <natural_t K>
+        template <natural_t K, typename Op>
         static constexpr void
-        tileOperationsCore(const qdit_list_t<K> targetQdits,
+            tileOperationsCore(
+                const qdit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
-                const std::function<void(natural_t, natural_t)>& operation) noexcept
+                Op&& operation) noexcept
         {
             // `targetQdits` is a function parameter and may not be a compile-time
             // constant. Use a runtime check instead of static_assert which
@@ -481,6 +486,36 @@ namespace KetCat
             return Result;
         }
 
+        /// @brief Globalis állapotvektor inicializálása egy logikai bitstring alapján.
+        /// @param bitstring   A logikai állapotokat tartalmazó string (pl. "1011").
+        ///                    Hossza meg kell egyezzen a QubitCount értékével.
+        /// @param logical0    A logikai '0'-hoz tartozó fizikai állapotszint (alapértelmezett: 0).
+        /// @param logical1    A logikai '1'-hez tartozó fizikai állapotszint (alapértelmezett: 1).
+        /// @return            A megfelelő számítási bázisállapot, egyetlen 1.0 amplitúdóval.
+        static constexpr StateVector<FullHilbertSpace>
+            basisStateFromBitstring(std::bitset<QubitCount> bitstring,
+                natural_t logical0, natural_t logical1) noexcept
+        {
+            StateVector<FullHilbertSpace> Result{};
+
+            natural_t GlobalIndex = 0;
+            natural_t Multiplier = 1;
+
+            for (natural_t i = 0; i < QubitCount; ++i)
+            {
+                bool bit = bitstring[i];
+                natural_t PhysicalLevel = (bit ? logical1 : logical0);
+
+                GlobalIndex += PhysicalLevel * Multiplier;
+                Multiplier *= LocalDim;
+            }   
+
+            // Csak annak az egy bázisállapotnak lesz amplitúdója
+            Result[GlobalIndex] = complex_t::fromReal(1.0);
+
+            return Result;
+        }
+
         /// @brief  Apply a K-Qubit operation defined by a tridiagonal Hamiltonian
         ///         to the specified target Qubits in the global state vector.
         /// @tparam K        Number of target Qubits.
@@ -496,19 +531,18 @@ namespace KetCat
         ///    a. Gathers the relevant amplitudes from the global state vector into a local tile vector.
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
-        template <natural_t K>
-        static constexpr void applyHamiltonian(CrankNicolsonSolver<OperationSpace<K>>& solver,
+        template <natural_t K, LinearSolverBackend L>
+        static constexpr void performTimeEvolution(CrankNicolsonSolver<LocalDim, L>& solver,
                                             StateVector<FullHilbertSpace>& psi,
-                                            qdit_list_t<K> targetQdits,
-                                            const tridiagonal_matrix_t<OperationSpace<K>::Dim>& hamiltonian) noexcept
+                                            qdit_list_t<K> targetQdits) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
-            StateVector<OperationSpace<K>> local{};
             StateVector<FullHilbertSpace> psiUpdated = psi;
 
-            for (natural_t b = 0; b < BlockCount; ++b)
+            for (int b = 0; b < BlockCount; ++b)
             {
+                StateVector<OperationSpace<K>> local{};
                 gatherTile<K>(psi, targetQdits, b, local);
                 auto updatedLocal = solver(local);
                 scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
@@ -538,7 +572,7 @@ namespace KetCat
         /// - Accept the pair only when all non-target digits agree
         ///   (partial-trace condition).
         /// - Accumulate:  ρ[dᵢ_q][dⱼ_q] += ψ[i] · ψ[j]*.
-      /*  static constexpr DensityMatrix<LocalDim>
+        static constexpr DensityMatrix<LocalDim>
         reducedDensityMatrix(const StateVector<FullHilbertSpace>& psi,
                              natural_t                            QubitIndex) noexcept
         {
@@ -681,22 +715,23 @@ namespace KetCat
 
             Info.rho = reducedDensityMatrix(psi, QubitIndex);
             Info.purityValue = purity(Info.rho);
+            Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
 
             constexpr real_t PurityThreshold = real_t(1) - real_t(1e-10);
 
             if (Info.purityValue >= PurityThreshold)
             {
                 Info.kind = LocalStateQualifier::Pure;
-                Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
+               // Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
             }
             else
             {
                 Info.kind = LocalStateQualifier::Entangled;
-                Info.pureStateVector = StateVector<OneQubitSpace>{};  // zeroed, intentionally invalid
+               // Info.pureStateVector = StateVector<OneQubitSpace>{};  // zeroed, intentionally invalid
             }
 
             return Info;
-        }*/
+        }
     };
 
 } 

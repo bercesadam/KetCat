@@ -62,7 +62,7 @@ namespace KetCat
         /// @tparam N The number of targets provided.
         /// @param targets An array of qubit indices.
         /// @return A new QuantumCircuit instance with N new gates.
-        template<typename GateTag, natural_t N>
+        template<GateType GateTag, natural_t N>
         constexpr auto applySingleQubitGate(const std::array<natural_t, N>& targets) const
         {
             if constexpr (N == 0)
@@ -75,7 +75,7 @@ namespace KetCat
 
     private:
         /// @brief Implementation helper to expand target indices into individual gate operations.
-        template<typename GateTag, typename Circuit, std::size_t... I, natural_t N>
+        template<GateType  GateTag, typename Circuit, std::size_t... I, natural_t N>
         static constexpr auto applyTargetsImpl(Circuit c, const std::array<natural_t, N>& targets, std::index_sequence<I...>)
         {
             return applyImpl(c, QuantumGate<1, GateTag>().toBits(targets[I])...);

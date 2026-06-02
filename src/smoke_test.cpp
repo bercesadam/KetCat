@@ -16,19 +16,33 @@ int main()
         2, /* Index of the logical level 1*/
         4, /* Index of the Rydberg level */
 
-        QuantumNumber<6, s>,
-        QuantumNumber<6, p>,
-        QuantumNumber<7, s>,
-        QuantumNumber<7, p>,
-        QuantumNumber<40, s>,
-        QuantumNumber<40, p>
+        QuantumNumber<6, s>,  /*0*/
+        QuantumNumber<6, p>,  /*1*/
+        QuantumNumber<7, s>,  /*2*/
+        QuantumNumber<10, p>, /*3*/
+        QuantumNumber<20, s>, /*4*/
+        QuantumNumber<20, p>  /*5*/
         > Config;
-        
-    auto Circuit = QuantumCircuit<1>().withGates(
-        QuantumGate<1, GateType::X>().toBits(0),
-        QuantumGate<1, GateType::Y>().toBits(0),
+    /*
+   */
+
+    auto Circuit = QuantumCircuit<2>().withGates(
+        QuantumGate<2, GateType::CZ>().toBits(0, 1),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1)
+    );
+
+    auto Circuit2 = QuantumCircuit<2>().withGates(
+        QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<1, GateType::H>().toBits(1),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1),
         QuantumGate<1, GateType::H>().toBits(0)
     );
 
-    QuantumProcessor<1, Config>("smoke_test.kwf").execute(Circuit);
+    QuantumProcessor<2, Config> QPU("smoke_test", 3);
+    QPU.execute(Circuit);
+
+    QuantumProcessor<2, Config> QPU2("smoke_test_3", 0);
+    QPU2.execute(Circuit2);
+  
 }

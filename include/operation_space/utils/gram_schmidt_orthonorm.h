@@ -33,7 +33,7 @@ namespace KetCat
     {
     private:
         /// @brief Transformation recipe: orthonormal[i] = Σ L[i][j] * raw[j].
-        matrix_t<Dim> m_Coefficients{};
+        square_matrix_t<Dim> m_Coefficients{};
 
         /// @brief Guard flag to ensure apply() is only called after training.
         bool m_isTrained = false;
@@ -123,7 +123,7 @@ namespace KetCat
         {
             if (!m_isTrained) 
             {
-                [] { throw "Orthonormalizer: learn() must be called before apply()!"; }();
+                std::cout << "Orthonormalizer: learn() must be called before apply()!" << std::endl;
             }
 
             basis_set_t<HilbertSpace, Dim> Transformed;

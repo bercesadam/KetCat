@@ -1,11 +1,10 @@
 ﻿#pragma once
+#include "thomas_algorithm.h"
+#include "gauss_elimination.h"
 
-#include "core_types.h"
-#include "hilbert_space/state_vector.h"
 
 namespace KetCat
 {
-    /// @file
     /// @brief Crank–Nicolson solver for the time-dependent Schrödinger equation.
     ///
     /// @details
@@ -18,201 +17,158 @@ namespace KetCat
     /// where ψ(t) is a state vector in a finite-dimensional Hilbert space and
     /// H is the Hamiltonian operator of the system.
     ///
-    /// The Hamiltonian is provided explicitly as a matrix representation,
-    /// typically originating from a spatial discretization of the kinetic
-    /// and potential energy operators (e.g. finite-difference approximation
-    /// of the Laplacian plus a potential term).
+    /// The Hamiltonian is provided explicitly as a matrix representation. Depending
+    /// on the chosen backend, it targets specific grid-based structures:
+    ///  - ThomasTridiagonal: Designed for 1-dimensional finite-difference stencils.
+    ///  - FiveBandElimination: Designed for 2-dimensional Hamiltonians originating from the 
+    ///    2D Laplace operator, which can be expressed as the tensor product of two 
+    ///    independent 1D tridiagonal sub-operators.
     ///
     /// Time integration is performed using the Crank–Nicolson scheme, which
     /// corresponds to an implicit midpoint discretization in time:
     ///
     ///   ( I + i·Δt/(2ℏ) · H ) · ψⁿ⁺¹ = ( I - i·Δt/(2ℏ) · H ) · ψⁿ
     ///
-    /// This scheme is:
-    ///  - second-order accurate in time,
-    ///  - unconditionally stable,
-    ///  - norm-preserving for Hermitian Hamiltonians,
-    ///  - and therefore suitable for unitary quantum time evolution.
+    /// This scheme is second-order accurate in time, unconditionally stable,
+    /// and norm-preserving for Hermitian Hamiltonians.
     ///
-    /// In this implementation, the Hamiltonian is assumed to be time-independent
-    /// (or piecewise constant in time). As a consequence, the Crank–Nicolson
-    /// system matrices are constructed once and reused for each time step.
-    ///
-    /// If the Hamiltonian matrix is tridiagonal—as is the case for many
-    /// one-dimensional finite-difference discretizations—the resulting linear
-    /// system can be solved efficiently in O(N) time using the Thomas algorithm.
-
-    /// @brief Callable object performing one Crank–Nicolson time step.
-    ///
-    /// @details
-    /// The operator precomputes the Crank–Nicolson matrices A and B and
-    /// applies them to advance a quantum state vector by a single time step.
-    ///
-    /// Usage:
-    ///
-    ///   CrankNicolsonTimeEvolutionOperator&lt;Dim&gt; evol(hamiltonian, dt);
-    ///   psi = evol(psi);
-    template <hilbert_space_t HilbertSpace>
+    /// @tparam HilbertSpace The underlying quantum Hilbert space structure.
+    /// @tparam Backend      The linear solver backend to utilize (Tridiagonal or FiveBandElimination).
+    template<natural_t LevelCount, LinearSolverBackend Backend>
     class CrankNicolsonSolver
     {
-        static constexpr natural_t Dim = HilbertSpace::Dim;
+        static constexpr natural_t SystemLevelCount = SystemSize<LevelCount, Backend>::value;
+
+        // Type alias for the matrix type used by the selected linear solver backend
+        using solver_traits_t = LinearSolverTraits<Backend, LevelCount>;
+        using matrix_type = typename solver_traits_t::matrix_type;
 
         // Precomputed matrices
-        tridiagonal_matrix_t<Dim> m_A;
-        tridiagonal_matrix_t<Dim> m_B;
+        matrix_type m_A;
+        matrix_type m_B;
 
     public:
-        /// @brief  Constructs the time evolution operator.
-        /// @param  hamiltonian  Hamiltonian operator of the system.
-        /// @param  dt           Time step size.
-        ///
-        /// @details
-        /// The constructor precomputes the Crank–Nicolson matrices A and B,
-        /// which are reused for each time step.
-        constexpr CrankNicolsonSolver(const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
-        {
-            buildCrankNicolsonMatrices(hamiltonian, dt);
-        }
-
         /// @brief  Advances the state vector by one time step.
         /// @param  psi     State vector at time step n.
         /// @return         State vector at time step n+1.
         ///
         /// @details
         /// The function computes the right-hand side B · ψⁿ and then solves
-        /// the linear system A · ψⁿ⁺¹ = RHS, resulting in unitary time evolution.
+        /// the linear system A · ψⁿ⁺¹ = RHS, resulting in unitary time evolution
+        /// using the selected linear solver backend.
+        template<hilbert_space_t HilbertSpace>
         constexpr StateVector<HilbertSpace>
-        operator()(const StateVector<HilbertSpace>& psi) const noexcept
+            operator()(const StateVector<HilbertSpace>& psi) const noexcept
         {
             // RHS = B · ψⁿ
-            auto rhs = multiplyTrigiagonal(m_B, psi);
+            auto Rhs = multiply(m_B, psi);
 
             // Solve A · ψⁿ⁺¹ = RHS
-            return solveTridiagonal(m_A, rhs);
+            return LinearSolver<Backend, LevelCount>::
+                template solve<HilbertSpace>(m_A, Rhs);
         }
 
-    private:
-        /// @brief  Helper function to construct the Crank–Nicolson system matrices A and B.
-        /// @tparam Dim     Dimension of the Hilbert space.
-        /// @param  hamiltonian  Hamiltonian operator of the system.
+        /// @brief  Construct/update the Crank–Nicolson system matrices A and B.
+        /// @param  H            Hamiltonian operator of the system.
         /// @param  dt           Time step size.
-        /// @param  A            Output matrix A = I + i·dt/(2ℏ)·H.
-        /// @param  B            Output matrix B = I - i·dt/(2ℏ)·H.
         ///
         /// @details
         /// This function builds the two matrices required by the Crank–Nicolson
-        /// time integration scheme. The matrices arise from the implicit midpoint
-        /// discretization of the time-dependent Schrödinger equation.
-        ///
-        /// If the Hamiltonian matrix is tridiagonal, both A and B remain
-        /// tridiagonal, enabling efficient O(N) time stepping.
-        constexpr void buildCrankNicolsonMatrices(
-            const tridiagonal_matrix_t<Dim>& hamiltonian, real_t dt) noexcept
+        /// time integration scheme. The loops are highly optimized via constexpr branch
+        /// selection to ensure only the occupied bands are mapped from the source Hamiltonian.
+        constexpr void updateMatrices(const matrix_type& H, real_t dt) noexcept
         {
-            const tridiagonal_matrix_t<Dim>& H = hamiltonian;
-
-            // i * dt / (2ℏ)
             const complex_t Factor(0.0, dt / 2.0);
 
-            for (natural_t i = 0; i < Dim; ++i)
+            // Construct A = I + i·dt/(2ℏ)·H and B = I - i·dt/(2ℏ)·H with
+            // optimized O(N) three/five band matrix assembly loop targeting only populated diagonals
+            for (natural_t i = 0; i < SystemLevelCount; ++i)
             {
-                // Build main diagonal
+                // Build main diagonal including identity operator addition
                 m_A[MAINDIAGONAL][i] = complex_t::fromReal(1.0) + Factor * H[MAINDIAGONAL][i];
                 m_B[MAINDIAGONAL][i] = complex_t::fromReal(1.0) - Factor * H[MAINDIAGONAL][i];
 
-                //  Build lower diagonal
+                // Map immediate subdiagonal elements
                 if (i > 0)
                 {
-                    m_A[SUBDIAGONAL][i] = Factor * H[SUBDIAGONAL][i];
+                    m_A[SUBDIAGONAL][i] =  Factor * H[SUBDIAGONAL][i];
                     m_B[SUBDIAGONAL][i] = -Factor * H[SUBDIAGONAL][i];
                 }
 
-                //  Build upper diagonal
-                if (i + 1 < Dim)
+                // Map immediate superdiagonal elements
+                if (i + 1 < SystemLevelCount)
                 {
-                    m_A[SUPERDIAGONAL][i] = Factor * H[SUPERDIAGONAL][i];
+                    m_A[SUPERDIAGONAL][i] =  Factor * H[SUPERDIAGONAL][i];
                     m_B[SUPERDIAGONAL][i] = -Factor * H[SUPERDIAGONAL][i];
+                }
+
+                // Map 2D tensor-product far diagonals only for the FiveBand backend
+                if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
+                {
+                    // Upper far diagonal (i + LevelCount spatial offset)
+                    if (i >= LevelCount)
+                    {
+                        m_A[LOWER_FAR][i] = Factor * H[LOWER_FAR][i];
+                        m_B[LOWER_FAR][i] = -Factor * H[LOWER_FAR][i];
+                    }
+                    if (i < SystemLevelCount - LevelCount)
+                    {
+                        m_A[UPPER_FAR][i] = Factor * H[UPPER_FAR][i];
+                        m_B[UPPER_FAR][i] = -Factor * H[UPPER_FAR][i];
+                    }
                 }
             }
         }
 
-        /// @brief  Helper function to compute the product of an instance of the helper tridiagonal matrix type
-        ///         and a state vector.
-        /// @tparam Dim     Dimension of the vector space.
-        /// @param  M       Tridiagonal matrix.
-        /// @param  x       Input vector.
-        /// @return         Resulting vector M · x.
+    private:
+        /// @brief  Computes the matrix-vector product of a banded matrix and a state vector.
+        /// @param  M       Banded matrix storage framework instance.
+        /// @param  psi     Input quantum state vector.
+        /// @return         Resulting state vector M · psi.
         ///
         /// @details
-        /// This routine performs an efficient matrix–vector multiplication
-        /// exploiting the tridiagonal structure of the matrix. It is primarily
-        /// used to construct the right-hand side of the Crank–Nicolson system.
-        template <natural_t Dim>
+        /// Dispatches at compile time to the most efficient multiplication algorithm.
+        /// Eradicates dense O(N^2) loops in favor of strict O(N) banded traversals.
+        template<hilbert_space_t HilbertSpace>
         constexpr StateVector<HilbertSpace>
-        multiplyTrigiagonal(const tridiagonal_matrix_t<Dim>& M,
-                            const StateVector<HilbertSpace>& x) const noexcept
+            multiply(const matrix_type& M,
+                const StateVector<HilbertSpace>& psi) const noexcept
         {
             StateVector<HilbertSpace> Result{ complex_t::zero() };
 
-            for (natural_t i = 0; i < Dim; ++i)
+            // Unified O(N) matrix-vector multiplication loop targeting active diagonals
+            for (natural_t i = 0; i < SystemLevelCount; ++i)
             {
-                // Main diagonal contribution
-                Result[i] += M[MAINDIAGONAL][i] * x[i];
+                // Core tridiagonal component mapping (shared across all backends)
+                Result[i] = M[MAINDIAGONAL][i] * psi[i];
 
-                // Lower diagonal contribution
+                // Immediate subdiagonal interaction
                 if (i > 0)
                 {
-                    Result[i] += M[SUBDIAGONAL][i] * x[i - 1];
+                    Result[i] = Result[i] + M[SUBDIAGONAL][i] * psi[i - 1];
                 }
 
-                // Upper diagonal contribution
-                if (i + 1 < Dim)
+                // Immediate superdiagonal interaction
+                if (i < SystemLevelCount - 1)
                 {
-                    Result[i] += M[SUPERDIAGONAL][i] * x[i + 1];
+                    Result[i] = Result[i] + M[SUPERDIAGONAL][i] * psi[i + 1];
                 }
-            }
 
-            return Result;
-        }
+                // Inject 2D tensor-product spatial strides only for the FiveBand backend
+                if constexpr (Backend == LinearSolverBackend::FiveBandGaussianElimination)
+                {
+                    // Lower far diagonal interaction (spatial stride: LevelCount)
+                    if (i >= LevelCount)
+                    {
+                        Result[i] = Result[i] + M[LOWER_FAR][i] * psi[i - LevelCount];
+                    }
 
-        /// @brief  Solves a tridiagonal linear system using the Thomas algorithm.
-        /// @tparam Dim     Dimension of the linear system.
-        /// @param  M       Tridiagonal coefficient matrix.
-        /// @param  d       Right-hand-side vector.
-        /// @return         Solution vector x satisfying M · x = d.
-        ///
-        /// @details
-        /// This function implements the Thomas algorithm, consisting of a
-        /// forward elimination phase followed by backward substitution.
-        /// The algorithm achieves linear time complexity by exploiting the
-        /// tridiagonal structure of the system.
-        ///
-        /// The matrix is passed by value and modified internally.
-        template <natural_t Dim>
-        constexpr StateVector<HilbertSpace> solveTridiagonal(
-            tridiagonal_matrix_t<Dim> M, StateVector<HilbertSpace> psi) const noexcept
-        {
-            // --- FORWARD ELIMINATION ---
-            for (natural_t i = 1; i < Dim; ++i)
-            {
-                // Elimination multiplier
-                const complex_t w = M[SUBDIAGONAL][i] / M[MAINDIAGONAL][i - 1];
-
-                // Update main diagonal
-                M[MAINDIAGONAL][i] = M[MAINDIAGONAL][i] - w * M[SUPERDIAGONAL][i - 1];
-
-                // Update right-hand side
-                psi[i] = psi[i] - w * psi[i - 1];
-            }
-
-            // --- BACK SUBSTITUTION ---
-            StateVector<HilbertSpace> Result{};
-
-            Result[Dim - 1] = psi[Dim - 1] / M[MAINDIAGONAL][Dim - 1];
-
-            for (natural_t i = Dim - 1; i-- > 0;)
-            {
-                Result[i] = (psi[i] - M[SUPERDIAGONAL][i] * Result[i + 1]) / M[MAINDIAGONAL][i];
+                    // Upper far diagonal interaction (spatial stride: LevelCount)
+                    if (i < SystemLevelCount - LevelCount)
+                    {
+                        Result[i] = Result[i] + M[UPPER_FAR][i] * psi[i + LevelCount];
+                    }
+                }
             }
 
             return Result;

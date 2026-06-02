@@ -16,9 +16,30 @@ file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
 # Compiler-specific settings
 # ----------------------------
 if (MSVC)
-    add_compile_options(/W4 /permissive-)
+    add_compile_options(
+        /O2 /W4 /permissive- /arch:AVX2 /GL /Gy /Gw
+        /fp:fast /Oi /Ot /Ob3 /Oy /GF /Gm-
+        /EHsc- /GR- /MP
+    )
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -g)
+    add_compile_options(
+        -Wall -Wextra -Wpedantic
+        -O3
+        -mavx2
+        -ffast-math
+        -flto
+        -ffunction-sections
+        -fdata-sections
+        -fomit-frame-pointer
+        -finline-functions
+        -fno-exceptions
+        -fno-rtti
+    )
+
+    add_link_options(
+        -flto
+        -Wl,--gc-sections
+    )
 endif()
 
 if (MSVC)
@@ -38,10 +59,10 @@ foreach(SRC_FILE ${ALL_SOURCES})
     string(REPLACE "/" "_" EXE_NAME ${REL_PATH})
     string(REPLACE ".cpp" "" EXE_NAME ${EXE_NAME})
 
-    add_executable(${EXE_NAME} ${SRC_FILE} "include/compiler/physical_instruction.h" "include/quantum_processor/simulation_observer.h")
+    add_executable(${EXE_NAME} ${SRC_FILE})
 
     if (MSVC)
-        set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864")
+        set_target_properties(${EXE_NAME} PROPERTIES LINK_FLAGS "/STACK:67108864 /LTCG")
     else()
         # Linux/GCC
         target_link_options(${EXE_NAME} PRIVATE "-Wl,-z,stack-size=67108864")
@@ -50,6 +71,7 @@ foreach(SRC_FILE ${ALL_SOURCES})
     target_include_directories(${EXE_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/config
     )
 
     target_link_libraries(${EXE_NAME}

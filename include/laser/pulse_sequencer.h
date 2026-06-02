@@ -22,6 +22,13 @@ namespace KetCat
             /// @brief Current position in the continuous STIRAP cycle θ_accum.
             /// @details Tracks the total mixing angle in the range [0, 2π).
             real_t m_stirapCycleTheta = 0.0;
+              
+			/// @brief Flag indicating if the atom is currently in the Rydberg state.
+			/// @details As Rydberg excitations are always complete STIRAP cycles
+			/// and also it's independent from the logical state, we  track this separately
+            /// to don't mix with the concept behind m_stirapCycleTheta, but still
+			/// allowing the control logic to know if STIRAP or Inverted STIRAP should be used
+			bool m_isRydbergExcited = false;  
 
             bool m_isInitialized = false;
 
@@ -119,13 +126,14 @@ namespace KetCat
         const std::array<real_t, ConfigType::LevelCount> m_energies =
             Manifold::getHartreeEnergies();
 
-        const matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
+        const square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
             Manifold::getDipoleMatrix();
 
-        real_t m_peakRabiHz = 100e6;
+        real_t m_peakRabiHz = 50e6;
         real_t m_commonDetuningHz = 0;
 
         std::array<detail::AtomControlData, AtomCount> m_AtomControlState;
+
 
         /// @brief Construct physical laser configuration for a pulse command.
         ///
@@ -140,25 +148,70 @@ namespace KetCat
         {
             TwoPhotonConfig LaserConfig;
 
-            LaserConfig.m_Level1Energy = m_energies[ConfigType::Logical0Level];
-            LaserConfig.m_Level2Energy = m_energies[ConfigType::Logical0Level + 1];
-            LaserConfig.m_Level3Energy = m_energies[ConfigType::Logical1Level];
+            LaserConfig.m_GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+				? ConfigType::Logical1Level
+				: ConfigType::Logical0Level;
 
-            LaserConfig.m_Mu12 = m_dipoleMatrix[ConfigType::Logical0Level][ConfigType::Logical0Level + 1].re;
-            LaserConfig.m_Mu23 = m_dipoleMatrix[ConfigType::Logical0Level + 1][ConfigType::Logical1Level].re;
+            LaserConfig.m_Level1Energy = m_energies[LaserConfig.m_GroundLevelIndex];
+            LaserConfig.m_Level2Energy = m_energies[LaserConfig.m_GroundLevelIndex + 1];
+            LaserConfig.m_Level3Energy = m_energies[LaserConfig.m_GroundLevelIndex + 2];
+
+            LaserConfig.m_Mu12 = m_dipoleMatrix[LaserConfig.m_GroundLevelIndex][LaserConfig.m_GroundLevelIndex + 1].re;
+            LaserConfig.m_Mu23 = m_dipoleMatrix[LaserConfig.m_GroundLevelIndex + 1][LaserConfig.m_GroundLevelIndex + 2].re;
+
+			std::cout << "Hartree energy differences: " << std::endl;
+			std::cout << "E1 - E0: " << LaserConfig.m_Level2Energy - LaserConfig.m_Level1Energy << " a.u." << std::endl;
+			std::cout << "E2 - E1: " << LaserConfig.m_Level3Energy - LaserConfig.m_Level2Energy << " a.u." << std::endl;
+			std::cout << "Dipole μ12: " << LaserConfig.m_Mu12 << " a.u." << std::endl;
+			std::cout << "Dipole μ23: " << LaserConfig.m_Mu23 << " a.u." << std::endl;
 
             LaserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
-            LaserConfig.m_targetTheta = instruction.m_theta;
 
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             LaserConfig.m_pumpPhase = instruction.m_phase - atomControl.m_framePhase;
-            LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
+            
+            // For performing Rydberg blockades, which is independent from the control state
+            // betweem the energy levels corresponding to the logical states we  toggle between
+			// STIRAP and Inverted STIRAP protocols based on the excitation flag stored in atom control data.
+            if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+            {
+                if (!atomControl.m_isRydbergExcited)
+                {
+					LaserConfig.m_protocol = TwoPhotonProtocol::STIRAP;
+                    atomControl.m_isRydbergExcited = true;
+                }
+                else
+                {
+					LaserConfig.m_protocol = TwoPhotonProtocol::InvertedSTIRAP;
+                    atomControl.m_isRydbergExcited = false;
+                }
+            }
+			// For performing one qubit logical rotations (X/Y), we toggle between STIRAP and Inverted STIRAP protocols
+            // based on the accumulated rotation angle stored in atom control data.
+            else
+            {
+                LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
+            }
+
+			// In case in inverted STIRAP sequences we need to adjust the target theta to be the
+            // complementary angle to ensure the correct rotation direction
+            LaserConfig.m_targetTheta = instruction.m_theta;
+            if (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP &&
+                !(ConstexprMath::floatNear(ConstexprMath::Pi, LaserConfig.m_targetTheta)))
+            {
+                LaserConfig.m_targetTheta = ConstexprMath::Pi - instruction.m_theta;
+            }
 
             return LaserConfig;
         }
 
     public:
+        constexpr void initializeAtomAsLogical1(natural_t index)
+        {
+            m_AtomControlState[index].m_stirapCycleTheta = ConstexprMath::Pi;
+        }
+
         /// @brief Generate the time-dependent envelope for a physical instruction.
         ///
         /// @param instruction The logical gate/pulse to be implemented.

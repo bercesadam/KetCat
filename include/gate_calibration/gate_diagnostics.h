@@ -1,7 +1,8 @@
 #pragma once
-#include "hilbert_space/matrix.h"
+#include "operation_space/utils/matrix.h"
 #include "hilbert_space/state_vector.h"
 #include "quantum_gates/gates.h"
+#include "phase_corrections.h"
 
 
 namespace KetCat
@@ -63,7 +64,7 @@ namespace KetCat
             {
                 for (natural_t row = 0; row < Dim; ++row)
                 {
-                    Result(row, col) =
+                    Result.at(row, col) =
                         basisOutputs[col][row];
                 }
             }
@@ -225,6 +226,50 @@ namespace KetCat
             }
 
             return true;
+        }
+
+        /// @brief Dynamically builds the theoretical, ideal unitary matrix of Rx(theta) matching GateTraits
+        static Matrix<2> buildIdealRx(real_t theta) noexcept
+        {
+            const real_t halfTheta = theta / 2.0;
+            Matrix<2> U;
+            U.at(0, 0) = complex_t(std::cos(halfTheta), 0.0);
+            U.at(0, 1) = complex_t(0.0, -std::sin(halfTheta));
+            U.at(1, 0) = complex_t(0.0, -std::sin(halfTheta));
+            U.at(1, 1) = complex_t(std::cos(halfTheta), 0.0);
+            return U;
+        }
+
+        /// @brief Dynamically builds the theoretical, ideal unitary matrix of Ry(theta)
+        static Matrix<2> buildIdealRy(real_t theta) noexcept
+        {
+            const real_t halfTheta = theta / 2.0;
+            Matrix<2> U;
+            U.at(0, 0) = complex_t(std::cos(halfTheta), 0.0);
+            U.at(0, 1) = complex_t(-std::sin(halfTheta), 0.0);
+            U.at(1, 0) = complex_t(std::sin(halfTheta), 0.0);
+            U.at(1, 1) = complex_t(std::cos(halfTheta), 0.0);
+            return U;
+        }
+
+        /// @brief Computes local phase errors and the pure CZ phase from the 4x4 effective matrix of CPhase
+        static TwoQubitCalibResult analyzeCPhase(const square_matrix_t<4>& u_eff) noexcept
+        {
+            // Extract phases of the main diagonal: 0=|00>, 1=|01>, 2=|10>, 3=|11>
+            real_t p00 = std::atan2(u_eff[0][0].im, u_eff[0][0].re);
+            real_t p01 = std::atan2(u_eff[1][1].im, u_eff[1][1].re);
+            real_t p10 = std::atan2(u_eff[2][2].im, u_eff[2][2].re);
+            real_t p11 = std::atan2(u_eff[3][3].im, u_eff[3][3].re);
+
+            TwoQubitCalibResult result;
+            // Phase shift of the target qubit relative to |00>
+            result.targetFramePhaseError = p01 - p00;
+            // Phase shift of the control qubit relative to |00>
+            result.controlFramePhaseError = p10 - p00;
+            // The pure non-local two-qubit phase (ideally this is pi)
+            result.actualCzPhase = p11 - p10 - p01 + p00;
+
+            return result;
         }
     };
 }

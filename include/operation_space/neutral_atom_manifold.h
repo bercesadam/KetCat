@@ -67,10 +67,10 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
     public:
-        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 5120, 2000.0>;
+        using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 2560, 500.0>;
         //typename ConfigType::template HilbertSpaceStub<1_D>;
 
-        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 40.0>;
+        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 200.0>;
 
     private:
         /// @brief Reduced-energy Hilbert space used for time evolution.
@@ -131,7 +131,7 @@ namespace KetCat
         /// This matrix is computed from the radial parts of the wavefunctions
         /// and encodes allowed optical transitions under the electric-dipole
         /// approximation.
-        inline static matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
+        inline static square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
 
 		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
         inline static std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
@@ -215,7 +215,7 @@ namespace KetCat
         /// @details
         /// Uses effective radial orbitals to compute dipole matrix elements
         /// under the electric-dipole approximation.
-        void buildDipleMatrix() noexcept
+        void buildDipoleMatrix() noexcept
         {
             m_basisStates1D =
                 std::make_unique<BasisSet<SingleAtomRadialHilbertSpace>>(
@@ -224,7 +224,25 @@ namespace KetCat
                     )
                 );
 
-            m_dipoleMatrix = buildRadialDipoleMatrix(*m_basisStates1D);
+			// Extract quantum numbers (l, m) for each basis state at compile time.
+            constexpr auto QuantumNumbers = std::apply([](auto... levels) {
+                return std::array<std::pair<natural_t, natural_t>, ConfigType::LevelCount>{
+                    std::pair<natural_t, natural_t>{ decltype(levels)::l(), decltype(levels)::m() }...
+                };
+            }, typename ConfigType::QuantumNumbers{});
+
+			// Compute the dipole matrix using the constructed basis states and their quantum numbers.
+            m_dipoleMatrix = calculateDipoleMatrix(*m_basisStates1D, QuantumNumbers);
+
+			std::cout << "Dipole matrix constructed:" << std::endl;
+			for (const auto& row : m_dipoleMatrix)
+			{
+				for (const auto& element : row)
+				{
+					std::cout << element.re << " ";
+				}
+				std::cout << std::endl;
+			}
 
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
@@ -329,7 +347,7 @@ namespace KetCat
         /// @return
         ///   Dipole matrix (radial part only, assuming no variations in laser polarizationm
         ///   hence no access to states with different 'm' quantum numbers)
-        static const matrix_t<ConfigType::LevelCount>& getDipoleMatrix() noexcept
+        static const square_matrix_t<ConfigType::LevelCount>& getDipoleMatrix() noexcept
         {
             return m_dipoleMatrix;
         }
@@ -353,7 +371,7 @@ namespace KetCat
 		///   4. Calculate Hartree energies for all states
         NeutralAtomManifold()
         {
-            buildDipleMatrix();
+            buildDipoleMatrix();
             buildFullBasisSet();
 			calculateHartreeEnergies();
         }

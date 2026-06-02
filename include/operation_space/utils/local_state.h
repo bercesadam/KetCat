@@ -1,6 +1,7 @@
 #pragma once
 #include "core_types.h"
 
+
 namespace KetCat
 {
     /// @brief  Density matrix for a single local qudit subsystem.
@@ -20,7 +21,10 @@ namespace KetCat
             for (natural_t i = 0; i < Dim; ++i)
             {
                 for (natural_t j = 0; j < Dim; ++j)
+                {
                     m[i][j] = complex_t::zero();
+                }
+            }
         }
 
         /// @brief Trace of the density matrix: Tr(ρ).

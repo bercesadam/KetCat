@@ -83,10 +83,54 @@ namespace KetCat
         {
 			std::cout << "Compiling gate: " << gateNameToString(Type) << " Theta: " << op.m_theta << std::endl;
 
+            ///////////////////////////////////////////
+            // -- BLOCH ROTATIONS --
+            //
+            // RX
+            //
+            if constexpr (Type == GateType::RX)
+            {
+                append(
+                    PhysicalInstructionType::RamanRotation,
+                    { op.m_targets[0] },
+                    1,
+                    op.m_theta,
+                    0.0);
+            }
+
+            //
+            // RY
+            //
+            else if constexpr (Type == GateType::RY)
+            {
+                append(
+                    PhysicalInstructionType::RamanRotation,
+                    { op.m_targets[0] },
+                    1,
+                    op.m_theta,
+                    ConstexprMath::Pi / 2.0);
+                    }
+
+            //
+            // RZ
+            //
+            else if constexpr (Type == GateType::RZ)
+            {
+                append(
+                    PhysicalInstructionType::VirtualZ,
+                    { op.m_targets[0] },
+                    1,
+                    op.m_theta,
+                    0.0);
+                    }
+            
+
+            ///////////////////////////////////////////
+            // -- PAULI GATES (“π” rotations) --
             //
             // Pauli X
             //
-            if constexpr (Type == GateType::X)
+            else if constexpr (Type == GateType::X)
             {
                 compileGate<GateType::RX>(
                     GateOperation<QubitCount>
@@ -125,45 +169,7 @@ namespace KetCat
                 });
             }
 
-            //
-            // RX
-            //
-            else if constexpr (Type == GateType::RX)
-            {
-                append(
-                    PhysicalInstructionType::RamanRotation,
-                    { op.m_targets[0] },
-                    1,
-                    op.m_theta,
-                    0.0);
-            }
-
-            //
-            // RY
-            //
-            else if constexpr (Type == GateType::RY)
-            {
-                append(
-                    PhysicalInstructionType::RamanRotation,
-                    { op.m_targets[0] },
-                    1,
-                    op.m_theta,
-                    ConstexprMath::Pi / 2.0);
-            }
-
-            //
-            // RZ
-            //
-            else if constexpr (Type == GateType::RZ)
-            {
-                append(
-                    PhysicalInstructionType::VirtualZ,
-                    { op.m_targets[0] },
-                    1,
-                    op.m_theta,
-                    0.0);
-            }
-
+            ///////////////////////////////////////////
             //
             // Hadamard
             //
@@ -187,22 +193,7 @@ namespace KetCat
                 });
             }
 
-            //
-            // Controlled-X
-            //
-            else if constexpr (Type == GateType::CX)
-            {
-                append(
-                    PhysicalInstructionType::RydbergBlockade,
-                    {
-                        op.m_targets[0],
-                        op.m_targets[1]
-                    },
-                    2,
-                    0.0,
-                    0.0);
-            }
-
+            ///////////////////////////////////////////
             //
             // Controlled-Z (CPHASE / CZ)
             //
@@ -218,7 +209,6 @@ namespace KetCat
                 // while leaving all other computational basis
                 // states unchanged.
                 //
-
                 append(
                     PhysicalInstructionType::RydbergBlockade,
                     {
@@ -230,6 +220,7 @@ namespace KetCat
                     0.0);
             }
 
+            ///////////////////////////////////////////
             //
             // Controlled-X (CNOT)
             //
@@ -245,7 +236,7 @@ namespace KetCat
                 // H(target)
                 //
                 compileGate<GateType::H>(
-                    GateOperation<QubitCount>
+                    GateOperation<1>
                 {
                     GateType::H,
                     { op.m_targets[1] }
@@ -255,7 +246,7 @@ namespace KetCat
                 // CZ(control, target)
                 //
                 compileGate<GateType::CZ>(
-                    GateOperation<QubitCount>
+                    GateOperation<2>
                 {
                     GateType::CZ,
                     {
@@ -268,7 +259,7 @@ namespace KetCat
                 // H(target)
                 //
                 compileGate<GateType::H>(
-                    GateOperation<QubitCount>
+                    GateOperation<1>
                 {
                     GateType::H,
                     { op.m_targets[1] }

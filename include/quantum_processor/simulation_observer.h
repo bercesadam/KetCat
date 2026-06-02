@@ -32,14 +32,16 @@ namespace KetCat
     template <natural_t QubitCount, NeutralAtomTypeConfig Config>
     class SimulationObserver
     {
-        using FullHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomFullHilbertSpace;
-        using OperationHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomOperationHilbertSpace;
+        using ConfigType = std::remove_cvref_t<decltype(Config)>;
+        using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
+        using VisuHilbertSpace = typename NeutralAtomManifold<Config>::SingleAtomFullHilbertSpace;
+        using FullHilbertSpace = typename GlobalStateManager::FullHilbertSpace;
 
         /// @brief Transformer to map numerical simulation data to visualizable structures.
         SimulationViewBuilder<Config> m_ViewBuilder;
 
         /// @brief Binary stream handler for simulation data persistence.
-        StateVectorExporter<FullHilbertSpace> m_Exporter;
+        std::array<std::unique_ptr<StateVectorExporter<VisuHilbertSpace>>, QubitCount> m_Exporter;
 
         /// @brief Label for the current logical operation being recorded.
         std::string m_SimulationStepName;
@@ -59,11 +61,15 @@ namespace KetCat
         SimulationObserver(const NeutralAtomManifold<Config>& manifold,
             const std::string fileName, const natural_t saveNthFrame)
             : m_ViewBuilder(manifold),
-            m_Exporter(fileName, ExportMode::RealImag),
-            m_SaveNthFrame(saveNthFrame)
+              m_SaveNthFrame(saveNthFrame)
         {
-            std::cout << "SimulationObserver initialized with file: " << fileName
-				<< " and save frequency: " << saveNthFrame << std::endl;
+            for (natural_t q = 0; q < QubitCount; ++q)
+            {
+                std::string qubitFileName = fileName + "_qubit" + std::to_string(q) + ".kwf";
+                m_Exporter[q] = std::make_unique<StateVectorExporter<VisuHilbertSpace>>(qubitFileName);
+                std::cout << "SimulationObserver initialized with file: " << qubitFileName << std::endl;
+			}
+            
         }
 
         /// @brief Update the metadata label for the current sequence of frames.
@@ -82,28 +88,37 @@ namespace KetCat
         /// @details
         ///    Calculates the instantaneous basis state probabilities and passes 
         ///    the formatted view to the binary exporter if the capture criteria are met.
-        void exportStep(const StateVector<OperationHilbertSpace>& psi,
+        void exportStep(const StateVector<FullHilbertSpace>& psi,
             const LaserPulse& laser1, const LaserPulse& laser2,
             const bool isKeyFrame = false)
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
-                auto SimulationView =
-                    m_ViewBuilder.build(
-                        m_SimulationStepName, TimeMaster::Clock().getGlobalTime(),
-                        psi, laser1, laser2);
-
-                m_Exporter.writeTimestep(SimulationView);
-
-                std::cout << "Exported frame " << m_FrameCounter << ": " << m_SimulationStepName
-					<< " at time " << SimulationView.m_time * 1E9 << " ns" << std::endl;
-
-                // Diagnostic terminal output, only for debugging, to be prettified or removed
-                for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                for (natural_t q = 0; q < QubitCount; ++q)
                 {
-                    std::cout << "Probability of basis state " << i << ": " << psi[i].normSquared() * 100.0 << "%" << std::endl;
+                    auto qubitLocalState = GlobalStateManager::extractLocalState(psi, q);
+
+                    auto SimulationView =
+                        m_ViewBuilder.build(
+                            "Qubit" + std::to_string(q) + ": " + m_SimulationStepName,
+                            TimeMaster::Clock().getGlobalTime(),
+                            qubitLocalState.pureStateVector, laser1, laser2);
+
+                    m_Exporter[q]->writeTimestep(SimulationView);
+
+ 					std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
+
+                    // Diagnostic terminal output, only for debugging, to be prettified or removed
+                    for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                    {
+                        std::cout << "Probability of basis state " << i << ": " << qubitLocalState.pureStateVector[i].normSquared() * 100.0 << "%\t";
+                        std::cout << "Re: " << qubitLocalState.pureStateVector[i].re << "\tIm: " << qubitLocalState.pureStateVector[i].im << std::endl;
+                    }
                 }
-                std::cout << "------------------------" << std::endl;
+
+                std::cout << "Exported timeframe " << m_FrameCounter << ": " << m_SimulationStepName
+                    << " at time " << TimeMaster::Clock().getGlobalTime() * Units::AtomicTimeToSeconds * 1E9 << " ns" << std::endl;
+                std::cout << "------------------------" << std::endl << std::endl;
             }
 
             m_FrameCounter++;

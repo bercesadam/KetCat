@@ -7,10 +7,20 @@ namespace KetCat
 	/// @brief Enumeration of physical instruction types for neutral atom control.
     enum class PhysicalInstructionType
     {
+		// @brief Single-qubit Raman rotation between logical states |0⟩ and |1⟩ via an intermediate state.
         RamanRotation,
+
+		// @brief Frame update for a virtual Z rotation, which does not require physical pulses.
         VirtualZ,
-        RydbergBlockade
+
+		// @brief Two-qubit Rydberg blockade interaction, which applies a conditional phase shift
+        // based on the presence of a Rydberg excitation.
+        RydbergBlockade,
+
+		// @brief Free evolution under the influence of the atomic Hamiltonian.
+        FreeEvolution
     };
+
 
 	/// @brief Concrete instance of a physical control instruction, ready for pulse generation and execution.
     struct PhysicalInstruction

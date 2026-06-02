@@ -34,20 +34,18 @@ namespace KetCat
     struct Matrix
     {
         /// @brief Underlying matrix storage.
-        matrix_t<Dim> m{};
+        square_matrix_t<Dim> m{};
 
         /// INDEXING /////////////////////////////////////////////////////////
 
-        constexpr std::array<complex_t, Dim>&
-            operator[](natural_t row) noexcept
+        constexpr complex_t& at(natural_t row, natural_t col) noexcept
         {
-            return m[row];
+            return m[row][col];
         }
 
-        constexpr const std::array<complex_t, Dim>&
-            operator[](natural_t row) const noexcept
+        constexpr const complex_t& at(natural_t row, natural_t col) const noexcept
         {
-            return m[row];
+            return m[row][col];
         }
 
         /// BASIC UTILITIES //////////////////////////////////////////////////
@@ -127,8 +125,7 @@ namespace KetCat
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Result[i][j] =
-                        m[j][i].conj();
+                    Result.m[j][i] = m[i][j].conj();
                 }
             }
 
@@ -141,8 +138,7 @@ namespace KetCat
         ///
         /// @details
         ///     C = A · B
-        constexpr Matrix
-            operator*(const Matrix& rhs) const noexcept
+        constexpr Matrix operator*(const Matrix& rhs) const noexcept
         {
             Matrix Result;
             Result.setZero();
@@ -156,12 +152,10 @@ namespace KetCat
 
                     for (natural_t k = 0; k < Dim; ++k)
                     {
-                        Sum +=
-                            m[i][k]
-                            * rhs[k][j];
+                        Sum = Sum + m[i][k] * rhs.m[k][j];
                     }
 
-                    Result[i][j] = Sum;
+                    Result.m[i][j] = Sum;
                 }
             }
 
@@ -178,9 +172,7 @@ namespace KetCat
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Result[i][j] =
-                        m[i][j]
-                        + rhs[i][j];
+                    Result.m[i][j] = m[i][j] + rhs.m[i][j];
                 }
             }
 
@@ -197,9 +189,7 @@ namespace KetCat
             {
                 for (natural_t j = 0; j < Dim; ++j)
                 {
-                    Result[i][j] =
-                        m[i][j]
-                        - rhs[i][j];
+                    Result.m[i][j] = m[i][j] - rhs.m[i][j];
                 }
             }
 
