@@ -19,10 +19,10 @@ namespace KetCat
     ///
     ///   H_tot = (H_atom1 ⊗ I) + (I ⊗ H_atom2) + V_vdW · |r,r⟩⟨r,r|
     ///
-    /// This solver is crucial for modeling non-local multi-qubit entangling operations, such as 
+    /// This class is used for modeling non-local multi-qubit entangling operations, in particular
     /// Controlled-Phase (CZ) gates in neutral-atom quantum processors.
     ///
-    /// @tparam LevelCount The number of internal electronic energy levels resolved per single atom.
+    /// @tparam LevelCount The number of modeled eigenstates per single atom!
     template <natural_t LevelCount>
     class TwoAtomRydbergBlockade
     {
@@ -152,44 +152,43 @@ namespace KetCat
         ///
         /// @tparam LevelCount Dimension of the 1D Hilbert space (number of energy levels for one atom).
         /// @param H_1D        The 1D tridiagonal Hamiltonian operator matrix.
-        /// @return            The populated, compact five_band_matrix_t representation for the 2D system.
         constexpr void create2DHamiltonian(const tridiagonal_matrix_t<LevelCount>& H_1D) noexcept
         {
             m_hamiltonianMatrix = {};
 
             constexpr natural_t TotalDim = LevelCount * LevelCount;
 
-            // 2. A 2D Kronecker-szorzatok felépítése O(N) sávos bejárással
-            // 2. Sávok feltöltése a solver belső indexelési sémájának megfelelően
+            // Construct the 2D Kronecker products using a banded traversal.
+            // Populate the bands according to the solver's internal indexing scheme.
             for (natural_t Row = 0; Row < TotalDim; ++Row)
             {
-                const natural_t i = Row / LevelCount; // Első atom állapota
-                const natural_t n = Row % LevelCount; // Második atom állapota
+                const natural_t i = Row / LevelCount; // State of the first atom
+                const natural_t n = Row % LevelCount; // State of the second atom
 
-                // FŐÁTLÓ: H_1D ⊗ I + I ⊗ H_1D
+                // MAIN DIAGONAL: H_1D ⊗ I + I ⊗ H_1D
                 m_hamiltonianMatrix[MAINDIAGONAL][Row] = H_1D[MAINDIAGONAL][i] + H_1D[MAINDIAGONAL][n];
 
-                // KÖZELI SÁVOK: I ⊗ H_1D (Második atom ugrásai a blokkon belül)
+                // NEAR BANDS: I ⊗ H_1D (Transitions of the second atom within the block)
                 if (n < LevelCount - 1)
                 {
                     m_hamiltonianMatrix[SUPERDIAGONAL][Row] = H_1D[SUPERDIAGONAL][n];
                 }
                 if (n > 0)
                 {
-                    // A tridiagonális mátrixod konvenciója alapján a SUBDIAGONAL[Row] 
-                    // a (Row, Row-1) elemet jelenti. Mivel a blokkon belül vagyunk, n indexel.
+                    // Based on the tridiagonal matrix convention, SUBDIAGONAL[Row] 
+                    // represents the (Row, Row-1) element. Since we are within the block, it is indexed by n.
                     m_hamiltonianMatrix[SUBDIAGONAL][Row] = H_1D[SUBDIAGONAL][n];
                 }
 
-                // TÁVOLI SÁVOK: H_1D ⊗ I (Első atom ugrásai a blokkok között)
-                // Ha i < LevelCount - 1, akkor van ugrás előre (i -> i+1) blokkszinten.
-                // Ez a solvernél az UPPER_FAR[Row] sávban lakik.
+                // FAR BANDS: H_1D ⊗ I (Transitions of the first atom between blocks)
+                // If i < LevelCount - 1, there is a forward transition (i -> i+1) at the block level.
+                // This maps to the UPPER_FAR[Row] band in the solver framework.
                 if (i < LevelCount - 1)
                 {
                     m_hamiltonianMatrix[UPPER_FAR][Row] = H_1D[SUPERDIAGONAL][i];
                 }
-                // Ha i > 0, akkor van ugrás hátra (i -> i-1) blokkszinten.
-                // Ez a solvernél a LOWER_FAR[Row] sávban lakik.
+                // If i > 0, there is a backward transition (i -> i-1) at the block level.
+                // This maps to the LOWER_FAR[Row] band in the solver framework.
                 if (i > 0)
                 {
                     m_hamiltonianMatrix[LOWER_FAR][Row] = H_1D[SUBDIAGONAL][i];
