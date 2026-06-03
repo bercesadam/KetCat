@@ -21,75 +21,44 @@ namespace KetCat
 			static constexpr natural_t SystemLevelCount = std::remove_cvref_t<decltype(FiveBandM)>::Dim;
             square_matrix_t<SystemLevelCount> M{};
 
-            // Copy the banded structure into the dense NxN matrix
+            // Copy the banded structure into the dense NxN matrix safely
             for (natural_t k = 0; k < SystemLevelCount; ++k)
             {
                 M[k][k] = FiveBandM[MAINDIAGONAL][k];
 
-                // Superdiagonal (forward jump within the block)
+                // SUPERDIAGONAL: k-adik sor, k+1-edik oszlop
+                // Csak akkor szabad másolni, ha nem lépünk át a LevelCount méretű blokk-határon
                 if (k + 1 < SystemLevelCount && (k % LevelCount) < LevelCount - 1)
                 {
                     M[k][k + 1] = FiveBandM[SUPERDIAGONAL][k];
                 }
-                // Subdiagonal (backward jump within the block)
+
+                // SUBDIAGONAL: k-adik sor, k-1-edik oszlop
+                // Csak akkor szabad másolni, ha a blokkon belül nem az első elemnél járunk
                 if (k > 0 && (k % LevelCount) > 0)
                 {
                     M[k][k - 1] = FiveBandM[SUBDIAGONAL][k];
                 }
-                // Upper far band (jump to the next block)
+
+                // UPPER_FAR: k-adik sor, k + LevelCount-adik oszlop
+                // Nem korlátozzuk a belső blokk-index alapján, mert ez a blokkok közötti átlépés!
                 if (k + LevelCount < SystemLevelCount)
                 {
                     M[k][k + LevelCount] = FiveBandM[UPPER_FAR][k];
                 }
-                // Lower far band (jump to the previous block)
+
+                // LOWER_FAR: k-adik sor, k - LevelCount-adik oszlop
+                // Nem korlátozzuk a belső blokk-index alapján, mert ez a blokkok közötti átlépés!
                 if (k >= LevelCount)
                 {
                     M[k][k - LevelCount] = FiveBandM[LOWER_FAR][k];
                 }
             }
 
-            // 2. Gaussian elimination with partial pivoting
+            // 2. Gaussian elimination
             for (natural_t k = 0; k < SystemLevelCount; ++k)
             {
-                // -- FIND PIVOT --
-                // To ensure safe constexpr execution, we evaluate the squared magnitude (re^2 + im^2)
-                natural_t pivot_row = k;
-                real_t max_mag_sq = (M[k][k].re * M[k][k].re) + (M[k][k].im * M[k][k].im);
-
-                for (natural_t i = k + 1; i < SystemLevelCount; ++i)
-                {
-                    real_t current_mag_sq = (M[i][k].re * M[i][k].re) + (M[i][k].im * M[i][k].im);
-
-                    if (current_mag_sq > max_mag_sq)
-                    {
-                        max_mag_sq = current_mag_sq;
-                        pivot_row = i;
-                    }
-                }
-
-                // -- SWAP ROWS --
-                // If a numerically larger element is found, swap the rows
-                if (pivot_row != k)
-                {
-                    for (natural_t j = k; j < SystemLevelCount; ++j)
-                    {
-                        complex_t temp = M[k][j];
-                        M[k][j] = M[pivot_row][j];
-                        M[pivot_row][j] = temp;
-                    }
-                    // Swap the corresponding elements in the right-hand side vector (psi)
-                    complex_t temp_psi = psi[k];
-                    psi[k] = psi[pivot_row];
-                    psi[pivot_row] = temp_psi;
-                }
-
-                const complex_t Pivot = M[k][k];
-
-                // Safeguard against singular matrices (physically unlikely, but prevents division by zero)
-                if (Pivot.re == 0.0 && Pivot.im == 0.0)
-                {
-                    continue;
-                }
+                 const complex_t Pivot = M[k][k];
 
                 // -- NORMALIZE PIVOT ROW --
                 for (natural_t j = k; j < SystemLevelCount; ++j)
