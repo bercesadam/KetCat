@@ -107,6 +107,7 @@ namespace KetCat
                     m_Exporter[q]->writeTimestep(SimulationView);
 
  					std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
+					std::cout << "Laser intensities in au: Pump = " << laser1.m_amplitude << ", Stokes = " << laser2.m_amplitude << std::endl;  
 
                     // Diagnostic terminal output, only for debugging, to be prettified or removed
                     for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
