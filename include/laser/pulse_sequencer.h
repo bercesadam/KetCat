@@ -148,7 +148,7 @@ namespace KetCat
         {
             TwoPhotonConfig LaserConfig;
 
-            LaserConfig.m_GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+            LaserConfig.m_GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
 				? ConfigType::Logical1Level
 				: ConfigType::Logical0Level;
 
@@ -174,7 +174,7 @@ namespace KetCat
             // For performing Rydberg blockades, which is independent from the control state
             // betweem the energy levels corresponding to the logical states we  toggle between
 			// STIRAP and Inverted STIRAP protocols based on the excitation flag stored in atom control data.
-            if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
             {
                 if (!atomControl.m_isRydbergExcited)
                 {

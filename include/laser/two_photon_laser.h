@@ -192,6 +192,7 @@ namespace KetCat
             }
             else
             {
+                Parameters.m_sigma = 200.0 / minActualOmega;
                 Parameters.m_tS = 4.0 * Parameters.m_sigma;
                 Parameters.m_tP = 3.0 * Parameters.m_sigma;
             }
