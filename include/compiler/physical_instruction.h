@@ -15,7 +15,12 @@ namespace KetCat
 
 		// @brief Two-qubit Rydberg blockade interaction, which applies a conditional phase shift
         // based on the presence of a Rydberg excitation.
-        RydbergBlockade,
+        // @warning When executing this physical instruction, as laser control module which is designed
+        // to perform single excitation sequences of arbitrary thetas the compiler layer shall
+		// ensure that the theta parameter is set to π, and that two subsequent RydbergExcitation instructions
+        // are  generated for the same pair of qubits to achieve the deexciation part as well.
+        // (The internal control logic will automaticall switch to inverted STIRAP protocol for the second pulse.)
+        RydbergExcitation,
 
 		// @brief Free evolution under the influence of the atomic Hamiltonian.
         FreeEvolution

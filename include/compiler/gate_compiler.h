@@ -122,7 +122,7 @@ namespace KetCat
                     1,
                     op.m_theta,
                     0.0);
-                    }
+            }
             
 
             ///////////////////////////////////////////
@@ -210,7 +210,16 @@ namespace KetCat
                 // states unchanged.
                 //
                 append(
-                    PhysicalInstructionType::RydbergBlockade,
+                    PhysicalInstructionType::RydbergExcitation,
+                    {
+                        op.m_targets[0], // control
+                        op.m_targets[1]  // target
+                    },
+                    2,
+                    ConstexprMath::Pi,
+                    0.0);
+                append(
+                    PhysicalInstructionType::RydbergExcitation,
                     {
                         op.m_targets[0], // control
                         op.m_targets[1]  // target
