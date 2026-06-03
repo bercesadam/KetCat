@@ -31,6 +31,10 @@ namespace KetCat
     constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
     constexpr natural_t SimuSaveNthFrame = 4E6;
 
+	/// @brief Forward declare Diagnostic class for friend declaration.
+    template <natural_t QubitCount, NeutralAtomTypeConfig Config>
+    class QPUDiagnostics;
+
     /// @brief Main control logic/orchestraion of the complete neutral atom quantum computer simulation stack.
     ///
     /// @details
@@ -63,31 +67,12 @@ namespace KetCat
         SimulationObserver<QubitCount, Config> m_SimulationObserver;
 
     public:
-		decltype(m_GlobalStateVector) globalStateVector() const
-        {
-            return m_GlobalStateVector;
-        }
-
         /// @brief Initialize the processor with a specific time-step for TDSE.
         ///
         /// @param simulationOutputFileName Output filename for the simulation data
         constexpr QuantumProcessor(std::string simulationOutputFileName)
-        {
-            QuantumProcessor(simulationOutputFileName, std::bitset<QubitCount>{});
-        }
-
-        constexpr QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
-            m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
-        {
-            TimeMaster::Clock().init(CrankNicolsonTimeStep);
-
-            m_GlobalStateVector = 
-                GlobalStateManager::basisStateFromBitstring(initialBitString,
-                    ConfigType::Logical0Level, ConfigType::Logical1Level);
-
-            std::ranges::for_each(std::views::iota(0U, QubitCount) |
-                std::views::filter([&](auto i) { return initialBitString.test(i); }),
-                [&](auto i) { m_laserSequencer.initializeAtomAsLogical1(i); });
+            : QuantumProcessor(simulationOutputFileName, std::bitset<QubitCount>{})
+        {  
         }
 
         /// @brief Execute a logical quantum circuit.
@@ -105,6 +90,25 @@ namespace KetCat
         }
 
     private:
+		/// @brief Internal constructor for initializing the processor with a specific initial state.
+		/// @param simulationOutputFileName Output filename for the simulation data
+		/// @param initialBitString Bitstring representing the initial state of the qubits
+		/// @details This is a private constructor allowing only diagnostic routines to initialize the processor with a specific state.
+		/// The public constructor initializes all qubits to |0⟩ by default, corresponding to the ground state of the atoms by default.
+        constexpr QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
+            m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
+        {
+            TimeMaster::Clock().init(CrankNicolsonTimeStep);
+
+            m_GlobalStateVector =
+                GlobalStateManager::basisStateFromBitstring(initialBitString,
+                    ConfigType::Logical0Level, ConfigType::Logical1Level);
+
+            std::ranges::for_each(std::views::iota(0U, QubitCount) |
+                std::views::filter([&](auto i) { return initialBitString.test(i); }),
+                [&](auto i) { m_laserSequencer.initializeAtomAsLogical1(i); });
+        }
+
         /// @brief Translate a logical gate into physical hardware instructions.
         ///
         /// @details
@@ -180,9 +184,8 @@ namespace KetCat
                 {
                     evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
                 }
-                else if (instruction.m_type == PhysicalInstructionType::RydbergBlockade)
+                else if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
                 {
-                    //evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
                     evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
                 }
                 else { }
@@ -247,7 +250,7 @@ namespace KetCat
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
-                RydbergBlockade(Units::MeterToAtomicLength * 100E-9,
+                RydbergBlockade(Units::MeterToAtomicLength * 50E-9,
                     ConfigType::RydbergLevel,
                     HartreeEnergies,
 				DipoleMatrix);
@@ -259,33 +262,18 @@ namespace KetCat
             SingleAtomExcitation.updateOffDiagonal(lasers);
             auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
 
-     /*
-			for (size_t i = 0; i < ConfigType::LevelCount; ++i)
-			{
-				// Print tridiagonal matrix for debugging
-				std::cout << "Index " << i << ": "
-					<< "MAINDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[MAINDIAGONAL][i].re << " + " << SingleAtomHamiltonian[MAINDIAGONAL][i].im << "i, "
-					<< "SUPERDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUPERDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUPERDIAGONAL][i].im << "i, "<< ", "
-					<< "SUBDIAGONAL[" << i << "] = " << SingleAtomHamiltonian[SUBDIAGONAL][i].re << " + " << SingleAtomHamiltonian[SUBDIAGONAL][i].im << "i, "  << std::endl;
-			}*/
             RydbergBlockade.updateMatrix(SingleAtomHamiltonian);
-            /*
-			auto RBMatrix = RydbergBlockade.getMatrix();
-            for (size_t i = 0; i < ConfigType::LevelCount * ConfigType::LevelCount; ++i)
-            {
-                // Print five-band matrix for debugging
-                std::cout << "Index " << i << ": " << "MAINDIAGONAL[" << i << "] = " << RBMatrix[MAINDIAGONAL][i].re << " + " << RBMatrix[MAINDIAGONAL][i].im << "i, "
-                    << "UPPER_FAR[" << i << "] = " << RBMatrix[UPPER_FAR][i].re << " + " << RBMatrix[UPPER_FAR][i].im << "i, " << ", "
-                    << "SUPERDIAGONAL[" << i << "] = " << RBMatrix[SUPERDIAGONAL][i].re << " + " << RBMatrix[SUPERDIAGONAL][i].im << "i, "<< ", "
-                    << "SUBDIAGONAL[" << i << "] = " << RBMatrix[SUBDIAGONAL][i].re << " + " << RBMatrix[SUBDIAGONAL][i].im << "i, " << ", "
-                    << "LOWER_FAR[" << i << "] = " << RBMatrix[LOWER_FAR][i].re << " + " << RBMatrix[LOWER_FAR][i].im << "i, "<< std::endl;
-            }
-			exit(0);*/
+
             Solver.updateMatrices(RydbergBlockade.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
             GlobalStateManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
         }
+
+    private:
+       // Grant access to the internal state and methods of QuantumProcessor for diagnostic purposes.
+        template<natural_t, NeutralAtomTypeConfig>
+        friend class QPUDiagnostics;
     };
 }

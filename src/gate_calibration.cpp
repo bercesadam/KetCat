@@ -16,7 +16,7 @@ namespace KetCat
     template <natural_t SweepSteps>
     void generateCalibrationHeader(
         const std::array<real_t, SweepSteps>& sweepAngles,
-        const std::array<real_t, SweepSteps>& rxErrors
+        const std::array<real_t, SweepSteps>& rxErrors,
         const TwoQubitCalibResult& cz)
     {
         std::ofstream header("gate_calibration_map.h");

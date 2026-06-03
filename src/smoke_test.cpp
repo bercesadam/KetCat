@@ -1,4 +1,4 @@
-#include "quantum_processor/quantum_processor.h"
+#include "quantum_processor/qpu_diag.h"
 
 int main()
 {
@@ -30,19 +30,19 @@ int main()
         QuantumGate<2, GateType::CZ>().toBits(0, 1),
         QuantumGate<2, GateType::CZ>().toBits(0, 1)
     );
-
+/*
     auto Circuit2 = QuantumCircuit<2>().withGates(
         QuantumGate<1, GateType::H>().toBits(0),
         QuantumGate<1, GateType::H>().toBits(1),
         QuantumGate<2, GateType::CZ>().toBits(0, 1),
         QuantumGate<2, GateType::CZ>().toBits(0, 1),
         QuantumGate<1, GateType::H>().toBits(0)
-    );
+    );*/
 
-    QuantumProcessor<2, Config> QPU("smoke_test", 3);
-    QPU.execute(Circuit);
+	auto DiagSession = QPUDiagnostics<2, Config>::createQPUWithInitialState("smoke_test", std::bitset<2>{"11"});
+    DiagSession.QPU().execute(Circuit);
 
-    QuantumProcessor<2, Config> QPU2("smoke_test_3", 0);
-    QPU2.execute(Circuit2);
+    //QuantumProcessor<2, Config> QPU2("smoke_test_3", 0);
+   // QPU2.execute(Circuit2);
   
 }
