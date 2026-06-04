@@ -174,15 +174,74 @@ def phase_to_rgb(psi):
         1
     )
 
+# -------------------- Auto-scaling extent additions (minimal) --------------------
+# Auto-scaling extent params
+auto_extent = True                 # turn on/off auto-scaling of the main plot extent
+extent_mode = "global"             # "global" (stable) or "frame" (dynamic per frame)
+threshold_rel = 0.01               # threshold vs max |psi|^2 to define "content"
+padding_frac = 0.05                # padding around detected content box
+
+# Precompute amplitude and grid spacings
+ampl = (np.abs(psi_all) ** 2)
+dx = 2 * L / Nx
+dy = 2 * L / Ny
+
+def compute_extent_for_mask(mask_2d):
+    # mask_2d: shape (Ny, Nx), True where content exists
+    if not mask_2d.any():
+        return [-L, L, -L, L]
+
+    rows = mask_2d.any(axis=1)  # Ny
+    cols = mask_2d.any(axis=0)  # Nx
+
+    y0 = int(np.argmax(rows))
+    y1 = int(len(rows) - 1 - np.argmax(rows[::-1]))
+    x0 = int(np.argmax(cols))
+    x1 = int(len(cols) - 1 - np.argmax(cols[::-1]))
+
+    # padding in pixels
+    px = int(round(padding_frac * (x1 - x0 + 1)))
+    py = int(round(padding_frac * (y1 - y0 + 1)))
+
+    x0 = max(0, x0 - px)
+    x1 = min(Nx - 1, x1 + px)
+    y0 = max(0, y0 - py)
+    y1 = min(Ny - 1, y1 + py)
+
+    # convert pixel indices to edge coordinates
+    xmin = -L + x0 * dx
+    xmax = -L + (x1 + 1) * dx
+    ymin = -L + y0 * dy
+    ymax = -L + (y1 + 1) * dy
+    return [xmin, xmax, ymin, ymax]
+
+# Decide initial auto extent
+if auto_extent and ampl.size and ampl.max() > 0:
+    if extent_mode == "global":
+        # union of content across all frames
+        mask_global = (ampl >= (threshold_rel * ampl.max())).any(axis=0)  # (Ny, Nx)
+        auto_extent_vals = compute_extent_for_mask(mask_global)
+    else:
+        # initialize from frame 0; update() will adjust each frame
+        m0 = ampl[0] >= (threshold_rel * max(1e-16, ampl[0].max()))
+        auto_extent_vals = compute_extent_for_mask(m0)
+else:
+    auto_extent_vals = [-L, L, -L, L]
+# -----------------------------------------------------------------------------
+
 # Setup plot
 fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
 
 im = ax.imshow(
     phase_to_rgb(psi_all[0]),
     origin="lower",
-    extent=[-L, L, -L, L],
+    extent=auto_extent_vals,  # changed from [-L, L, -L, L]
     interpolation="bilinear"
 )
+
+# Keep axes in sync with the imshow extent
+ax.set_xlim(auto_extent_vals[0], auto_extent_vals[1])
+ax.set_ylim(auto_extent_vals[2], auto_extent_vals[3])
 
 # Bloch-sphere Inset
 ax_bloch = fig.add_axes([0.56, 0.01, 0.35, 0.35], projection='3d')
@@ -343,6 +402,16 @@ caption_text = ax.text(
 
 def update(frame):
     im.set_data(phase_to_rgb(psi_all[frame]))
+
+    # Dynamic per-frame auto-extent (active only if extent_mode == "frame")
+    if auto_extent and extent_mode == "frame":
+        frame_max = ampl[frame].max()
+        if frame_max > 0:
+            mf = ampl[frame] >= (threshold_rel * frame_max)
+            new_ext = compute_extent_for_mask(mf)
+            im.set_extent(new_ext)
+            ax.set_xlim(new_ext[0], new_ext[1])
+            ax.set_ylim(new_ext[2], new_ext[3])
 
     caption_text.set_text(
         captions[frame].replace("|", "\n")
