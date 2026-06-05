@@ -101,7 +101,7 @@ namespace KetCat
         ///
         ///    X/Y rotations use the TwoPhotonPulseBuilder to solve:
         ///      θ = ∫ Ω_eff(t) dt
-        std::optional<TwoPhotonLaserEnvelope> calculateLaserEnvelope(const PhysicalInstruction& instruction)
+        std::optional<TwoPhotonLaserEnvelope> calculateLaserEnvelope(PhysicalInstruction& instruction)
         {
             const natural_t targetIndex = instruction.m_targets[0];
 			real_t& framePhase = m_RWAFramePhases[targetIndex];

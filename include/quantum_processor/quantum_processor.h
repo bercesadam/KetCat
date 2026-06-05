@@ -143,7 +143,7 @@ namespace KetCat
         ///
         ///    The evolution loop propagates Ψ(t) using the time-dependent Hamiltonian:
         ///      i ∂/∂t |Ψ⟩ = Ĥ(t)|Ψ⟩
-        void executeInstruction(const PhysicalInstruction& instruction)
+        void executeInstruction(PhysicalInstruction& instruction)
         {
 			std::cout << "Executing instruction of type: " << static_cast<int>(instruction.m_type) << std::endl;
 
