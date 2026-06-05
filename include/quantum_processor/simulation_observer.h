@@ -94,6 +94,12 @@ namespace KetCat
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
+                // Print full state vector
+				for (natural_t i = 0; i < GlobalStateManager::FullDim; ++i)
+				{
+					std::cout << "Global basis state " << i << ": Re: " << psi[i].re << "\tIm: " << psi[i].im << std::endl;
+				}
+                std::cout << "------------------------" << std::endl << std::endl;
                 for (natural_t q = 0; q < QubitCount; ++q)
                 {
                     auto qubitLocalState = GlobalStateManager::extractLocalState(psi, q);
