@@ -7,102 +7,6 @@
 
 namespace KetCat
 {
-    namespace detail
-    {
-        /// @brief Internal state tracking for individual atom control.
-        /// 
-        /// @details 
-        ///    Maintains the phase of the rotating frame and tracking for 
-        ///    fractional STIRAP cycles to ensure adiabatic continuity.
-        struct AtomControlData
-        {
-            /// @brief Current phase of the rotating frame φ_frame.
-            real_t m_framePhase = 0.0;
-
-            /// @brief Current position in the continuous STIRAP cycle θ_accum.
-            /// @details Tracks the total mixing angle in the range [0, 2π).
-            real_t m_stirapCycleTheta = 0.0;
-              
-			/// @brief Flag indicating if the atom is currently in the Rydberg state.
-			/// @details As Rydberg excitations are always complete STIRAP cycles
-			/// and also it's independent from the logical state, we  track this separately
-            /// to don't mix with the concept behind m_stirapCycleTheta, but still
-			/// allowing the control logic to know if STIRAP or Inverted STIRAP should be used
-			bool m_isRydbergExcited = false;  
-
-            bool m_isInitialized = false;
-
-            /// @brief Time required for a complete adiabatic π-pulse.
-            real_t m_stirapFullTransferTime = 0.0;
-
-            /// @brief Current temporal offset within the pulse sequence.
-            real_t m_stirapCycleTime = 0.0;
-
-            /// @brief Select STIRAP protocol based on accumulated rotation angle.
-            ///
-            /// @param targetTheta
-            ///    Requested logical rotation angle in radians (Δθ).
-            ///
-            /// @return
-            ///    Selected two-photon transfer protocol.
-            ///
-            /// @details
-            ///    Protocol selection alternates to maintain adiabaticity:
-            ///
-            ///      • STIRAP:          |0⟩ → |2⟩ when θ_accum ∈ [0, π)
-            ///      • Inverted STIRAP: |2⟩ → |0⟩ when θ_accum ∈ [π, 2π)
-            ///
-            ///    The selection is governed by the state of the mixing angle:
-            ///      tan(θ/2) = Ωp(t) / Ωs(t)
-            TwoPhotonProtocol handleStirapTheta(real_t targetTheta)
-            {
-                TwoPhotonProtocol Result;
-
-                if (m_stirapCycleTheta >= 0.0 &&
-                    m_stirapCycleTheta < ConstexprMath::Pi)
-                {
-                    Result = TwoPhotonProtocol::STIRAP;
-                }
-                else if (m_stirapCycleTheta >= ConstexprMath::Pi - 1E-7)
-                {
-                    Result = TwoPhotonProtocol::InvertedSTIRAP;
-                }
-
-                m_stirapCycleTheta += targetTheta;
-
-                /// Wrap accumulated angle: θ_accum ← θ_accum mod 2π
-                if (ConstexprMath::floatNear(
-                    m_stirapCycleTheta,
-                    2 * ConstexprMath::Pi))
-                {
-                    m_stirapCycleTheta = 0.0;
-                }
-
-                return Result;
-            }
-
-            /// @brief Advance the internal pulse clock.
-            void updateCycleTime(const real_t sequenceTime)
-            {
-                m_stirapCycleTime += sequenceTime;
-
-                if (m_stirapCycleTime >= m_stirapFullTransferTime)
-                {
-                    m_stirapCycleTime = 0.0;
-                }
-            }
-
-            void setFullTransferTime(const real_t fullTransferTime)
-            {
-                if (!m_isInitialized)
-                {
-                    m_stirapFullTransferTime = fullTransferTime;
-                    m_isInitialized = true;
-                }
-            }
-        };
-    }
-
     /// @brief Single-qubit quantum control layer for Raman/STIRAP-driven operations.
     ///
     /// @details
@@ -130,9 +34,9 @@ namespace KetCat
             Manifold::getDipoleMatrix();
 
         real_t m_peakRabiHz = 50e6;
-        real_t m_commonDetuningHz = 0;
+        real_t m_commonDetuningHz = 500e6;
 
-        std::array<detail::AtomControlData, AtomCount> m_AtomControlState;
+        std::array<real_t, AtomCount> m_RWAFramePhases;
 
 
         /// @brief Construct physical laser configuration for a pulse command.
@@ -144,13 +48,19 @@ namespace KetCat
         ///
         ///    The rotating frame update ensures phase coherence:
         ///      φ_pump = φ_instr - φ_frame
-        TwoPhotonConfig prepareLaserConfig(detail::AtomControlData& atomControl, const PhysicalInstruction& instruction)
+        TwoPhotonConfig prepareLaserConfig(const PhysicalInstruction& instruction)
         {
             TwoPhotonConfig LaserConfig;
 
             LaserConfig.m_GroundLevelIndex = (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
 				? ConfigType::Logical1Level
 				: ConfigType::Logical0Level;
+
+            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
+            {
+                m_peakRabiHz = 500e6;
+                m_commonDetuningHz = 1000e6;
+            }
 
             LaserConfig.m_Level1Energy = m_energies[LaserConfig.m_GroundLevelIndex];
             LaserConfig.m_Level2Energy = m_energies[LaserConfig.m_GroundLevelIndex + 1];
@@ -168,48 +78,15 @@ namespace KetCat
             LaserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
 
-            // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
-            LaserConfig.m_pumpPhase = instruction.m_phase - atomControl.m_framePhase;
-            
-            // For performing Rydberg blockades, which is independent from the control state
-            // betweem the energy levels corresponding to the logical states we  toggle between
-			// STIRAP and Inverted STIRAP protocols based on the excitation flag stored in atom control data.
-            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
-            {
-                if (!atomControl.m_isRydbergExcited)
-                {
-					LaserConfig.m_protocol = TwoPhotonProtocol::STIRAP;
-                    atomControl.m_isRydbergExcited = true;
-                }
-                else
-                {
-					LaserConfig.m_protocol = TwoPhotonProtocol::InvertedSTIRAP;
-                    atomControl.m_isRydbergExcited = false;
-                }
-            }
-			// For performing one qubit logical rotations (X/Y), we toggle between STIRAP and Inverted STIRAP protocols
-            // based on the accumulated rotation angle stored in atom control data.
-            else
-            {
-                LaserConfig.m_protocol = atomControl.handleStirapTheta(instruction.m_theta);
-            }
-
-			// In case in inverted STIRAP sequences we need to adjust the target theta to be the
-            // complementary angle to ensure the correct rotation direction
-            LaserConfig.m_targetTheta = instruction.m_theta;
-            if (LaserConfig.m_protocol == TwoPhotonProtocol::InvertedSTIRAP &&
-                !(ConstexprMath::floatNear(ConstexprMath::Pi, LaserConfig.m_targetTheta)))
-            {
-                LaserConfig.m_targetTheta = ConstexprMath::Pi - instruction.m_theta;
-            }
-
+            LaserConfig.m_pumpPhase = instruction.m_phase;
+            LaserConfig.m_protocol = TwoPhotonProtocol::Simultaneous;
+          
             return LaserConfig;
         }
 
     public:
         constexpr void initializeAtomAsLogical1(natural_t index)
         {
-            m_AtomControlState[index].m_stirapCycleTheta = ConstexprMath::Pi;
         }
 
         /// @brief Generate the time-dependent envelope for a physical instruction.
@@ -227,35 +104,30 @@ namespace KetCat
         std::optional<TwoPhotonLaserEnvelope> calculateLaserEnvelope(const PhysicalInstruction& instruction)
         {
             const natural_t targetIndex = instruction.m_targets[0];
+			real_t& framePhase = m_RWAFramePhases[targetIndex];
+
             if (targetIndex >= AtomCount)
             {
                 return std::nullopt;
             }
 
-            detail::AtomControlData& AtomControl = m_AtomControlState[targetIndex];
-
             // Handle Bloch-Z rotations (Virtual Z)
             if (instruction.m_type == PhysicalInstructionType::VirtualZ)
             {
-                AtomControl.m_framePhase += instruction.m_theta;
+                framePhase += instruction.m_theta;
                 return std::nullopt;
             }
+           
+            // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
+            instruction.m_phase -= framePhase;
 
-            // Generate physical parameters via Builder
-            TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(AtomControl, instruction));
+            // Generate physical laser parameters via Builder
+            TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(instruction));
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
-
 
             // For X/Y rotations, the instruction phase defines the axis
             // Update frame phase if relative phase tracking is required
-            AtomControl.m_framePhase += instruction.m_phase;
-
-            // Synchronize timing for adiabatic continuity
-            // t_start allows resuming pulses from previous fractional steps
-            LaserEnvelope.setStartTime(AtomControl.m_stirapCycleTime);
-
-            AtomControl.setFullTransferTime(LaserEnvelope.getFullTransferTime());
-            AtomControl.updateCycleTime(LaserEnvelope.getTransitionTimeLimit());
+            framePhase += instruction.m_phase;
 
             return LaserEnvelope;
         }

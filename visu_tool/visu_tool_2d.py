@@ -3,11 +3,9 @@ import struct
 import sys
 import tkinter as tk
 from tkinter import filedialog
-
 # HEADLESS BACKEND (must be before pyplot import)
 import matplotlib
 matplotlib.use("Agg")
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, Normalize
@@ -16,7 +14,6 @@ import matplotlib.cm as cm
 import pandas as pd
 
 output_dir = "frames"
-
 # Hilbert space properties
 Nx, Ny = 256, 256
 L = 100.0
@@ -35,7 +32,6 @@ kwf_file = filedialog.askopenfilename(
 )
 
 _root.destroy()
-
 if not kwf_file:
     print("No file selected. Exiting.")
     sys.exit(0)
@@ -119,7 +115,6 @@ n_timesteps = raw.shape[0]
 
 # Generate CSV with alpha/beta data
 csv_data = []
-
 for i in range(n_timesteps):
     a, b = qubits[i]
     csv_data.append([times[i], a.real, a.imag, b.real, b.imag])
@@ -136,6 +131,10 @@ if mode == 0:
     psi_all = raw.reshape(n_timesteps, Ny, Nx)
 else:
     psi_all = np.sqrt(raw).reshape(n_timesteps, Ny, Nx).astype(complex)
+
+# Koordináta rácsok a precíz fizikai skálázáshoz au-ban
+x_coord = np.linspace(-L, L, Nx)
+y_coord = np.linspace(-L, L, Ny)
 
 def phase_to_rgb(psi):
     phase = (np.angle(psi) + np.pi) / (2 * np.pi)
@@ -174,84 +173,30 @@ def phase_to_rgb(psi):
         1
     )
 
-# -------------------- Auto-scaling extent additions (minimal) --------------------
-# Auto-scaling extent params
-auto_extent = True                 # turn on/off auto-scaling of the main plot extent
-extent_mode = "global"             # "global" (stable) or "frame" (dynamic per frame)
-threshold_rel = 0.01               # threshold vs max |psi|^2 to define "content"
-padding_frac = 0.05                # padding around detected content box
+# Setup plot - Szigorúan fix elrendezés az ugrálásmentességért
+fig, ax = plt.subplots(figsize=(10, 8))
+fig.subplots_adjust(left=0.10, right=0.82, top=0.92, bottom=0.12)
 
-# Precompute amplitude and grid spacings
-ampl = (np.abs(psi_all) ** 2)
-dx = 2 * L / Nx
-dy = 2 * L / Ny
-
-def compute_extent_for_mask(mask_2d):
-    # mask_2d: shape (Ny, Nx), True where content exists
-    if not mask_2d.any():
-        return [-L, L, -L, L]
-
-    rows = mask_2d.any(axis=1)  # Ny
-    cols = mask_2d.any(axis=0)  # Nx
-
-    y0 = int(np.argmax(rows))
-    y1 = int(len(rows) - 1 - np.argmax(rows[::-1]))
-    x0 = int(np.argmax(cols))
-    x1 = int(len(cols) - 1 - np.argmax(cols[::-1]))
-
-    # padding in pixels
-    px = int(round(padding_frac * (x1 - x0 + 1)))
-    py = int(round(padding_frac * (y1 - y0 + 1)))
-
-    x0 = max(0, x0 - px)
-    x1 = min(Nx - 1, x1 + px)
-    y0 = max(0, y0 - py)
-    y1 = min(Ny - 1, y1 + py)
-
-    # convert pixel indices to edge coordinates
-    xmin = -L + x0 * dx
-    xmax = -L + (x1 + 1) * dx
-    ymin = -L + y0 * dy
-    ymax = -L + (y1 + 1) * dy
-    return [xmin, xmax, ymin, ymax]
-
-# Decide initial auto extent
-if auto_extent and ampl.size and ampl.max() > 0:
-    if extent_mode == "global":
-        # union of content across all frames
-        mask_global = (ampl >= (threshold_rel * ampl.max())).any(axis=0)  # (Ny, Nx)
-        auto_extent_vals = compute_extent_for_mask(mask_global)
-    else:
-        # initialize from frame 0; update() will adjust each frame
-        m0 = ampl[0] >= (threshold_rel * max(1e-16, ampl[0].max()))
-        auto_extent_vals = compute_extent_for_mask(m0)
-else:
-    auto_extent_vals = [-L, L, -L, L]
-# -----------------------------------------------------------------------------
-
-# Setup plot
-fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
-
+# Bicubic interpoláció használata a pixelesség ellen nagy zoom esetén
 im = ax.imshow(
     phase_to_rgb(psi_all[0]),
     origin="lower",
-    extent=auto_extent_vals,  # changed from [-L, L, -L, L]
-    interpolation="bilinear"
+    extent=[-L, L, -L, L],
+    interpolation="bicubic"
 )
 
-# Keep axes in sync with the imshow extent
-ax.set_xlim(auto_extent_vals[0], auto_extent_vals[1])
-ax.set_ylim(auto_extent_vals[2], auto_extent_vals[3])
+# Lekérjük a főtengely pontos elhelyezkedését, hogy ahhoz rögzítsük az inseteket
+fig.canvas.draw()
+main_pos = ax.get_position()
 
-# Bloch-sphere Inset
-ax_bloch = fig.add_axes([0.56, 0.01, 0.35, 0.35], projection='3d')
+# Bloch-sphere Inset pozícionálása a fő kép sarkához képest
+ax_bloch = fig.add_axes([main_pos.x1 - 0.22, main_pos.y0 + 0.01, 0.24, 0.24], projection='3d')
 ax_bloch.set_facecolor((0, 0, 0, 0))
 
-# STIRAP Intensity Plot
-ax_stirap = fig.add_axes([0.16, 0.11, 0.3, 0.2])
-ax_stirap.set_facecolor((0, 0, 0, 0.3))
+# STIRAP Intensity Plot pozícionálása a fő kép sarkához képest
+ax_stirap = fig.add_axes([main_pos.x0 + 0.02, main_pos.y0 + 0.02, 0.28, 0.18])
+ax_stirap.set_facecolor((0, 0, 0, 0.4))
 ax_stirap.tick_params(colors='white', labelsize=8)
-
 for spine in ax_stirap.spines.values():
     spine.set_color('white')
 
@@ -262,7 +207,7 @@ l1_val = stirap_data[0, 0]
 l2_val = stirap_data[0, 2]
 
 text_l1 = ax_stirap.text(
-    0.01, 0.9,
+    0.03, 0.88,
     f"{l1_val:.1f} nm",
     color="lime",
     transform=ax_stirap.transAxes,
@@ -270,7 +215,7 @@ text_l1 = ax_stirap.text(
 )
 
 text_l2 = ax_stirap.text(
-    0.01, 0.8,
+    0.03, 0.76,
     f"{l2_val:.1f} nm",
     color="deepskyblue",
     transform=ax_stirap.transAxes,
@@ -357,8 +302,7 @@ bloch_vector, = ax_bloch.plot(
 )
 
 divider = make_axes_locatable(ax)
-
-cax = divider.append_axes("right", size="3%", pad=0.1)
+cax = divider.append_axes("right", size="3%", pad=0.15)
 
 norm = Normalize(vmin=-np.pi, vmax=np.pi)
 
@@ -401,17 +345,44 @@ caption_text = ax.text(
 )
 
 def update(frame):
-    im.set_data(phase_to_rgb(psi_all[frame]))
+    psi = psi_all[frame]
+    im.set_data(phase_to_rgb(psi))
 
-    # Dynamic per-frame auto-extent (active only if extent_mode == "frame")
-    if auto_extent and extent_mode == "frame":
-        frame_max = ampl[frame].max()
-        if frame_max > 0:
-            mf = ampl[frame] >= (threshold_rel * frame_max)
-            new_ext = compute_extent_for_mask(mf)
-            im.set_extent(new_ext)
-            ax.set_xlim(new_ext[0], new_ext[1])
-            ax.set_ylim(new_ext[2], new_ext[3])
+    # --- Dinamikus szimmetrikus zoom kényelmes margin-nal ---
+    amplitude_sq = np.abs(psi) ** 2
+    max_amp = amplitude_sq.max()
+    
+    if max_amp > 1e-8:
+        # Küszöbérték a külső üres részek levágásához
+        threshold = 0.005 * max_amp
+        inside_indices = np.argwhere(amplitude_sq >= threshold)
+        
+        if len(inside_indices) > 0:
+            y_indices = inside_indices[:, 0]
+            x_indices = inside_indices[:, 1]
+            
+            # Pixelindexek átszámolása valós térbeli koordinátákra (a.u.)
+            x_min, x_max = x_coord[x_indices.min()], x_coord[x_indices.max()]
+            y_min, y_max = y_coord[y_indices.min()], y_coord[y_indices.max()]
+            
+            # Legnagyobb abszolút kitérés kiválasztása a tökéletes szimmetriához (+- x és y ugyanaz)
+            max_bound = max(abs(x_min), abs(x_max), abs(y_min), abs(y_max))
+            
+            # 25%-os elegáns margó (margin) hozzáadása, hogy ne érjen a kép széléhez
+            padding = max_bound * 0.25
+            limit = max_bound + padding
+            
+            # Korlátok közé szorítás (ne legyen túlzoomolva se, de az eredeti L-t se lépje túl)
+            limit = np.clip(limit, 8.0, L)
+        else:
+            limit = L
+    else:
+        limit = L
+
+    # Tengelyhatárok frissítése ugrálásmentesen
+    ax.set_xlim(-limit, limit)
+    ax.set_ylim(-limit, limit)
+    # --------------------------------------------------------
 
     caption_text.set_text(
         captions[frame].replace("|", "\n")
@@ -453,16 +424,17 @@ def update(frame):
 
 # HEADLESS EXPORT LOOP
 print(f"Exporting {n_timesteps} frames...")
-
 for frame in range(n_timesteps):
     update(frame)
 
     if save_frames:
         filename = os.path.join(output_dir, f"{frame:04d}.png")
-
+        
+        # A bbox_inches=None biztosítja, hogy a fő plot mérete soha ne változzon meg külső tényezőktől
         fig.savefig(
             filename,
-            dpi=150
+            dpi=150,
+            bbox_inches=None
         )
 
         if frame % 20 == 0:

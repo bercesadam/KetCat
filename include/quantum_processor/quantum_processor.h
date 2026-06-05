@@ -28,8 +28,8 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr real_t CrankNicolsonTimeStep = 100; // a.u.
-    constexpr natural_t SimuSaveNthFrame = 4E6;
+    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr real_t TimeStepsPerInstruction = 1E8;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.
     template <natural_t QubitCount, NeutralAtomTypeConfig Config>
@@ -98,8 +98,6 @@ namespace KetCat
         constexpr QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
             m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
         {
-            TimeMaster::Clock().init(CrankNicolsonTimeStep);
-
             m_GlobalStateVector =
                 GlobalStateManager::basisStateFromBitstring(initialBitString,
                     ConfigType::Logical0Level, ConfigType::Logical1Level);
@@ -126,7 +124,8 @@ namespace KetCat
             GateCompiler Compiler;
             auto [PhysicalInstructions, InstructionCount] = Compiler.compile(gate);
 
-            std::cout << "Target qubits: " << gate.m_targets[0] << (InstructionCount > 1 ? ", " + std::to_string(gate.m_targets[1]) : "") << std::endl;
+            std::cout << "Target qubits: " << gate.m_targets[0] <<
+                (gate.m_targets.size() > 1 ? ", " + std::to_string(gate.m_targets[1]) : "") << std::endl;
 			std::cout << "Generated " << InstructionCount << " physical instructions." << std::endl;
 
             for (natural_t i = 0; i < InstructionCount; ++i)
@@ -157,11 +156,15 @@ namespace KetCat
                 return;
             }
 
-            TwoPhotonLaserEnvelope& Envelope = *PulseEnvelope;
-            real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
-            real_t TimeShift = Envelope.getStartTime();
+            const TwoPhotonLaserEnvelope& Envelope = *PulseEnvelope;
+            const real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
+            const real_t TimeShift = Envelope.getStartTime();
+            TimeMaster::Clock().setTimeStep(TransitionTimeLimit / TimeStepsPerInstruction);
 
-			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << (Units::AtomicTimeToSeconds * TransitionTimeLimit) * 1E9 << " ns" << std::endl;
+			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << TransitionTimeLimit << " a.u. (" <<
+                (Units::AtomicTimeToSeconds * TransitionTimeLimit) * 1E9 << " ns" << std::endl;
+			std::cout << "Time step: " << TimeMaster::Clock().getTimeStep() << " a.u. (" <<
+                (Units::AtomicTimeToSeconds * TimeMaster::Clock().getTimeStep()) * 1E9 << " ns)" << std::endl;
 			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
 
 			LaserPulse Pump, Stokes;
@@ -186,7 +189,11 @@ namespace KetCat
                 }
                 else if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
                 {
-                    evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
+                    if constexpr (QubitCount >= 2)
+                    {
+                        //evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
+                        evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
+                    }
                 }
                 else { }
                
@@ -239,6 +246,7 @@ namespace KetCat
         void evolveTwoQubitGlobalState(
             const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers,
             const natural_t controlAtom, const natural_t targetAtom)
+            requires (QubitCount >= 2)
         {
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
@@ -250,7 +258,7 @@ namespace KetCat
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
-                RydbergBlockade(Units::MeterToAtomicLength * 50E-9,
+                RydbergBlockade(Units::MeterToAtomicLength * 1E-9,
                     ConfigType::RydbergLevel,
                     HartreeEnergies,
 				DipoleMatrix);

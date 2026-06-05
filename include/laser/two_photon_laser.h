@@ -43,7 +43,8 @@ namespace KetCat
         natural_t m_GroundLevelIndex;  ///< The first affected bases state index to fill the resulting laser array
         real_t m_omegaP;         ///< Pump frequency
         real_t m_omegaS;         ///< Stokes frequency
-        real_t m_peakRabi;       ///< Peak amplitude
+		real_t m_peakRabiP;       ///< Peak amplitude for the pump laser
+		real_t m_peakRabiS;       ///< Peak amplitude for the Stokes laser
         real_t m_phaseP;         ///< Pump phase
         real_t m_sigma;          ///< Gaussian width
         real_t m_tP;             ///< Pump center
@@ -91,10 +92,10 @@ namespace KetCat
         {
             const real_t evalTime = std::min(time, m_Parameters.m_tLimit);
 
-            const real_t ampP = m_Parameters.m_peakRabi *
-                gaussian(evalTime, m_Parameters.m_tP, m_Parameters.m_sigma);
-            const real_t ampS = m_Parameters.m_peakRabi *
-                gaussian(evalTime, m_Parameters.m_tS, m_Parameters.m_sigma);
+            const real_t ampP = m_Parameters.m_peakRabiP *
+                gaussian(time, m_Parameters.m_tP, m_Parameters.m_sigma);
+            const real_t ampS = m_Parameters.m_peakRabiS *
+                gaussian(time, m_Parameters.m_tS, m_Parameters.m_sigma);
 
             return {
                 LaserPulse{ m_Parameters.m_GroundLevelIndex, m_Parameters.m_omegaP, ampP, m_Parameters.m_phaseP },
@@ -131,105 +132,57 @@ namespace KetCat
         {
             EnvelopeParams Parameters;
 
-			// Copy the index of the first affected base state which will be used to fill the lasers array
+			// Copy the index of the first affected base state which will be used to fill the lasers array - TODO move to laser_pulse type
 			Parameters.m_GroundLevelIndex = m_config.m_GroundLevelIndex;
 
             // 1. Calculate base frequencies
             Parameters.m_omegaP = (m_config.m_Level2Energy - m_config.m_Level1Energy) + m_config.m_commonDetuning;
             Parameters.m_omegaS = (m_config.m_Level3Energy - m_config.m_Level2Energy) - m_config.m_commonDetuning;
 
-            Parameters.m_peakRabi = m_config.m_peakRabiFrequency;
+			// 2. Calculate peak Rabi frequencies based on the provided peak Rabi frequency and the dipole moments.
+            Parameters.m_peakRabiP = m_config.m_peakRabiFrequency;// *m_config.m_Mu12;
+            Parameters.m_peakRabiS = m_config.m_peakRabiFrequency * 1.05;// *m_config.m_Mu23;
+
+			// 3. Copy the pump phase from the configuration, which already includes the rotating frame correction.
             Parameters.m_phaseP = m_config.m_pumpPhase;
 
-            // 2. Protocol-specific timing calculation
+            // 4. Protocol-specific timing calculation
             if (m_config.m_protocol == TwoPhotonProtocol::Simultaneous)
             {
                 setupRaman(Parameters);
             }
             else
             {
-                setupStirap(Parameters);
             }
 
             return TwoPhotonLaserEnvelope(Parameters);
         }
 
     private:
-        // Curently not used but kept for possible future uses
         void setupRaman(EnvelopeParams& Parameters) const
         {
-            real_t peakOmegaEff;
-            if (ConstexprMath::abs(m_config.m_commonDetuning) < 1e-10)
+            real_t geomPeakRabi = std::sqrt(Parameters.m_peakRabiP * Parameters.m_peakRabiS);
+
+            if (std::abs(m_config.m_commonDetuning) < 1e-10)
             {
-                peakOmegaEff = m_config.m_peakRabiFrequency;
+				// Resonant Raman case: the effective Rabi frequency is approximately the geometric mean of the two peaks.
+                real_t peakOmegaEff = geomPeakRabi * ConstexprMath::sqrt(2.0);
+                Parameters.m_sigma = m_config.m_targetTheta / (peakOmegaEff * ConstexprMath::sqrt(ConstexprMath::Pi / 2.0));
             }
             else
             {
-                peakOmegaEff = (m_config.m_peakRabiFrequency * m_config.m_peakRabiFrequency)
-                    / (2.0 * ConstexprMath::abs(m_config.m_commonDetuning));
+				// Off-resonant Raman case: the effective Rabi frequency is reduced by the detuning, leading to a longer required pulse duration.
+                real_t peakOmegaEff = (geomPeakRabi * geomPeakRabi) / (2.0 * ConstexprMath::abs(m_config.m_commonDetuning));
+
+				// The pulse width (sigma) is inversely proportional to the effective Rabi frequency, which is reduced in the off-resonant case.
+                Parameters.m_sigma = m_config.m_targetTheta / (peakOmegaEff * ConstexprMath::sqrt(ConstexprMath::Pi / 2.0));
+                // To ensure sufficient adiabaticity in the off-resonant case, we apply an additional safety factor to the pulse width.
+                Parameters.m_sigma *= ConstexprMath::sqrt(2.0);
             }
 
-            Parameters.m_sigma = m_config.m_targetTheta / (peakOmegaEff * ConstexprMath::sqrt(ConstexprMath::Pi / 2.0));
             Parameters.m_tP = 4.0 * Parameters.m_sigma;
             Parameters.m_tS = 4.0 * Parameters.m_sigma;
             Parameters.m_tLimit = 8.0 * Parameters.m_sigma;
-        }
-
-        void setupStirap(EnvelopeParams& Parameters) const
-        {
-			// Calculate the actual Rabi frequencies based on the dipole moments and the peak Rabi frequency.
-            real_t actualOmegaP = m_config.m_peakRabiFrequency * m_config.m_Mu12;
-            real_t actualOmegaS = m_config.m_peakRabiFrequency * m_config.m_Mu23;
-
-			// To ensure adiabaticity, we need to set the pulse width (sigma) based on the smaller of the two Rabi frequencies.
-            real_t minActualOmega = std::min(actualOmegaP, actualOmegaS);
-            Parameters.m_sigma = 100.0 / minActualOmega;
-
-            if (m_config.m_protocol == TwoPhotonProtocol::STIRAP)
-            {
-                Parameters.m_tS = 3.0 * Parameters.m_sigma;
-                Parameters.m_tP = 4.0 * Parameters.m_sigma;
-            }
-            else
-            {
-                Parameters.m_sigma = 200.0 / minActualOmega;
-                Parameters.m_tS = 4.0 * Parameters.m_sigma;
-                Parameters.m_tP = 3.0 * Parameters.m_sigma;
-            }
-
-			// The theoretical transfer time for a full Pi rotation can be approximated as the
-            // time when the effective Rabi frequency integral reaches π.
-            Parameters.m_PiTransferTime =
-                std::max(Parameters.m_tP, Parameters.m_tS) + 4.0 * Parameters.m_sigma;
-
-            if (ConstexprMath::floatNear(m_config.m_targetTheta, ConstexprMath::Pi))
-            {
-				// For a full π rotation, we can set the time limit directly to the theoretical transfer time.
-                Parameters.m_tLimit = Parameters.m_PiTransferTime;
-            }
-            else
-            {
-                // This is an empirical safety margin which lets the laser run for 
-                // a little bit longer than the time yielded from the theoretical formula
-                // This is a simple solution to avoid issues because of abrupted pulses
-                // a better solution would be a gentle logarithmic tail to be developed later
-                real_t SafetyMarginRatio = 0.005;
-                if (m_config.m_protocol == TwoPhotonProtocol::InvertedSTIRAP)
-                {
-                    SafetyMarginRatio *= -1.0;
-                }
-
-				// The ratio of the desired rotation angle to a full π rotation determines how much longer we need to run the
-                // pulse beyond the theoretical transfer time.
-                const real_t Ratio = ConstexprMath::tan(m_config.m_targetTheta / 2.0);
-                const real_t DeltaT = Parameters.m_tP - Parameters.m_tS;
-
-				// The transition time limit is set based on the midpoint between the pulse centers, adjusted by a
-                // logarithmic factor that accounts for the desired rotation angle and a safety margin.
-                Parameters.m_tLimit = ((Parameters.m_tP + Parameters.m_tS) / 2.0)
-                    + (Parameters.m_sigma * Parameters.m_sigma * ConstexprMath::log(Ratio)) / (2.0 * DeltaT)
-                    + (Parameters.m_PiTransferTime * SafetyMarginRatio);
-            }
         }
     };
 }

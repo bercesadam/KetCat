@@ -72,15 +72,17 @@ namespace KetCat
         ///   Subsequent calls are ignored in order to preserve
         ///   global timing consistency across the simulation.
         ///
-        void init(real_t dt)
+        void init()
         {
-            if (m_isInitialized)
-            {
-                return;
-            }
+        }
 
+        /// @brief Set the simulation timestep.
+        ///
+        /// @param dt
+        ///   The new timestep value.
+        void setTimeStep(real_t dt)
+        {
             m_dt = dt;
-            m_isInitialized = true;
         }
 
         /// @brief Retrieve the fixed simulation timestep.
