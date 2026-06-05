@@ -216,16 +216,7 @@ namespace KetCat
                         op.m_targets[1]  // target
                     },
                     2,
-                    ConstexprMath::Pi,
-                    0.0);
-                append(
-                    PhysicalInstructionType::RydbergExcitation,
-                    {
-                        op.m_targets[0], // control
-                        op.m_targets[1]  // target
-                    },
-                    2,
-                    ConstexprMath::Pi,
+                    ConstexprMath::Pi * 2,
                     0.0);
             }
 
