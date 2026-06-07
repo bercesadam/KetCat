@@ -26,7 +26,21 @@ int main()
 
     auto Circuit = QuantumCircuit<2>().withGates(
 		QuantumGate<1, GateType::H>().toBits(0),
-        QuantumGate<2, GateType::CX>().toBits(0,1)
+        QuantumGate<1, GateType::H>().toBits(1),
+
+        QuantumGate<2, GateType::CZ>().toBits(0,1),
+
+        QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<1, GateType::H>().toBits(1),
+
+        QuantumGate<1, GateType::X>().toBits(0),
+        QuantumGate<1, GateType::X>().toBits(1),
+        QuantumGate<2, GateType::CZ>().toBits(0, 1),
+        QuantumGate<1, GateType::X>().toBits(0),
+        QuantumGate<1, GateType::X>().toBits(1),
+
+        QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<1, GateType::H>().toBits(1)
     );
 
 	//QuantumProcessor<2, Config>("smoke_test_1").execute(Circuit);
