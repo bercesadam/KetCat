@@ -95,11 +95,15 @@ namespace KetCat
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
                 // Print full state vector
-				for (natural_t i = 0; i < GlobalStateManager::FullDim; ++i)
-				{
-					std::cout << "Global basis state " << i << ": Re: " << psi[i].re << "\tIm: " << psi[i].im << std::endl;
-				}
-                std::cout << "------------------------" << std::endl << std::endl;
+                if (isKeyFrame)
+                {
+                    for (natural_t i = 0; i < GlobalStateManager::FullDim; ++i)
+                    {
+                        std::cout << "Global basis state " << i << ": Re: " << psi[i].re << "\tIm: " << psi[i].im << std::endl;
+                    }
+                    std::cout << "------------------------" << std::endl << std::endl;
+                }
+
                 for (natural_t q = 0; q < QubitCount; ++q)
                 {
                     auto qubitLocalState = GlobalStateManager::extractLocalState(psi, q);
@@ -112,23 +116,26 @@ namespace KetCat
 
                     m_Exporter[q]->writeTimestep(SimulationView);
 
- 					std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
-					std::cout << "Laser intensities in au: Pump = " << laser1.m_amplitude << ", Stokes = " << laser2.m_amplitude << std::endl;  
-
-                    // Diagnostic terminal output, only for debugging, to be prettified or removed
-                    for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                    if (isKeyFrame)
                     {
-                        std::cout << "Probability of basis state " << i << ": " << qubitLocalState.pureStateVector[i].normSquared() * 100.0 << "%\t";
-                        std::cout << "Re: " << qubitLocalState.pureStateVector[i].re << "\tIm: " << qubitLocalState.pureStateVector[i].im << std::endl;
+                        std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
+                        //std::cout << "Laser intensities in au: Pump = " << laser1.m_amplitude << ", Stokes = " << laser2.m_amplitude << std::endl;  
+
+                        for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
+                        {
+                            std::cout << "Probability of basis state " << i << ": " << qubitLocalState.pureStateVector[i].normSquared() * 100.0 << "%\t";
+                            std::cout << "Re: " << qubitLocalState.pureStateVector[i].re << "\tIm: " << qubitLocalState.pureStateVector[i].im << std::endl;
+                        }
+
+
+                        std::cout << "Exported timeframe " << m_FrameCounter << ": " << m_SimulationStepName
+                            << " at time " << TimeMaster::Clock().getGlobalTime() * Units::AtomicTimeToSeconds * 1E9 << " ns" << std::endl;
+                        std::cout << "------------------------" << std::endl << std::endl;
                     }
                 }
 
-                std::cout << "Exported timeframe " << m_FrameCounter << ": " << m_SimulationStepName
-                    << " at time " << TimeMaster::Clock().getGlobalTime() * Units::AtomicTimeToSeconds * 1E9 << " ns" << std::endl;
-                std::cout << "------------------------" << std::endl << std::endl;
+                m_FrameCounter++;
             }
-
-            m_FrameCounter++;
         }
 
     };

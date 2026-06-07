@@ -7,7 +7,7 @@
 namespace KetCat
 {
     /// @brief Maximum number of physical primitives a single logical gate can decompose into.
-    constexpr natural_t MaxInstructionsPerGate = 4;
+    constexpr natural_t MaxInstructionsPerGate = 10;
 
     /// @brief Fixed-size container for compiled physical instructions.
     using physical_instructions_list_t =

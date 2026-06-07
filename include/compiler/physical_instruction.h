@@ -27,6 +27,20 @@ namespace KetCat
     };
 
 
+	/// @brief Utility function to convert PhysicalInstructionType enum values to human-readable strings.
+    std::string instructionNameToString(PhysicalInstructionType instructionType)
+    {
+        switch (instructionType)
+        {
+        case PhysicalInstructionType::RamanRotation: return "RamanRotation";
+        case PhysicalInstructionType::VirtualZ: return "VirtualZ";
+        case PhysicalInstructionType::RydbergExcitation: return "RydbergExcitation";
+        case PhysicalInstructionType::FreeEvolution: return "FreeEvolution";
+        default: return "UnknownInstruction";
+        }
+    }
+
+
 	/// @brief Concrete instance of a physical control instruction, ready for pulse generation and execution.
     struct PhysicalInstruction
     {

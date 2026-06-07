@@ -25,12 +25,13 @@ int main()
         > Config;
 
     auto Circuit = QuantumCircuit<2>().withGates(
-        QuantumGate<2, GateType::CZ>().toBits(0,1)
+		QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<2, GateType::CX>().toBits(0,1)
     );
 
 	//QuantumProcessor<2, Config>("smoke_test_1").execute(Circuit);
 
-    auto DiagSession = QPUDiagnostics<2, Config>::createQPUWithInitialState("smoke_test", std::bitset<2>{"11"});
+    auto DiagSession = QPUDiagnostics<2, Config>::createQPUWithInitialState("smoke_test", std::bitset<2>{"00"});
     DiagSession.QPU().execute(Circuit);
   
 }

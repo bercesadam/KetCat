@@ -27,15 +27,21 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
         using Manifold = NeutralAtomManifold<Config>;
 
+        /// @brief Hartree energies for the relevant atomic levels.
         const std::array<real_t, ConfigType::LevelCount> m_energies =
             Manifold::getHartreeEnergies();
-
+        
+		/// @brief Electric dipole transition matrix between eigenstates.
         const square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix =
             Manifold::getDipoleMatrix();
 
-        real_t m_peakRabiHz = 50e6;
-        real_t m_commonDetuningHz = 500e6;
+		/// @brief Peak Rabi frequency Ω₀ / (2π) for the Raman transition.
+        real_t m_peakRabiHz;
 
+		/// @brief Common detuning Δ / (2π) for the intermediate state in the Raman transition.
+        real_t m_commonDetuningHz;
+
+		/// @brief Per-atom phases for the rotating frame, used to track virtual Z rotations and maintain coherence.
         std::array<real_t, AtomCount> m_RWAFramePhases;
 
 
@@ -61,6 +67,11 @@ namespace KetCat
                 m_peakRabiHz = 500e6;
                 m_commonDetuningHz = 1000e6;
             }
+            else
+            {
+                m_peakRabiHz = 50e6;
+                m_commonDetuningHz = 500e6;
+            }
 
             LaserConfig.m_Level1Energy = m_energies[LaserConfig.m_GroundLevelIndex];
             LaserConfig.m_Level2Energy = m_energies[LaserConfig.m_GroundLevelIndex + 1];
@@ -80,6 +91,8 @@ namespace KetCat
 
             LaserConfig.m_pumpPhase = instruction.m_phase;
             LaserConfig.m_protocol = TwoPhotonProtocol::Simultaneous;
+
+            LaserConfig.m_targetTheta = instruction.m_theta;
           
             return LaserConfig;
         }
@@ -111,12 +124,17 @@ namespace KetCat
                 return std::nullopt;
             }
 
+			std::cout << "Rotating frame phase before instruction: " << framePhase << " radians" << std::endl;
+
             // Handle Bloch-Z rotations (Virtual Z)
             if (instruction.m_type == PhysicalInstructionType::VirtualZ)
             {
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
+
+			// Store original instruction phase
+            const real_t originalInstructionPhase = instruction.m_phase;
            
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             instruction.m_phase -= framePhase;
@@ -124,10 +142,6 @@ namespace KetCat
             // Generate physical laser parameters via Builder
             TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(instruction));
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
-
-            // For X/Y rotations, the instruction phase defines the axis
-            // Update frame phase if relative phase tracking is required
-            framePhase += instruction.m_phase;
 
             return LaserEnvelope;
         }
