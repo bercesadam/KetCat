@@ -94,25 +94,6 @@ namespace KetCat
             return Result;
         }
 
-        /// @brief  Purity of a density matrix: Tr(ρ²) ∈ (0, 1].
-        ///
-        /// @return      Tr(ρ²): equals 1 for a pure state, < 1 for a mixed (entangled) state.
-        static constexpr real_t purity() noexcept
-        {
-            real_t P{};
-
-            for (natural_t i = 0; i < Dim; ++i)
-            {
-                for (natural_t j = 0; j < Dim; ++j)
-                {
-                    // Tr(ρ²) = Σ_ij ρ_ij ρ_ji
-                    P += (m[i][j] * m[j][i]).re;
-                }
-            }
-
-            return P;
-        }
-
         /// @brief Compute transpose.
         ///
         /// @details

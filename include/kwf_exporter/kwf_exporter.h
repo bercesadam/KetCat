@@ -108,13 +108,11 @@ namespace KetCat
             writeRaw(t);
 
             // Write full global state vector amplitudes
-            const size_t stateDim = view.m_amplitudes.size();
+            const size_t stateDim = view.m_outputProbabilities.size();
             for (size_t i = 0; i < stateDim; ++i)
             {
-                const double re = static_cast<double>(view.m_amplitudes[i].re);
-                const double im = static_cast<double>(view.m_amplitudes[i].im);
-                writeRaw(re);
-                writeRaw(im);
+                const double p = static_cast<double>(view.m_outputProbabilities[i]);
+                writeRaw(p);
             }
 
 			// Write captions for each qubit

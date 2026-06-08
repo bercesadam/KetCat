@@ -2,7 +2,8 @@
 #include <bitset>
 #include "core_types.h"
 #include "hilbert_space/hilbert.h"
-#include "neutral_atom_config.h"
+#include "local_space/neutral_atom_config.h"
+
 
 namespace KetCat
 {
@@ -19,8 +20,12 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
         using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
         using FullStateVectorType = StateVector<typename GlobalStateManager::FullHilbertSpace>;
-
-        static constexpr auto extractLogicalProbabilities(const FullStateVectorType& psi, bool renormalize = true) noexcept
+        
+		// The size of the logical subspace is 2^QubitCount
+        static constexpr natural_t LogicalDimSize = ConstexprMath::pow(2, QubitCount);
+        
+        static constexpr probability_vector_t<LogicalDimSize>
+            extractLogicalProbabilities(const FullStateVectorType& psi, bool renormalize) noexcept
         {
             constexpr natural_t LogicalDimSize = ConstexprMath::pow(2, QubitCount);
             probability_vector_t<LogicalDimSize> LogicalProbabilities{};
@@ -41,7 +46,8 @@ namespace KetCat
                     natural_t PhysicalLevel = (bit ? ConfigType::Logical0Level : ConfigType::Logical1Level);
 
                     GlobalIndex += PhysicalLevel * Multiplier;
-                    Multiplier *= LocalDim;
+                    using ConfigType = std::remove_cvref_t<decltype(Config)>;
+                    Multiplier *= ConfigType::LevelCount;
                 }
 
                 real_t P = psi[GlobalIndex].normSquared();

@@ -15,6 +15,7 @@
 #include "wavefunction/hartree.h"
 
 #include "hamiltonian/dipole_operator.h"
+#include "matrix_utils/matrix.h"
 
 
 namespace KetCat
@@ -328,17 +329,19 @@ namespace KetCat
                 (*m_basisStates2D)[ConfigType::Logical0Level].m_Psi);
         }
 
-		/// @brief Retrieve the full spatial state vector corresponding to a reduced operation state.
+		/// @brief Retrieve the full spatial state vector corresponding to a reduced operation state from a density matrix.
 		///
-		/// @param reducedState State vector in the reduced operation space (e.g. |0⟩ or |1⟩).
+		/// @param densityMatrix The reduced density matrix of the qubit, used to extract the dominant coherent state vector components.
 		/// @return
 		///    Full spatial state vector in the original Hilbert space, obtained by embedding the reduced state back into the full basis.
         /// @detail
 		///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
         ///    which operate entirely within the reduced space.
         StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
-            (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) const noexcept
+            (const Matrix<ConfigType::LevelCount>& densityMatrix) const noexcept
         {
+			StateVector<LocalSpaceHelperType::ReducedHilbertSpace> reducedState =
+				m_operationSpace.extractCoherentState(densityMatrix);
             return m_operationSpace.embed(*m_basisStates2D, reducedState);
 		}
 

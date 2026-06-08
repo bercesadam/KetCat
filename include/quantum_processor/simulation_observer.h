@@ -106,7 +106,7 @@ namespace KetCat
                         m_ViewBuilder.build(
                             "Qubit" + std::to_string(q) + ": " + m_SimulationStepName,
                             TimeMaster::Clock().getGlobalTime(),
-                            qubitLocalState.pureStateVector, laser1, laser2);
+                            psi, laser1, laser2);
 
                     m_Exporter.writeTimestep(SimulationView);
 

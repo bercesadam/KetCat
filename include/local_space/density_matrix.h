@@ -18,7 +18,7 @@ namespace KetCat
     template<natural_t LevelCount, natural_t QubitCount>
     class DensityMatrix
     {
-        static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QubitCount);
+        static constexpr natural_t FullDim = ConstexprMath::pow(LevelCount, QubitCount);
         using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
 
     public:
@@ -78,8 +78,8 @@ namespace KetCat
                         continue;
                     }
 
-                    const natural_t A = Di[QubitIndex];
-                    const natural_t B = Dj[QubitIndex];
+                    const natural_t A = Di[qubitIndex];
+                    const natural_t B = Dj[qubitIndex];
 
                     Rho.at(A, B) = Rho.at(A, B) + psi[i] * psi[j].conj();
                 }
@@ -88,6 +88,25 @@ namespace KetCat
             return Rho;
         }
 
+
+        /// @brief  Calculates the purity of a density matrix: Tr(ρ²) ∈ (0, 1].
+        ///
+        /// @return      Tr(ρ²): equals 1 for a pure state, < 1 for a mixed (entangled) state.
+        static constexpr real_t purity(Matrix<LevelCount> rho) noexcept
+        {
+            real_t P{};
+
+            for (natural_t i = 0; i < LevelCount; ++i)
+            {
+                for (natural_t j = 0; j < LevelCount; ++j)
+                {
+                    // Tr(ρ²) = Σ_ij ρ_ij ρ_ji
+                    P += (rho.at(i, j) * rho.at(j, i)).re;
+                }
+            }
+
+            return P;
+        }
 
     private:
         /// @brief Determine a basis state from a flat global state vector index, little-endian digit order.
@@ -100,8 +119,8 @@ namespace KetCat
             qbit_list_t<QubitCount> BasisState{};
             for (natural_t i = 0; i < QubitCount; ++i)
             {
-                BasisState[i] = globalIndex % LocalDim;
-                globalIndex /= LocalDim;
+                BasisState[i] = globalIndex % LevelCount;
+                globalIndex /= LevelCount;
             }
             return BasisState;
         }
