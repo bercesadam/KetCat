@@ -37,9 +37,6 @@ namespace KetCat
         /// @brief Simulation time in SI units  
         real_t m_time;
 
-        /// @brief Number of qubits (atoms) in the experiment
-        natural_t m_numQubits;
-
 		/// @brief Global state vector, reduced to the logical subspace of the qubits
         std::array<complex_t, QubitCount> m_amplitudes;
 

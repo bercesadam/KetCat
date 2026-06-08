@@ -5,8 +5,8 @@
 #include "neutral_atom_config.h"
 
 #include "hilbert_space/hilbert.h"
-#include "utils/gram_schmidt_orthonorm.h"
-#include "utils/reduced_energy_space.h"
+#include "local_space/gram_schmidt_orthonorm.h"
+#include "local_space/local_space.h"
 
 #include "atomic_physics_core/elements.h"
 #include "atomic_physics_core/quantum_number.h"
@@ -78,8 +78,8 @@ namespace KetCat
         /// @details
         /// This space collapses the full spatial wavefunctions into a smaller
         /// Hilbert space spanned only by energy eigenstates.
-        using ReducedEnergySpaceType =
-            ReducedEnergySpace<
+        using LocalSpaceHelperType =
+            LocalSpaceHelper<
             SingleAtomRadialHilbertSpace,
             ConfigType::LevelCount
             >;
@@ -91,7 +91,7 @@ namespace KetCat
         /// This is the reduced Hilbert space on which control Hamiltonians
         /// and time evolution are applied.
         using SingleAtomOperationHilbertSpace =
-            typename ReducedEnergySpaceType::ReducedHilbertSpace;
+            typename LocalSpaceHelperType::ReducedHilbertSpace;
 
     private:
         //typename ConfigType::template HilbertSpaceStub<2_D>;
@@ -121,8 +121,8 @@ namespace KetCat
         using BasesSetHandle = std::unique_ptr<BasisSet<HilbertSpace>>;
 
         /// @brief Owning handle for the reduced energy space.
-        using ReducedEnergySpaceHandle =
-            std::unique_ptr<ReducedEnergySpaceType>;
+        using LocalSpaceHelperHandle =
+            std::unique_ptr<LocalSpaceHelperType>;
 
     private:
         /// @brief Electric dipole transition matrix between eigenstates.
@@ -149,7 +149,7 @@ namespace KetCat
         BasesSetHandle<SingleAtomFullHilbertSpace> m_basisStates2D;
 
         /// @brief Reduced-energy space used for the actual qubit operations.
-        ReducedEnergySpaceType m_operationSpace;
+        LocalSpaceHelperType m_operationSpace;
 
 
         /// @brief Construct a single basis state using a specified generator.

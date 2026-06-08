@@ -3,8 +3,8 @@
 
 #include "quantum_processor/time_master.h"
 
-#include "operation_space/neutral_atom_manifold.h"
-#include "operation_space/utils/subspace_operations.h"
+#include "local_space/neutral_atom_manifold.h"
+#include "global_space/subspace_operations.h"
 
 #include "kwf_exporter/simulation_view_builder.h"
 #include "kwf_exporter/kwf_exporter.h"
@@ -38,10 +38,10 @@ namespace KetCat
         using FullHilbertSpace = typename GlobalStateManager::FullHilbertSpace;
 
         /// @brief Transformer to map numerical simulation data to visualizable structures.
-        SimulationViewBuilder<Config> m_ViewBuilder;
+        SimulationViewBuilder<Config, QubitCount> m_ViewBuilder;
 
-        /// @brief Binary stream handler for simulation data persistence.
-        std::array<std::unique_ptr<StateVectorExporter<VisuHilbertSpace>>, QubitCount> m_Exporter;
+        /// @brief Binary stream handler for simulation data export
+        StateVectorExporter<VisuHilbertSpace, QubitCount> m_Exporter;
 
         /// @brief Label for the current logical operation being recorded.
         std::string m_SimulationStepName;
@@ -61,15 +61,9 @@ namespace KetCat
         SimulationObserver(const NeutralAtomManifold<Config>& manifold,
             const std::string fileName, const natural_t saveNthFrame)
             : m_ViewBuilder(manifold),
+              m_Exporter(fileName), 
               m_SaveNthFrame(saveNthFrame)
         {
-            for (natural_t q = 0; q < QubitCount; ++q)
-            {
-                std::string qubitFileName = fileName + "_qubit" + std::to_string(q) + ".kwf";
-                m_Exporter[q] = std::make_unique<StateVectorExporter<VisuHilbertSpace>>(qubitFileName);
-                std::cout << "SimulationObserver initialized with file: " << qubitFileName << std::endl;
-			}
-            
         }
 
         /// @brief Update the metadata label for the current sequence of frames.
@@ -114,7 +108,7 @@ namespace KetCat
                             TimeMaster::Clock().getGlobalTime(),
                             qubitLocalState.pureStateVector, laser1, laser2);
 
-                    m_Exporter[q]->writeTimestep(SimulationView);
+                    m_Exporter.writeTimestep(SimulationView);
 
                     if (isKeyFrame)
                     {

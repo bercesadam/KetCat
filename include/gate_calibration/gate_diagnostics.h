@@ -1,5 +1,5 @@
 #pragma once
-#include "operation_space/utils/matrix.h"
+#include "matrix_utils/matrix.h"
 #include "hilbert_space/state_vector.h"
 #include "quantum_gates/gates.h"
 #include "phase_corrections.h"

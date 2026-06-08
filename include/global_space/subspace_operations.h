@@ -3,10 +3,7 @@
 
 #include "hilbert_space/hilbert.h"        
 #include "hilbert_space/state_vector.h" 
-
 #include "solvers/crank_nicolson_solver.h"
-
-#include "local_state.h"
 
 
 namespace KetCat
@@ -29,22 +26,6 @@ namespace KetCat
         using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits)>;
 
     private:
-        /// @brief Determine a basis state from a flat global state vector index, little-endian digit order.
-        /// @details It's a mixed-radix (base-d) decoding to get the Qubit values at each position.
-        ///          Example: For d=3, C=2, index 5 corresponds to basis state |2,1⟩ because 5 in base 3 is "21"
-        /// @param globalIndex Global state vector index (0..d^C-1)
-        /// @return Array of Qubit values (digits) corresponding to the basis state, ordered by position (little-endian)
-        static constexpr qdit_list_t<QubitCount> decodeIndex(natural_t globalIndex) noexcept
-        {
-            qdit_list_t<QubitCount> BasisState{};
-            for (natural_t i = 0; i < QubitCount; ++i)
-            {
-                BasisState[i] = globalIndex % LocalDim;
-                globalIndex /= LocalDim;
-            }
-            return BasisState;
-        }
-
         /// @brief  Number of tiles produced when selecting K target Qubits.
         ///
         /// @tparam K  Number of Qubits that form the local tile.
@@ -92,7 +73,7 @@ namespace KetCat
         /// This validation is primarily intended for compile-time or
         /// initialization checks when defining a subsystem.
         template <natural_t K>
-        static constexpr bool isTargetsArrayValid(const qdit_list_t<K> targets) noexcept
+        static constexpr bool isTargetsArrayValid(const qbit_list_t<K> targets) noexcept
         {
             // Check that all indices are within the valid range [0, C)
             for (natural_t i = 0; i < K; ++i)
@@ -134,7 +115,7 @@ namespace KetCat
         /// - target Qubits (which vary inside the tile)
         /// - non-target Qubits (which select the tile).
         template <natural_t K>
-        static constexpr bool isInTargets(natural_t position, const qdit_list_t<K>& targets) noexcept
+        static constexpr bool isInTargets(natural_t position, const qbit_list_t<K>& targets) noexcept
         {
             for (natural_t i = 0; i < K; ++i)
             {
@@ -175,7 +156,7 @@ namespace KetCat
         ///     pos 2 → rank 1
         ///     pos 4 → rank 2
         template <natural_t K>
-        static constexpr natural_t nonTargetRank(natural_t position, const qdit_list_t<K>& targets) noexcept
+        static constexpr natural_t nonTargetRank(natural_t position, const qbit_list_t<K>& targets) noexcept
         {
             natural_t Rank = 0;
             for (natural_t i = 0; i < position; ++i)
@@ -215,7 +196,7 @@ namespace KetCat
         template <natural_t K>
         static constexpr natural_t
         digitAtPosFromBlockId(natural_t nonTargetBasisIndex, natural_t position,
-                              const qdit_list_t<K>& targets) noexcept
+                              const qbit_list_t<K>& targets) noexcept
         {
             const natural_t Rank = nonTargetRank(position, targets);
             return (nonTargetBasisIndex / ConstexprMath::pow(LocalDim, Rank)) % LocalDim;
@@ -244,7 +225,7 @@ namespace KetCat
         /// into a contiguous one-dimensional tile index.
         template <natural_t K>
         static constexpr natural_t
-        localTileIndex(const qdit_list_t<K>& targetDigits) noexcept
+        localTileIndex(const qbit_list_t<K>& targetDigits) noexcept
         {
             // little-endian
             natural_t Index = 0;
@@ -275,7 +256,7 @@ namespace KetCat
         /// The digits are returned in little-endian order matching the
         /// ordering of the `targets` array.
         template <natural_t K>
-        static constexpr qdit_list_t<K> decodeLocalTileIndex(natural_t local) noexcept
+        static constexpr qbit_list_t<K> decodeLocalTileIndex(natural_t local) noexcept
         {
             std::array<natural_t, K> Digits{};
             for (natural_t i = 0; i < K; ++i)
@@ -315,7 +296,7 @@ namespace KetCat
         /// The result is the starting index of the tile in the global state vector.
         template <natural_t K>
         static constexpr natural_t
-        baseOffsetFromNonTargetIndex(natural_t nonTargetBasisIndex, const qdit_list_t<K>& targets) noexcept
+        baseOffsetFromNonTargetIndex(natural_t nonTargetBasisIndex, const qbit_list_t<K>& targets) noexcept
         {
             natural_t Offset = 0;
             natural_t Multiplier = 1;
@@ -363,7 +344,7 @@ namespace KetCat
         template <natural_t K, typename Op>
         static constexpr void
             tileOperationsCore(
-                const qdit_list_t<K>& targetQdits,
+                const qbit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
                 Op&& operation) noexcept
         {
@@ -379,7 +360,7 @@ namespace KetCat
             // The global basis index of a multi-Qubit state is represented as a base-d number:
             // index = q0 + q1·d + q2·d² + ... + q(C−1)·d^(C−1)
             // This value represents how much the global linear index changes when the state of Qubit `i` is increased by one.
-            qdit_list_t<K> TileStrides{};
+            qbit_list_t<K> TileStrides{};
             for (natural_t i = 0; i < K; ++i)
             {
 
@@ -424,7 +405,7 @@ namespace KetCat
         template <natural_t K>
         static constexpr void
         gatherTile(const StateVector<FullHilbertSpace>& fullSpace,
-                const qdit_list_t<K>& targetQdits,
+                const qbit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
                 StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& out) noexcept
         {
@@ -453,7 +434,7 @@ namespace KetCat
         template <natural_t K>
         static constexpr void
         scatterTile(StateVector<FullHilbertSpace>& fullSpace,
-                    const qdit_list_t<K>& targetQdits,
+                    const qbit_list_t<K>& targetQdits,
                     natural_t nonTargetBasisIndex,
                     const StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& in) noexcept
         {
@@ -465,33 +446,12 @@ namespace KetCat
         }
 
     public:
-        /// @brief Initialize all qdit registers based on a single-Qubit seed state |ψ⟩ ∈ ℂ^d,
-        ///        creating the product state |Ψ⟩ = |ψ⟩^{⊗ C}.
-        /// @param seed Single-Qubit state vector (size d)
-        /// @return Product state vector for the entire register (size d^C)
-        static constexpr StateVector<FullHilbertSpace>
-            productStateFromSeed(const StateVector<OneQubitSpace>& seed) noexcept
-        {
-            StateVector<FullHilbertSpace> Result{};
-            for (natural_t GlobalIndex = 0; GlobalIndex < FullDim; ++GlobalIndex)
-            {
-                auto Digits = decodeIndex(GlobalIndex);
-                complex_t Amplitude = complex_t::fromReal(1.0);
-                for (natural_t i = 0; i < QubitCount; ++i)
-                {
-                    Amplitude = Amplitude * seed[Digits[i]];
-                }
-                Result[GlobalIndex] = Amplitude;
-            }
-            return Result;
-        }
-
-        /// @brief Globalis állapotvektor inicializálása egy logikai bitstring alapján.
-        /// @param bitstring   A logikai állapotokat tartalmazó string (pl. "1011").
-        ///                    Hossza meg kell egyezzen a QubitCount értékével.
-        /// @param logical0    A logikai '0'-hoz tartozó fizikai állapotszint (alapértelmezett: 0).
-        /// @param logical1    A logikai '1'-hez tartozó fizikai állapotszint (alapértelmezett: 1).
-        /// @return            A megfelelő számítási bázisállapot, egyetlen 1.0 amplitúdóval.
+		/// @brief Initialize the global state vector to a specific computational basis state defined by a bitstring.
+		/// @param bitstring   The bitstring representing the desired basis state, where each bit corresponds to a Qubit (0 or 1).
+		/// @param logical0    Physical level corresponding to the logical '0' state
+        /// @param logical1    Physical level corresponding to the logical '1' state
+		/// @return            A state vector of size d^C with amplitude 1 at the index corresponding
+        ///                    to the specified bitstring and 0 elsewhere.
         static constexpr StateVector<FullHilbertSpace>
             basisStateFromBitstring(std::bitset<QubitCount> bitstring,
                 natural_t logical0, natural_t logical1) noexcept
@@ -510,7 +470,7 @@ namespace KetCat
                 Multiplier *= LocalDim;
             }   
 
-            // Csak annak az egy bázisállapotnak lesz amplitúdója
+			// Fill the global state vector with zeros except for the specified basis state which is set to amplitude 1.
             Result[GlobalIndex] = complex_t::fromReal(1.0);
 
             return Result;
@@ -534,7 +494,7 @@ namespace KetCat
         template <natural_t K, LinearSolverBackend L>
         static constexpr void performTimeEvolution(CrankNicolsonSolver<LocalDim, L>& solver,
                                             StateVector<FullHilbertSpace>& psi,
-                                            qdit_list_t<K> targetQdits) noexcept
+                                            qbit_list_t<K> targetQdits) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
@@ -550,188 +510,5 @@ namespace KetCat
 
             psi = psiUpdated;
         }
-
-    private:
-	    /// @brief  Compute the reduced density matrix of a single Qubit via partial trace.
-        ///
-        /// @param  psi         Global state vector (size d^C).
-        /// @param  QubitIndex  Target Qubit whose local state is requested.
-        ///
-        /// @return             Reduced density matrix ρ_q = Tr_{¬q}(|ψ⟩⟨ψ|).
-        ///
-        /// @details
-        /// The full pure-state density matrix is |ψ⟩⟨ψ|.  Tracing out all
-        /// Qubits except Qubit q gives the d×d matrix:
-        ///
-        ///     ρ_q[a][b] = Σ_{env} ⟨a, env|ψ⟩⟨ψ|b, env⟩
-        ///
-        /// where the sum runs over all d^(C−1) environmental basis states.
-        ///
-        /// Equivalently, for each pair of global indices (i, j):
-        /// - Decode both into Qubit digits.
-        /// - Accept the pair only when all non-target digits agree
-        ///   (partial-trace condition).
-        /// - Accumulate:  ρ[dᵢ_q][dⱼ_q] += ψ[i] · ψ[j]*.
-        static constexpr DensityMatrix<LocalDim>
-        reducedDensityMatrix(const StateVector<FullHilbertSpace>& psi,
-                             natural_t                            QubitIndex) noexcept
-        {
-            DensityMatrix<LocalDim> Rho;
-            Rho.setZero();
-
-            for (natural_t i = 0; i < FullDim; ++i)
-            {
-                const auto Di = decodeIndex(i);
-
-                for (natural_t j = 0; j < FullDim; ++j)
-                {
-                    const auto Dj = decodeIndex(j);
-
-                    // Partial-trace condition: all non-target Qubits must match.
-                    bool EnvMatch = true;
-                    for (natural_t q = 0; q < QubitCount; ++q)
-                    {
-                        if (q == QubitIndex) continue;
-                        if (Di[q] != Dj[q]) { EnvMatch = false; break; }
-                    }
-                    if (!EnvMatch) continue;
-
-                    const natural_t A = Di[QubitIndex];
-                    const natural_t B = Dj[QubitIndex];
-
-                    Rho.m[A][B] += psi[i] * psi[j].conj();
-                }
-            }
-
-            return Rho;
-        }
-
-        /// @brief  Extract a normalized ket from a rank-1 density matrix.
-        ///
-        /// @param  rho  Pure reduced density matrix (Tr(ρ²) ≈ 1).
-        ///
-        /// @return      Normalized state vector |ψ⟩ such that ρ ≈ |ψ⟩⟨ψ|.
-        ///
-        /// @details
-        /// For a pure state ρ = |ψ⟩⟨ψ|, any non-zero column of ρ is
-        /// proportional to |ψ⟩.  This function selects the column whose
-        /// pivot row has the largest diagonal population (maximally stable
-        /// numerical choice), then normalizes the result.
-        ///
-        /// Precondition: rho is positive-semidefinite with Tr(ρ²) ≈ 1.
-        static constexpr StateVector<OneQubitSpace>
-        pureStateVectorFromDensityMatrix(const DensityMatrix<LocalDim>& rho) noexcept
-        {
-            // Select pivot: row with largest diagonal element (highest population).
-            natural_t Pivot   = 0;
-            real_t    MaxPop  = rho.m[0][0].re;
-            for (natural_t i = 1; i < LocalDim; ++i)
-            {
-                if (rho.m[i][i].re > MaxPop)
-                {
-                    MaxPop = rho.m[i][i].re;
-                    Pivot  = i;
-                }
-            }
-
-            // |ψ⟩ ∝ pivot-th column of ρ.
-            StateVector<OneQubitSpace> Psi{};
-            for (natural_t i = 0; i < LocalDim; ++i)
-                Psi[i] = rho.m[i][Pivot];
-
-            // Normalize.
-            real_t Norm2 = real_t(0);
-            for (natural_t i = 0; i < LocalDim; ++i)
-                Norm2 += Psi[i].normSquared();
-
-            if (Norm2 > real_t(0))
-            {
-                const real_t InvNorm = real_t(1) / ConstexprMath::sqrt(Norm2);
-                for (natural_t i = 0; i < LocalDim; ++i)
-                    Psi[i] = Psi[i] * InvNorm;
-            }
-
-            return Psi;
-        }
-
-    public:
-        /// @brief  Extract the complete local-state description of a single Qubit.
-        ///
-        /// @param  psi         Global state vector representing the entire register.
-        /// @param  QubitIndex  Index of the target Qubit (0 ≤ QubitIndex < C).
-        ///
-        /// @return             LocalStateInfo<d> containing:
-        ///                     - The reduced density matrix ρ_q  (always valid).
-        ///                     - The purity Tr(ρ²)               (always valid).
-        ///                     - The entanglement classification  (Pure / Entangled).
-        ///                     - A normalized ket |ψ⟩             (valid only when Pure).
-        ///
-        /// @details
-        /// The function performs a partial trace over all Qubits except the
-        /// target, producing the reduced density matrix ρ_q.
-        ///
-        /// The purity Tr(ρ²) distinguishes two physically distinct cases:
-        ///
-        ///  • Tr(ρ²) ≈ 1  →  Pure state.
-        ///    The Qubit is unentangled from the rest of the register.
-        ///    A unique (up to global phase) state vector |ψ⟩ exists and is
-        ///    extracted via the dominant column of ρ.
-        ///
-        ///  • Tr(ρ²) < 1  →  Mixed / Entangled state.
-        ///    The Qubit is entangled with the environment.
-        ///    No single ket can describe its local state.
-        ///    `pureStateVector` is left zeroed; use `rho` directly.
-        ///
-        /// The purity threshold is set to 1 − 1×10⁻¹⁰ to accommodate
-        /// accumulated floating-point errors in constexpr arithmetic.
-        ///
-        /// Example usage:
-        /// @code
-        ///     auto Info = SubspaceHelper<3, 4>::extractLocalState(psi, 2);
-        ///
-        ///     if (Info.kind == LocalStateQualifier::Pure)
-        ///     {
-        ///         // Info.pureStateVector holds |ψ⟩ for Qubit 2.
-        ///     }
-        ///     else
-        ///     {
-        ///         // Qubit 2 is entangled — inspect Info.rho or Info.purityValue.
-        ///     }
-        /// @endcode
-        static constexpr LocalStateInfo<LocalDim>
-            extractLocalState(const StateVector<FullHilbertSpace>& psi,
-                natural_t                            QubitIndex) noexcept
-        {
-            LocalStateInfo<LocalDim> Info{};
-
-            if (QubitIndex >= QubitCount)
-            {
-                // Out-of-range: return zero-initialized descriptor.
-                Info.rho.setZero();
-                Info.purityValue = real_t(0);
-                Info.kind = LocalStateQualifier::Entangled;
-                return Info;
-            }
-
-            Info.rho = reducedDensityMatrix(psi, QubitIndex);
-            Info.purityValue = purity(Info.rho);
-            Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
-
-            constexpr real_t PurityThreshold = real_t(1) - real_t(1e-10);
-
-            if (Info.purityValue >= PurityThreshold)
-            {
-                Info.kind = LocalStateQualifier::Pure;
-               // Info.pureStateVector = pureStateVectorFromDensityMatrix(Info.rho);
-            }
-            else
-            {
-                Info.kind = LocalStateQualifier::Entangled;
-               // Info.pureStateVector = StateVector<OneQubitSpace>{};  // zeroed, intentionally invalid
-            }
-
-            return Info;
-        }
     };
-
 } 

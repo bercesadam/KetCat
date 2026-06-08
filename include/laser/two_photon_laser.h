@@ -3,9 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "atomic_units.h"
 #include "laser/laser_pulse.h"
-#include "operation_space/neutral_atom_manifold.h"
 
 
 namespace KetCat
@@ -38,21 +36,24 @@ namespace KetCat
 
     /// @brief Pre-calculated parameters for pulse evaluation.
     /// @details Contains the precalculated values required for the Gaussian envelope generation.
-    struct EnvelopeParams
+    namespace detail
     {
-        natural_t m_GroundLevelIndex;  ///< The first affected bases state index to fill the resulting laser array
-        real_t m_omegaP;         ///< Pump frequency
-        real_t m_omegaS;         ///< Stokes frequency
-		real_t m_peakRabiP;       ///< Peak amplitude for the pump laser
-		real_t m_peakRabiS;       ///< Peak amplitude for the Stokes laser
-        real_t m_phaseP;         ///< Pump phase
-        real_t m_sigma;          ///< Gaussian width
-        real_t m_tP;             ///< Pump center
-        real_t m_tS;             ///< Stokes center
-        real_t m_tLimit;         ///< Evaluation cutoff
-        real_t m_tStart;         ///< Start time in case of fractional STIRAP
-        real_t m_PiTransferTime; ///< Theoretical transfer time needed for a full Pi transition
-    };
+        struct EnvelopeParams
+        {
+            natural_t m_GroundLevelIndex;  ///< The first affected bases state index to fill the resulting laser array
+            real_t m_omegaP;         ///< Pump frequency
+            real_t m_omegaS;         ///< Stokes frequency
+            real_t m_peakRabiP;       ///< Peak amplitude for the pump laser
+            real_t m_peakRabiS;       ///< Peak amplitude for the Stokes laser
+            real_t m_phaseP;         ///< Pump phase
+            real_t m_sigma;          ///< Gaussian width
+            real_t m_tP;             ///< Pump center
+            real_t m_tS;             ///< Stokes center
+            real_t m_tLimit;         ///< Evaluation cutoff
+            real_t m_tStart;         ///< Start time in case of fractional STIRAP
+            real_t m_PiTransferTime; ///< Theoretical transfer time needed for a full Pi transition
+        };
+    }
 
     /// @brief Lightweight time-dependent two-photon laser pulse evaluator.
     ///
@@ -62,7 +63,7 @@ namespace KetCat
     ///    pre-calculated pulse sequence.
     class TwoPhotonLaserEnvelope
     {
-        EnvelopeParams m_Parameters;
+        detail::EnvelopeParams m_Parameters;
 
         /// @brief Evaluate normalized Gaussian envelope.
         static constexpr real_t gaussian(real_t t, real_t t0, real_t sigma) noexcept
@@ -77,7 +78,7 @@ namespace KetCat
 
     public:
         /// @brief Construct from pre-calculated parameters.
-        constexpr TwoPhotonLaserEnvelope(const EnvelopeParams& params) noexcept
+        constexpr TwoPhotonLaserEnvelope(const detail::EnvelopeParams& params) noexcept
             : m_Parameters(params) {
         }
 
@@ -130,7 +131,7 @@ namespace KetCat
         /// @brief Compute parameters and generate the final envelope evaluator.
         TwoPhotonLaserEnvelope build() const
         {
-            EnvelopeParams Parameters;
+            detail::EnvelopeParams Parameters;
 
 			// Copy the index of the first affected base state which will be used to fill the lasers array - TODO move to laser_pulse type
 			Parameters.m_GroundLevelIndex = m_config.m_GroundLevelIndex;
@@ -159,7 +160,7 @@ namespace KetCat
         }
 
     private:
-        void setupRaman(EnvelopeParams& Parameters) const
+        void setupRaman(detail::EnvelopeParams& Parameters) const
         {
             real_t geomPeakRabi = std::sqrt(Parameters.m_peakRabiP * Parameters.m_peakRabiS);
 

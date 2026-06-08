@@ -7,8 +7,8 @@
 #include <ranges>
 #include <type_traits>
 
-#include "operation_space/neutral_atom_manifold.h"
-#include "operation_space/utils/subspace_operations.h"
+#include "local_space/neutral_atom_manifold.h"
+#include "global_space/subspace_operations.h"
 
 #include "quantum_circuit.h"
 #include "compiler/gate_compiler.h"

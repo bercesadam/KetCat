@@ -30,12 +30,10 @@ namespace KetCat
 	template<natural_t StateCount>
 	using probability_vector_t = std::array<real_t, StateCount>;
 
-	/// @brief Fixed-size list of qubit/qudit indices.
-	/// @tparam QBitCountQDitCount  Number of qubits/qudits in the list.
+	/// @brief Fixed-size list of qubit indices.
+	/// @tparam QBitCount Number of qubits in the list.
 	template<natural_t QBitCount>
 	using qbit_list_t = std::array<natural_t, QBitCount>;
-	template<natural_t QDitCount>
-	using qdit_list_t = std::array<natural_t, QDitCount>;
 
 	/// @brief Square matrix type 
 	/// @tparam Rows  Number of rows and cols
@@ -83,14 +81,15 @@ namespace KetCat
 	};
 
 	/// @brief Additional named constant indices for five_band_matrix_t
+	/// the first three indices are the same as in tridiagonal_matrix_t,
+	/// and the last two correspond to the ±LevelCount diagonals.
 	constexpr natural_t UPPER_FAR = 3;
 	constexpr natural_t LOWER_FAR = 4;
-
-
 }
 
 ///@brief Tag struct to hold the spatial dimension's number
-///       for the user defined literal.
+///       for the user defined literal, needs to be defined in
+///       the global namespace to be used as a literal suffix
 struct DimensionTag
 {
 	KetCat::natural_t value;

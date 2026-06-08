@@ -57,7 +57,7 @@ namespace KetCat
 
     /// @brief Serialises StateVector snapshots to a compact binary file (.kwf).
     /// @tparam HilbertSpace  The Hilbert-space type tag; must satisfy hilbert_space_t.
-    template <hilbert_space_t HilbertSpace>
+    template <hilbert_space_t HilbertSpace, natural_t QubitCount>
     class StateVectorExporter
     {
 		/// @brief Binary file stream for writing the .kwf output.
@@ -101,7 +101,7 @@ namespace KetCat
         }
 
         /// @brief Appends one simulation timestep to the binary file.
-        void writeTimestep(const SimulationView<HilbertSpace>& view)
+        void writeTimestep(const SimulationView<HilbertSpace, QubitCount>& view)
         {
             // Simulation time as a 64-bit IEEE-754 double
             const double t = static_cast<double>(view.m_time);
@@ -146,7 +146,7 @@ namespace KetCat
                 writeRaw(l2i);
             }
 
-            // Wavefunction payload written sequentially for EACH atom
+            // Wavefunction payload written sequentially for each atom
             for (uint8_t q = 0; q < m_NumQubits; ++q)
             {
                 for (natural_t i = 0; i < Size; ++i)

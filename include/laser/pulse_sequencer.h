@@ -1,9 +1,10 @@
 #pragma once
 #include <optional>
+#include "atomic_units.h"
 #include "two_photon_laser.h"
 #include "quantum_processor/time_master.h"
 #include "compiler/physical_instruction.h"
-#include "operation_space/neutral_atom_manifold.h"
+#include "local_space/neutral_atom_manifold.h"
 
 namespace KetCat
 {

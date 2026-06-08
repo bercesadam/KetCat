@@ -11,7 +11,7 @@
 
 namespace KetCat
 {
-    template <NeutralAtomTypeConfig Config>
+    template <NeutralAtomTypeConfig Config, natural_t QubitCount>
     class SimulationViewBuilder
     {
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
@@ -48,7 +48,7 @@ namespace KetCat
 			return Title.str();
         }
         
-        SimulationView<FullHilbertSpace> build(
+        SimulationView<FullHilbertSpace, QubitCount> build(
             const std::string simulationStepName,
             const real_t time,
             const StateVector<OperationSpace>& psiOp,

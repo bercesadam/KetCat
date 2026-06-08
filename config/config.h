@@ -1,5 +1,5 @@
 #pragma once
-#include "operation_space/neutral_atom_config.h"
+#include "local_space/neutral_atom_config.h"
 
 namespace KetCat
 {
