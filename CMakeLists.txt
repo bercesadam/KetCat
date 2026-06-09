@@ -17,7 +17,7 @@ file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
 # ----------------------------
 if (MSVC)
     add_compile_options(
-        /O2 /W4 /permissive- /arch:AVX2 /GL /Gy /Gw
+        /W4 /permissive- /arch:AVX2 /GL /Gy /Gw
         /fp:fast /Oi /Ot /Ob3 /Oy /GF /Gm-
         /EHsc- /GR- /MP
     )

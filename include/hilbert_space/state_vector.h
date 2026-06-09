@@ -1,5 +1,7 @@
 ﻿#pragma once
+#include <ostream>
 #include "hilbert.h"
+
 
 namespace KetCat
 {
@@ -194,6 +196,24 @@ namespace KetCat
 
 			Result.normalize();
 			return Result;
+		}
+
+		/// DEBUG OUTPUT //////////////////////////////////////////////////////////////////
+
+		/// @brief Stream output operator for easy debugging of state vectors.
+		friend std::ostream& operator<<(std::ostream& os, const StateVector& state)
+		{
+			os << '[';
+
+			for (natural_t i = 0; i < Size; ++i)
+			{
+				if (i != 0)
+					os << ", ";
+
+				os << state.m_StateVector[i];
+			}
+
+			return os << ']';
 		}
 	};
 }

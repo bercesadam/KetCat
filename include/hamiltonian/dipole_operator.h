@@ -87,6 +87,7 @@ namespace KetCat
                 /// Computed via standard 3-j symbols or algebraic reduction.
                 const real_t lMax = static_cast<real_t>(std::max(BraL, KetL));
                 const real_t lBraSq = static_cast<real_t>(BraL * BraL);
+                (void)lBraSq;
                 const real_t mBraSq = static_cast<real_t>(BraM * BraM);
 
                 const real_t AngularFactor = std::sqrt((lMax * lMax - mBraSq) / (4.0 * lMax * lMax - 1.0));

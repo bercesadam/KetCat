@@ -101,6 +101,7 @@ namespace KetCat
     public:
         constexpr void initializeAtomAsLogical1(natural_t index)
         {
+			(void)index; // Placeholder for any future logic related to initializing the frame phase for logical |1⟩ states.
         }
 
         /// @brief Generate the time-dependent envelope for a physical instruction.
@@ -133,9 +134,6 @@ namespace KetCat
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
-
-			// Store original instruction phase
-            const real_t originalInstructionPhase = instruction.m_phase;
            
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             instruction.m_phase -= framePhase;

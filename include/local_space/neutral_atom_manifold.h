@@ -121,10 +121,6 @@ namespace KetCat
         template <hilbert_space_t HilbertSpace>
         using BasesSetHandle = std::unique_ptr<BasisSet<HilbertSpace>>;
 
-        /// @brief Owning handle for the reduced energy space.
-        using LocalSpaceHelperHandle =
-            std::unique_ptr<LocalSpaceHelperType>;
-
     private:
         /// @brief Electric dipole transition matrix between eigenstates.
         ///
@@ -329,21 +325,30 @@ namespace KetCat
                 (*m_basisStates2D)[ConfigType::Logical0Level].m_Psi);
         }
 
-		/// @brief Retrieve the full spatial state vector corresponding to a reduced operation state from a density matrix.
-		///
-		/// @param densityMatrix The reduced density matrix of the qubit, used to extract the dominant coherent state vector components.
-		/// @return
-		///    Full spatial state vector in the original Hilbert space, obtained by embedding the reduced state back into the full basis.
+        /// @brief Retrieve the full spatial state vector corresponding to a reduced operation state.
+        ///
+        /// @param reducedState State vector in the reduced operation space (e.g. |0⟩ or |1⟩).
+        /// @return
+        ///    Full spatial state vector in the original Hilbert space, obtained by embedding the reduced state back into the full basis.
         /// @detail
-		///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
+        ///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
         ///    which operate entirely within the reduced space.
         StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
-            (const Matrix<ConfigType::LevelCount>& densityMatrix) const noexcept
+        (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) const noexcept
         {
-			StateVector<LocalSpaceHelperType::ReducedHilbertSpace> reducedState =
-				m_operationSpace.extractCoherentState(densityMatrix);
             return m_operationSpace.embed(*m_basisStates2D, reducedState);
-		}
+        }
+
+		/// @brief Retrieve the recuded operation state corresponding to a full spatial density matrix for one atom.
+        ///
+        /// @param densityMatrix The reduced density matrix of the atom, used to extract the dominant coherent state vector components.
+        /// @return
+		///    Reduced state vector in the finite Hilbert space, containing the amplitudes for the basis set
+		StateVector<SingleAtomOperationHilbertSpace> getReducedStateFromDensityMatrix
+        (const Matrix<ConfigType::LevelCount>& densityMatrix) const noexcept
+        {
+            return m_operationSpace.extractCoherentState(densityMatrix);
+        }
 
         /// @brief Provide the dipole matrix   
         ///

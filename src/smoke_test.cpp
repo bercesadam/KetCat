@@ -42,10 +42,6 @@ int main()
         QuantumGate<1, GateType::H>().toBits(0),
         QuantumGate<1, GateType::H>().toBits(1)
     );
-
-	//QuantumProcessor<2, Config>("smoke_test_1").execute(Circuit);
-
-    auto DiagSession = QPUDiagnostics<2, Config>::createQPUWithInitialState("smoke_test", std::bitset<2>{"00"});
-    DiagSession.QPU().execute(Circuit);
-  
+	
+    QuantumProcessor<2, Config>("grover").execute(Circuit); 
 }

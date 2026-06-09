@@ -22,12 +22,13 @@ namespace KetCat
         using FullStateVectorType = StateVector<typename GlobalStateManager::FullHilbertSpace>;
         
 		// The size of the logical subspace is 2^QubitCount
-        static constexpr natural_t LogicalDimSize = ConstexprMath::pow(2, QubitCount);
-        
+        static constexpr natural_t LogicalDimSize = ConstexprMath::pow(natural_t(2), QubitCount);
+
+    public:
+		/// @brief Extracts the probabilities of the logical state vector from the full global state vector.
         static constexpr probability_vector_t<LogicalDimSize>
             extractLogicalProbabilities(const FullStateVectorType& psi, bool renormalize) noexcept
         {
-            constexpr natural_t LogicalDimSize = ConstexprMath::pow(2, QubitCount);
             probability_vector_t<LogicalDimSize> LogicalProbabilities{};
 
             real_t TotalLogicalProbability = 0.0;

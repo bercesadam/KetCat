@@ -14,6 +14,7 @@ namespace KetCat
 		QPUDiagnostics(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString)
 			: m_processor(simulationOutputFileName, initialBitString)
 		{
+			std::cout << "KETCAT AB INITIO NEUTRAL ATOM QUANTUM COMPUTER SIMULATOR v3.0 - Diagnostic Session initiated." << std::endl;
 		}
 
 	public:

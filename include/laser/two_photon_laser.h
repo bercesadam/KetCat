@@ -91,8 +91,6 @@ namespace KetCat
         /// @return Tuple: (PumpLaser, StokesLaser)
         std::tuple<LaserPulse, LaserPulse> operator()(real_t time) const noexcept
         {
-            const real_t evalTime = std::min(time, m_Parameters.m_tLimit);
-
             const real_t ampP = m_Parameters.m_peakRabiP *
                 gaussian(time, m_Parameters.m_tP, m_Parameters.m_sigma);
             const real_t ampS = m_Parameters.m_peakRabiS *

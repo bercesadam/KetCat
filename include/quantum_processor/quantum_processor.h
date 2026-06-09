@@ -7,6 +7,8 @@
 #include <ranges>
 #include <type_traits>
 
+#include "logo.h"
+
 #include "local_space/neutral_atom_manifold.h"
 #include "global_space/subspace_operations.h"
 
@@ -70,9 +72,10 @@ namespace KetCat
         /// @brief Initialize the processor with a specific time-step for TDSE.
         ///
         /// @param simulationOutputFileName Output filename for the simulation data
-        constexpr QuantumProcessor(std::string simulationOutputFileName)
+        QuantumProcessor(std::string simulationOutputFileName)
             : QuantumProcessor(simulationOutputFileName, std::bitset<QubitCount>{})
         {  
+			printLogo();
         }
 
         /// @brief Execute a logical quantum circuit.
@@ -95,7 +98,7 @@ namespace KetCat
 		/// @param initialBitString Bitstring representing the initial state of the qubits
 		/// @details This is a private constructor allowing only diagnostic routines to initialize the processor with a specific state.
 		/// The public constructor initializes all qubits to |0⟩ by default, corresponding to the ground state of the atoms by default.
-        constexpr QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
+        QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialBitString) :
             m_SimulationObserver(m_Manifold, simulationOutputFileName, SimuSaveNthFrame)
         {
             m_GlobalStateVector =
@@ -198,13 +201,15 @@ namespace KetCat
                 else { }
                
 				/// Capture the current state and laser configuration for visualization/export.
-				m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes);
+				m_SimulationObserver.exportStep(m_GlobalStateVector,
+                    instruction.m_targets, Pump, Stokes);
 
                 TimeMaster::Clock().tick();
             }
 
 			// Ensure that the final state at the end of the pulse is captured
-            m_SimulationObserver.exportStep(m_GlobalStateVector, Pump, Stokes, KEYFRAME);
+            m_SimulationObserver.exportStep(m_GlobalStateVector,
+                instruction.m_targets, Pump, Stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();

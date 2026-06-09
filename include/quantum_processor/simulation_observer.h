@@ -61,7 +61,7 @@ namespace KetCat
         SimulationObserver(const NeutralAtomManifold<Config>& manifold,
             const std::string fileName, const natural_t saveNthFrame)
             : m_ViewBuilder(manifold),
-              m_Exporter(fileName), 
+              m_Exporter(fileName, QubitCount), 
               m_SaveNthFrame(saveNthFrame)
         {
         }
@@ -82,50 +82,30 @@ namespace KetCat
         /// @details
         ///    Calculates the instantaneous basis state probabilities and passes 
         ///    the formatted view to the binary exporter if the capture criteria are met.
-        void exportStep(const StateVector<FullHilbertSpace>& psi,
-            const LaserPulse& laser1, const LaserPulse& laser2,
+        void exportStep(const StateVector<FullHilbertSpace>& psi, const qbit_list_t<2> targets,
+			const LaserPulse& laser1, const LaserPulse& laser2,
             const bool isKeyFrame = false)
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)
             {
-                // Print full state vector
+                auto SimulationView =
+                    m_ViewBuilder.build(
+                        m_SimulationStepName,
+                        TimeMaster::Clock().getGlobalTime(),
+                        psi, targets, laser1, laser2);
+
+                m_Exporter.writeTimestep(SimulationView);
+
                 if (isKeyFrame)
                 {
-                    for (natural_t i = 0; i < GlobalStateManager::FullDim; ++i)
+                    std::cout << "State vector: " << psi << std::endl;
+                    for (natural_t q = 0; q < QubitCount; ++q)
                     {
-                        std::cout << "Global basis state " << i << ": Re: " << psi[i].re << "\tIm: " << psi[i].im << std::endl;
+						std::cout << SimulationView.m_qubitDatum[q].m_title << std::endl;
+						std::cout << "Purity of qubit " << q << ": " << SimulationView.m_qubitDatum[q].m_purity << std::endl;
                     }
+
                     std::cout << "------------------------" << std::endl << std::endl;
-                }
-
-                for (natural_t q = 0; q < QubitCount; ++q)
-                {
-                    auto qubitLocalState = GlobalStateManager::extractLocalState(psi, q);
-
-                    auto SimulationView =
-                        m_ViewBuilder.build(
-                            "Qubit" + std::to_string(q) + ": " + m_SimulationStepName,
-                            TimeMaster::Clock().getGlobalTime(),
-                            psi, laser1, laser2);
-
-                    m_Exporter.writeTimestep(SimulationView);
-
-                    if (isKeyFrame)
-                    {
-                        std::cout << "Purity of qubit " << q << ": " << qubitLocalState.purityValue << std::endl;
-                        //std::cout << "Laser intensities in au: Pump = " << laser1.m_amplitude << ", Stokes = " << laser2.m_amplitude << std::endl;  
-
-                        for (natural_t i = 0; i < decltype(Config)::LevelCount; ++i)
-                        {
-                            std::cout << "Probability of basis state " << i << ": " << qubitLocalState.pureStateVector[i].normSquared() * 100.0 << "%\t";
-                            std::cout << "Re: " << qubitLocalState.pureStateVector[i].re << "\tIm: " << qubitLocalState.pureStateVector[i].im << std::endl;
-                        }
-
-
-                        std::cout << "Exported timeframe " << m_FrameCounter << ": " << m_SimulationStepName
-                            << " at time " << TimeMaster::Clock().getGlobalTime() * Units::AtomicTimeToSeconds * 1E9 << " ns" << std::endl;
-                        std::cout << "------------------------" << std::endl << std::endl;
-                    }
                 }
 
                 m_FrameCounter++;

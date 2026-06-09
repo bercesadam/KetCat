@@ -40,6 +40,10 @@ namespace KetCat
         }
     }
 
+    /// @brief Placeholder value for the targets array of PhysicalInstruction to be able to determine
+	/// the number of targets without the full struct as well, allowing more elegant handling for debugging.
+    static constexpr natural_t TARGET_INACTIVE = std::numeric_limits<natural_t>::max();
+
 
 	/// @brief Concrete instance of a physical control instruction, ready for pulse generation and execution.
     struct PhysicalInstruction
@@ -48,7 +52,7 @@ namespace KetCat
         PhysicalInstructionType m_type;
 
 		//// @brief Target qubit indices for the instruction.
-        qbit_list_t<2>  m_targets{};
+        qbit_list_t<2>  m_targets{ TARGET_INACTIVE , TARGET_INACTIVE };
 
 		// @brief Number of valid target indices in m_targets.
         natural_t m_targetCount = 0;

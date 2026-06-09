@@ -108,10 +108,10 @@ namespace KetCat
         /// This is the integration weight for the discrete approximation:
         ///     ∫ f(x) d^D x  ≈  Σ_i f_i · ΔV_i
         ///
-        /// @param flatIndex  Flattened grid index in [0, Dim-1].
         /// @return           Cell hypervolume at that grid point.
         static constexpr real_t cellVolume(natural_t flatIndex) noexcept
         {
+			(void)flatIndex; // Placeholder for any future logic related to non-uniform grids.
             real_t Volume = 1.0;
             for (natural_t d = 0; d < SpatialDimensions; ++d)
             {

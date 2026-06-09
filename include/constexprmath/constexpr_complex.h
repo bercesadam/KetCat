@@ -1,6 +1,8 @@
 #pragma once
+#include <ostream>
 #include <concepts>
 #include "constexpr_trigon.h"
+
 
 /// @file
 /// @brief Constexpr-capable complex number type used throughout the project.
@@ -160,6 +162,23 @@ namespace ConstexprMath
         constexpr FloatType normSquared() const noexcept
         {
             return re * re + im * im;
+        }
+
+		/// @brief Stream output operator for easy debugging
+        friend std::ostream& operator<<(std::ostream& os, const Complex& c)
+        {
+            os << c.re;
+
+            if (c.im >= 0)
+            {
+                os << " + " << c.im;
+            }
+            else
+            {
+                os << " - " << -c.im;
+            }
+
+            return os << 'i';
         }
     };
 }

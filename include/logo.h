@@ -11,8 +11,8 @@
 void printLogo()
 {
 #ifdef _WIN32
-	SetConsoleCP(437);
-	SetConsoleOutputCP(437);
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleCP(CP_UTF8);
 #endif // _WIN32
 
 	std::cout << "  KETCAT AB INITIO NEUTRAL ATOM QUANTUM COMPUTER SIMULATOR v3.0     ░░                       " << std::endl;
