@@ -24,7 +24,7 @@ int main()
         QuantumNumber<20, p>  /*5*/
         > Config;
 
-    auto Circuit = QuantumCircuit<2>().withGates(
+    auto Grover = QuantumCircuit<2>().withGates(
 		QuantumGate<1, GateType::H>().toBits(0),
         QuantumGate<1, GateType::H>().toBits(1),
 
@@ -43,5 +43,11 @@ int main()
         QuantumGate<1, GateType::H>().toBits(1)
     );
 	
-    QuantumProcessor<2, Config>("grover").execute(Circuit); 
+	auto Bell = QuantumCircuit<2>().withGates(
+		QuantumGate<1, GateType::H>().toBits(0),
+		QuantumGate<2, GateType::CX>().toBits(0, 1)
+	);
+
+    //QuantumProcessor<2, Config>("grover.kwf").execute(Grover); 
+    QuantumProcessor<2, Config>("bell.kwf").execute(Bell);
 }

@@ -37,7 +37,7 @@ if not kwf_file:
 if save_frames and not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-# --- Extended .kwf File Parser (Perfectly mirrors final C++ stream) ---
+# --- Extended .kwf File Parser (Perfectly mirrors RealImag C++ stream) ---
 def load_kwf(path):
     with open(path, "rb") as f:
         magic = f.read(4)
@@ -57,25 +57,22 @@ def load_kwf(path):
         L = struct.unpack("<d", f.read(8))[0]
 
         state_dim = 2 ** num_qubits
-        floats_per_state = 2 if mode == 0 else 1
+        floats_per_state = 2
         frame_bytes = floats_per_state * size * 8 * num_qubits
 
         captions, times, frames, state_vectors, purities, stirap = [], [], [], [], [], []
 
         while True:
-            # 1. Read simulation time (double)
             t_raw = f.read(8)
             if not t_raw:
                 break
             t = struct.unpack("<d", t_raw)[0]
 
-            # 2. Read global logical state vector amplitudes
             sv_bytes = state_dim * 8
             sv_raw = f.read(sv_bytes)
             if len(sv_raw) < sv_bytes: break
             state_vector = np.array(struct.unpack(f"<{state_dim}d", sv_raw))
 
-            # 3. Read specific independent title string per qubit
             frame_qubit_titles = []
             for _ in range(num_qubits):
                 raw_len = f.read(2)
@@ -84,19 +81,16 @@ def load_kwf(path):
                 caption = f.read(cap_len).decode("utf-8")
                 frame_qubit_titles.append(caption)
 
-            # 4. Read physical purity scalars per atom
             p_bytes = num_qubits * 8
             p_raw = f.read(p_bytes)
             if len(p_raw) < p_bytes: break
             qubit_purities = np.array(struct.unpack(f"<{num_qubits}d", p_raw))
 
-            # 5. Read dynamic laser wavelength & intensity parameters per atom
             s_bytes = num_qubits * 4 * 8
             s_raw = f.read(s_bytes)
             if len(s_raw) < s_bytes: break
             s_vals = np.array(struct.unpack(f"<{num_qubits * 4}d", s_raw)).reshape(num_qubits, 4)
 
-            # 6. Read consecutive spatial wavefunction grids for ALL atoms
             payload = f.read(frame_bytes)
             if len(payload) < frame_bytes: break
             arr = np.frombuffer(payload, dtype="<f8")
@@ -108,26 +102,25 @@ def load_kwf(path):
             purities.append(qubit_purities)
             stirap.append(s_vals)
 
-    return num_qubits, captions, np.array(times), np.array(frames), np.array(state_vectors), np.array(purities), mode, np.array(stirap)
+    return num_qubits, captions, np.array(times), np.array(frames), np.array(state_vectors), np.array(purities), np.array(stirap)
 
-# Load layout arrays
-num_qubits, captions, times, raw, state_vectors, purities, mode, stirap_data = load_kwf(kwf_file)
+# Load data from file
+num_qubits, captions, times, raw, state_vectors, purities, stirap_data = load_kwf(kwf_file)
 n_timesteps = raw.shape[0]
 state_dim = 2 ** num_qubits
 
-# --- CSV Export Logic ---
+# --- CSV Export ---
 csv_headers = ['Time']
 for i in range(state_dim):
     bitstr = bin(i)[2:].zfill(num_qubits)
-    csv_headers.extend([f'Amp_{bitstr}_Real', f'Amp_{bitstr}_Imag'])
+    csv_headers.append(f'Prob_{bitstr}')
 for i in range(num_qubits):
     csv_headers.append(f'Purity_Q{i}')
 
 csv_rows = []
 for i in range(n_timesteps):
     row = [times[i]]
-    for amp in state_vectors[i]:
-        row.extend([amp.real, amp.imag])
+    row.extend(state_vectors[i])
     row.extend(purities[i])
     csv_rows.append(row)
 
@@ -135,11 +128,9 @@ df_export = pd.DataFrame(csv_rows, columns=csv_headers)
 df_export.to_csv("quantum_data.csv", index=False)
 print("Data exported to quantum_data.csv")
 
-# Reshape full spatial configurations into (timesteps, atoms, Ny, Nx)
-if mode == 0:
-    psi_all_atoms = raw.reshape(n_timesteps, num_qubits, Ny, Nx).astype(complex)
-else:
-    psi_all_atoms = np.sqrt(raw).reshape(n_timesteps, num_qubits, Ny, Nx).astype(complex)
+# Reshape RealImag arrays
+reshaped_raw = raw.reshape(n_timesteps, num_qubits, Ny, Nx, 2)
+psi_all_atoms = (reshaped_raw[..., 0] + 1j * reshaped_raw[..., 1]).astype(complex)
 
 x_coord = np.linspace(-L, L, Nx)
 y_coord = np.linspace(-L, L, Ny)
@@ -171,15 +162,52 @@ def phase_to_rgb(psi):
 
     return np.clip(np.stack((r * amplitude, g * amplitude, b * amplitude), axis=-1), 0, 1)
 
-# --- Grid Resolution Engine for Per-Atom Visual Boxes ---
-# Automatically computes side-by-side grids depending on atom counts
+# --- Main Canvas & Base Multi-panel Grid Layout ---
 ncols = num_qubits
 nrows = 1
-fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6), squeeze=False)
-fig.subplots_adjust(left=0.06, right=0.88, top=0.85, bottom=0.28)
+# Increased height to 6.5 and tightly squeezed padding to maximize atom box sizes
+fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6.5), squeeze=False)
+fig.subplots_adjust(left=0.04, right=0.90, top=0.92, bottom=0.24, wspace=0.15)
 
 spatial_images = []
 caption_boxes = []
+
+# --- Custom High-Fidelity Bloch Sphere Insets per Atom Box ---
+ax_blochs = []
+bloch_vectors = []
+bloch_warnings = []
+
+def setup_beautiful_bloch(axis):
+    axis.set_axis_off()
+
+    # High-density wireframe grid mesh matching legacy version
+    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+    x = np.cos(u) * np.sin(v)
+    y = np.sin(u) * np.sin(v)
+    z = np.cos(v)
+
+    axis.plot_wireframe(x, y, z, color="gray", alpha=0.4, linewidth=0.5)
+
+    # Subdued inner projection axes
+    axis.plot([-1.1, 1.1], [0, 0], [0, 0], color="white", alpha=0.05)
+    axis.plot([0, 0], [-1.1, 1.1], [0, 0], color="white", alpha=0.05)
+    axis.plot([0, 0], [0, 0], [-1.1, 1.1], color="white", alpha=0.1)
+
+    # Distinct RGB basis vector lines (X: Red, Y: Green, Z: Blue)
+    axis.plot([0, 1], [0, 0], [0, 0], color="red", alpha=0.6)
+    axis.plot([0, 0], [0, 1], [0, 0], color="green", alpha=0.6)
+    axis.plot([0, 0], [0, 0], [0, 1], color="blue", alpha=0.6)
+
+    # Standard state label decorations surrounding the sphere boundary
+    o = 1.25
+    axis.text(0, 0, o, r"$|0\rangle$", color="white", ha="center", va="bottom", fontsize=8)
+    axis.text(0, 0, -o, r"$|1\rangle$", color="white", ha="center", va="top", fontsize=8)
+    axis.text(o, 0, 0, r"$|+\rangle$", color="white", ha="left", va="center", fontsize=7)
+    axis.text(-o, 0, 0, r"$|-\rangle$", color="white", ha="right", va="center", fontsize=7)
+    axis.text(0, o, 0, r"$|+i\rangle$", color="white", ha="left", va="center", fontsize=7)
+    axis.text(0, -o, 0, r"$|-i\rangle$", color="white", ha="right", va="center", fontsize=7)
+
+    axis.view_init(elev=20, azim=45)
 
 for q in range(num_qubits):
     ax_q = axs[0, q]
@@ -194,32 +222,64 @@ for q in range(num_qubits):
     ax_q.set_ylabel("y (a.u.)", fontsize=9)
     ax_q.set_title(f"Atom {q} Subspace", fontsize=11, weight='bold')
 
-    # Assign a unique visual text box inside EACH individual atom panel container
+    # HUD title box (Top-left corner)
     box = ax_q.text(
-        0.02, 0.98, "", transform=ax_q.transAxes, fontsize=10, color="white",
-        verticalalignment="top", bbox=dict(boxstyle="round,pad=0.3", facecolor="black", alpha=0.6, edgecolor="none")
+        0.02, 0.98, "", transform=ax_q.transAxes, fontsize=8, color="white",
+        verticalalignment="top", multialignment="left",
+        bbox=dict(boxstyle="round,pad=0.3", facecolor="black", alpha=0.6, edgecolor="none")
     )
     caption_boxes.append(box)
 
-# Reference positions from the first panel to scale peripheral indicators
+    # Embed beautiful translucent inset 3D panel into the bottom-right corner
+    pos = ax_q.get_position()
+    ax_b = fig.add_axes([pos.x1 - 0.14, pos.y0 + 0.01, 0.13, 0.18], projection='3d')
+    ax_b.set_facecolor((0, 0, 0, 0))
+    
+    setup_beautiful_bloch(ax_b)
+    
+    # State tracking pointer vector
+    b_vec, = ax_b.plot([0, 0], [0, 0], [0, 0], color="cyan", linewidth=2.5, marker='o', markersize=4, zorder=10)
+    
+    # Entanglement alert box placed at center of sphere when pure state collapses
+    b_warn = ax_b.text2D(
+        0.5, 0.5, "MIXED\nSTATE", color="coral", ha="center", va="center", fontsize=8, weight="bold",
+        transform=ax_b.transAxes, bbox=dict(facecolor='black', alpha=0.7, edgecolor='none', pad=2)
+    )
+    b_warn.set_visible(False)
+    
+    ax_blochs.append(ax_b)
+    bloch_vectors.append(b_vec)
+    bloch_warnings.append(b_warn)
+
 ref_pos = axs[0, 0].get_position()
 last_pos = axs[0, -1].get_position()
 
-# --- Shared Inset Panel Setup ---
-ax_qiskit = fig.add_axes([last_pos.x1 + 0.02, ref_pos.y1 - 0.22, 0.08, 0.22])
-ax_bloch = fig.add_axes([last_pos.x1 + 0.02, ref_pos.y0, 0.09, 0.22], projection='3d')
-ax_bloch.set_facecolor((0, 0, 0, 0))
+# --- Qiskit-style Probability Histogram Panel (Right Margin) ---
+ax_qiskit = fig.add_axes([last_pos.x1 + 0.02, ref_pos.y0 + 0.22, 0.07, 0.35])
+ax_qiskit.set_facecolor("#111111")
+ax_qiskit.set_title("Basis Probs", color="gray", fontsize=8, pad=4)
+ax_qiskit.set_ylim(0, 1.05)
+bitstrings = [f"|{bin(i)[2:].zfill(num_qubits)}⟩" for i in range(state_dim)]
+bars = ax_qiskit.bar(bitstrings, state_vectors[0], color="#6f42c1", edgecolor="#563d7c")
+ax_qiskit.tick_params(colors='gray', labelsize=7, axis='x', rotation=90 if num_qubits > 2 else 45)
+for spine in ax_qiskit.spines.values():
+    spine.set_color('gray')
 
-bloch_warning = ax_bloch.text2D(
-    0.5, 0.5, "ENTANGLED STATE\n\nBloch Sphere\nDisabled.",
-    color="coral", ha="center", va="center", fontsize=8, weight="bold",
-    transform=ax_bloch.transAxes, bbox=dict(facecolor='black', alpha=0.7, edgecolor='none')
-)
-bloch_warning.set_visible(False)
+# --- Shared Global Phase Colorbar ---
+colorbar_rgb = phase_to_rgb(np.exp(1j * np.linspace(-np.pi, np.pi, 256)).reshape(1, -1))
+custom_cmap = ListedColormap(colorbar_rgb[0])
+cax = fig.add_axes([last_pos.x1 + 0.02, ref_pos.y0, 0.012, 0.18])
+norm = Normalize(vmin=-np.pi, vmax=np.pi)
+cb = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=custom_cmap), cax=cax)
+cb.set_ticks([-np.pi, 0, np.pi])
+cb.set_ticklabels([r"$-\pi$", r"$0$", r"$\pi$"])
+cb.ax.tick_params(labelsize=8)
 
-# Shared Laser diagnostics graph pinned across bottom boundary
-ax_stirap = fig.add_axes([ref_pos.x0, 0.06, (last_pos.x1 - ref_pos.x0), 0.14])
+# --- Shared Laser Diagnostics Panel with Safe Logarithmic Scaling ---
+# Adjusted height and bottom alignment to push the main atom plots larger
+ax_stirap = fig.add_axes([ref_pos.x0, 0.05, (last_pos.x1 - ref_pos.x0), 0.12])
 ax_stirap.set_facecolor((0, 0, 0, 0.4))
+ax_stirap.set_yscale('log')
 ax_stirap.tick_params(colors='gray', labelsize=8)
 for spine in ax_stirap.spines.values():
     spine.set_color('gray')
@@ -229,57 +289,28 @@ ax_stirap.set_ylabel("Intensity (W/cm²)", color="gray", fontsize=8)
 laser1_line, = ax_stirap.plot([], [], color="lime", linewidth=1.5, label="Pump")
 laser2_line, = ax_stirap.plot([], [], color="deepskyblue", linewidth=1.5, label="Stokes")
 time_marker = ax_stirap.axvline(x=times[0], color="white", linestyle="--", alpha=0.5)
+
 ax_stirap.set_xlim(times[0], times[-1])
-ax_stirap.set_ylim(0, np.max(stirap_data[:, :, [1, 3]]) * 1.1)
-
-# 3D Bloch Axis Init
-def draw_bloch_skeleton(axis):
-    u, v = np.mgrid[0:2*np.pi:14j, 0:np.pi:7j]
-    x = np.cos(u) * np.sin(v)
-    y = np.sin(u) * np.sin(v)
-    z = np.cos(v)
-    axis.plot_wireframe(x, y, z, color="gray", alpha=0.2, linewidth=0.5)
-    axis.set_axis_off()
-    axis.view_init(elev=20, azim=45)
-
-draw_bloch_skeleton(ax_bloch)
-bloch_vector, = ax_bloch.plot([0, 0], [0, 0], [0, 0], color="cyan", linewidth=2, marker='o', markersize=3)
-
-# Qiskit Histogram layout configuration
-ax_qiskit.set_facecolor("#111111")
-ax_qiskit.set_title("Basis Probs", color="gray", fontsize=8, pad=4)
-ax_qiskit.set_ylim(0, 1.05)
-bitstrings = [f"|{bin(i)[2:].zfill(num_qubits)}⟩" for i in range(state_dim)]
-bars = ax_qiskit.bar(bitstrings, np.abs(state_vectors[0]) ** 2, color="#6f42c1", edgecolor="#563d7c")
-ax_qiskit.tick_params(colors='gray', labelsize=7, axis='x', rotation=90 if num_qubits > 2 else 45)
-for spine in ax_qiskit.spines.values():
-    spine.set_color('gray')
-
-# Main Colorbar mapping
-colorbar_rgb = phase_to_rgb(np.exp(1j * np.linspace(-np.pi, np.pi, 256)).reshape(1, -1))
-custom_cmap = ListedColormap(colorbar_rgb[0])
-cax = fig.add_axes([last_pos.x1 + 0.02, ref_pos.y0 + 0.26, 0.015, ref_pos.y1 - ref_pos.y0 - 0.28])
-norm = Normalize(vmin=-np.pi, vmax=np.pi)
-cb = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=custom_cmap), cax=cax)
-cb.set_ticks([-np.pi, 0, np.pi])
-cb.set_ticklabels([r"$-\pi$", r"$0$", r"$\pi$"])
-cb.ax.tick_params(labelsize=8)
+max_laser_val = max(np.max(stirap_data[:, :, [1, 3]]), 200.0)
+ax_stirap.set_ylim(0.1, max_laser_val * 1.5) 
+ax_stirap.legend(loc="upper right", framealpha=0.3, facecolor="black", edgecolor="none", fontsize=7, labelcolor="gray")
 
 current_limits = [L] * num_qubits
 
 # --- Frame Renderer Pipeline ---
 def update(frame):
     global current_limits
+    current_probs = state_vectors[frame]
     
-    # 1. Update each individual atom visualization box dynamically
     for q in range(num_qubits):
+        # 1. Update Spatial Wavefunction Cloud
         psi = psi_all_atoms[frame, q]
         spatial_images[q].set_data(phase_to_rgb(psi))
         
-        # Pull distinct dynamic caption saved specifically for this atom
-        caption_boxes[q].set_text(captions[frame][q])
+        formatted_caption = captions[frame][q].replace("|", "\n")
+        caption_boxes[q].set_text(formatted_caption)
 
-        # Individual Box Adaptive Zoom 
+        # Per-Atom Independent Adaptive Auto-Zoom Engine
         amplitude_sq = np.abs(psi) ** 2
         max_amp = amplitude_sq.max()
         target_limit = L
@@ -296,37 +327,41 @@ def update(frame):
         axs[0, q].set_xlim(-current_limits[q], current_limits[q])
         axs[0, q].set_ylim(-current_limits[q], current_limits[q])
 
-    # 2. Update Qiskit probability profiles
-    current_probs = np.abs(state_vectors[frame]) ** 2
+        # 2. Update Embedded High-Fidelity Bloch Sphere Insets
+        purity_q = purities[frame][q]
+        if num_qubits > 1 and purity_q < 0.95:
+            bloch_vectors[q].set_visible(False)
+            bloch_warnings[q].set_visible(True)
+            ax_blochs[q].set_title(f"Q{q} Mix({purity_q:.2f})", color="coral", fontsize=7, y=0.98, weight="bold")
+        else:
+            bloch_vectors[q].set_visible(True)
+            bloch_warnings[q].set_visible(False)
+            ax_blochs[q].set_title(f"Q{q} Pure({purity_q:.2f})", color="darkgray", fontsize=7, y=0.98)
+            
+            # Map global full-system probabilities down to single qubit Z projection space
+            mask_0 = [(i >> (num_qubits - 1 - q)) & 1 == 0 for i in range(state_dim)]
+            mask_1 = [(i >> (num_qubits - 1 - q)) & 1 == 1 for i in range(state_dim)]
+            
+            p_0 = np.sum(current_probs[mask_0])
+            p_1 = np.sum(current_probs[mask_1])
+            bz = p_0 - p_1
+            
+            bloch_vectors[q].set_data([0, 0], [0, 0])
+            bloch_vectors[q].set_3d_properties([0, bz])
+
+    # 3. Update Qiskit-style Histogram Columns
     for bar, h in zip(bars, current_probs):
         bar.set_height(h)
 
-    # 3. Update Subsystem 0 Coherence (Bloch Vector tracking)
-    purity_0 = purities[frame][0]
-    if num_qubits > 1 and purity_0 < 0.95:
-        bloch_vector.set_visible(False)
-        bloch_warning.set_visible(True)
-        ax_bloch.set_title(f"Q0 Mixed ({purity_0:.2f})", color="coral", fontsize=8, weight="bold")
-    else:
-        bloch_vector.set_visible(True)
-        bloch_warning.set_visible(False)
-        ax_bloch.set_title(f"Q0 Pure ({purity_0:.2f})", color="gray", fontsize=8)
-        
-        sv = state_vectors[frame]
-        rho_00 = np.sum(np.abs(sv[0::2])**2)
-        rho_11 = np.sum(np.abs(sv[1::2])**2)
-        rho_01 = np.sum(sv[0::2] * np.conj(sv[1::2]))
-        bx, by, bz = 2 * rho_01.real, 2 * rho_01.imag, rho_00 - rho_11
-        
-        bloch_vector.set_data([0, bx], [0, by])
-        bloch_vector.set_3d_properties([0, bz])
-
-    # 4. Update timeline markers on Laser Diagnostics tracking sheet
-    laser1_line.set_data(times[:frame+1], stirap_data[:frame+1, 0, 1]) # Monitoring Atom 0 lasers
-    laser2_line.set_data(times[:frame+1], stirap_data[:frame+1, 0, 3])
+    # 4. Update Laser Diagnostics Timeline Tracking (With 0.1 floor safety limits)
+    y1_vals = np.clip(stirap_data[:frame+1, 0, 1], 0.1, None)
+    y2_vals = np.clip(stirap_data[:frame+1, 0, 3], 0.1, None)
+    
+    laser1_line.set_data(times[:frame+1], y1_vals)
+    laser2_line.set_data(times[:frame+1], y2_vals)
     time_marker.set_xdata([times[frame], times[frame]])
 
-# --- Runtime Export Exec ---
+# --- Runtime Export Execution ---
 print(f"Exporting {n_timesteps} multi-panel frames for a {num_qubits}-atom system...")
 for frame in range(n_timesteps):
     update(frame)
