@@ -125,45 +125,37 @@ namespace KetCat
 
             ///////////////////////////////////////////
             // -- PAULI GATES (“π” rotations) --
-            //
+
             // Pauli X
-            //
             else if constexpr (Type == GateType::X)
             {
-                compileGate<GateType::RX>(
-                    GateOperation<QubitCount>
-                {
+                const natural_t target = op.m_targets[0];
+                compileGate<GateType::RX>(GateOperation<1>{
                     GateType::RX,
-                    { op.m_targets[0] },
-                    ConstexprMath::Pi
+                    { target },
+                        ConstexprMath::Pi
                 });
             }
 
-            //
             // Pauli Y
-            //
             else if constexpr (Type == GateType::Y)
             {
-                compileGate<GateType::RY>(
-                    GateOperation<QubitCount>
-                {
+                const natural_t target = op.m_targets[0];
+                compileGate<GateType::RY>(GateOperation<1>{
                     GateType::RY,
-                    { op.m_targets[0] },
-                    ConstexprMath::Pi
+                    { target },
+                        ConstexprMath::Pi
                 });
             }
 
-            //
             // Pauli Z
-            //
             else if constexpr (Type == GateType::Z)
             {
-                compileGate<GateType::RZ>(
-                    GateOperation<QubitCount>
-                {
+                const natural_t target = op.m_targets[0];
+                compileGate<GateType::RZ>(GateOperation<1>{
                     GateType::RZ,
-                    { op.m_targets[0] },
-                    ConstexprMath::Pi
+                    { target },
+                        ConstexprMath::Pi
                 });
             }
 
@@ -175,18 +167,16 @@ namespace KetCat
             {
                 // H = Z * RY(pi/2)
 
-                compileGate<GateType::Z>(
-                    GateOperation<QubitCount>
-                {
+                const natural_t target = op.m_targets[0];
+
+                compileGate<GateType::Z>(GateOperation<1>{
                     GateType::Z,
-                    { op.m_targets[0] }
+                    { target }
                 });
 
-                compileGate<GateType::RY>(
-                    GateOperation<QubitCount>
-                {
+                compileGate<GateType::RY>(GateOperation<1>{
                     GateType::RY,
-                    { op.m_targets[0] },
+                    { target },
                         ConstexprMath::Pi / 2.0
                 });
             }
@@ -229,38 +219,25 @@ namespace KetCat
                 //
                 //      CX = H(target) · CZ · H(target)
                 //
+                const natural_t ctrl = op.m_targets[0];
+                const natural_t trgt = op.m_targets[1];
 
-                //
                 // H(target)
-                //
-                compileGate<GateType::H>(
-                    GateOperation<1>
-                {
+                compileGate<GateType::H>(GateOperation<1>{
                     GateType::H,
-                    { op.m_targets[1] }
+                    { trgt }
                 });
 
-                //
                 // CZ(control, target)
-                //
-                compileGate<GateType::CZ>(
-                    GateOperation<2>
-                {
+                compileGate<GateType::CZ>(GateOperation<2>{
                     GateType::CZ,
-                    {
-                        op.m_targets[0],
-                        op.m_targets[1]
-                    }
+                    { ctrl, trgt }
                 });
 
-                //
                 // H(target)
-                //
-                compileGate<GateType::H>(
-                    GateOperation<1>
-                {
+                compileGate<GateType::H>(GateOperation<1>{
                     GateType::H,
-                    { op.m_targets[1] }
+                    { trgt }
                 });
             }
 
