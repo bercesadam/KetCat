@@ -183,7 +183,7 @@ namespace KetCat
         /// @brief Writes the file header exactly once at construction time.
         void writeFileHeader()
         {
-            // Magic bytes updated to version 2 to support multi-qubit structures
+            // Magic (v2.0)
             m_File.write("KWF\x02", 4);
 
             // Single-byte mode flag so the reader knows the per-state payload size

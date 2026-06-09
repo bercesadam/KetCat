@@ -231,16 +231,6 @@ namespace KetCat
 			// Compute the dipole matrix using the constructed basis states and their quantum numbers.
             m_dipoleMatrix = calculateDipoleMatrix(*m_basisStates1D, QuantumNumbers);
 
-			std::cout << "Dipole matrix constructed:" << std::endl;
-			for (const auto& row : m_dipoleMatrix)
-			{
-				for (const auto& element : row)
-				{
-					std::cout << element.re << " ";
-				}
-				std::cout << std::endl;
-			}
-
             auto MGS =
                 std::make_unique<Orthonormalizer<ConfigType::LevelCount>>();
 

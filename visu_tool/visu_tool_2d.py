@@ -70,11 +70,10 @@ def load_kwf(path):
             t = struct.unpack("<d", t_raw)[0]
 
             # 2. Read global logical state vector amplitudes
-            sv_bytes = state_dim * 2 * 8
+            sv_bytes = state_dim * 8
             sv_raw = f.read(sv_bytes)
             if len(sv_raw) < sv_bytes: break
-            sv_vals = np.array(struct.unpack(f"<{state_dim * 2}d", sv_raw))
-            state_vector = sv_vals[0::2] + 1j * sv_vals[1::2]
+            state_vector = np.array(struct.unpack(f"<{state_dim}d", sv_raw))
 
             # 3. Read specific independent title string per qubit
             frame_qubit_titles = []
@@ -138,7 +137,7 @@ print("Data exported to quantum_data.csv")
 
 # Reshape full spatial configurations into (timesteps, atoms, Ny, Nx)
 if mode == 0:
-    psi_all_atoms = raw.reshape(n_timesteps, num_qubits, Ny, Nx)
+    psi_all_atoms = raw.reshape(n_timesteps, num_qubits, Ny, Nx).astype(complex)
 else:
     psi_all_atoms = np.sqrt(raw).reshape(n_timesteps, num_qubits, Ny, Nx).astype(complex)
 

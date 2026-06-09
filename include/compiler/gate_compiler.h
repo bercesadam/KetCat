@@ -33,8 +33,6 @@ namespace KetCat
         natural_t m_UsedInstructionsCount = 0;
         physical_instructions_list_t m_Instructions = {};
 
-    private:
-
         /// @brief Append a native physical instruction.
         constexpr void append(
             PhysicalInstructionType type,
@@ -49,7 +47,7 @@ namespace KetCat
             Instruction =
             {
                 type,
-                {},
+                { TARGET_INACTIVE, TARGET_INACTIVE },
                 targetCount,
                 theta,
                 phase

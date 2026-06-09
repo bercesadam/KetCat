@@ -44,7 +44,7 @@ namespace KetCat
                 for (natural_t i = 0; i < QubitCount; ++i)
                 {
                     bool bit = bitstring[i];
-                    natural_t PhysicalLevel = (bit ? ConfigType::Logical0Level : ConfigType::Logical1Level);
+                    natural_t PhysicalLevel = (bit ? ConfigType::Logical1Level : ConfigType::Logical0Level);
 
                     GlobalIndex += PhysicalLevel * Multiplier;
                     using ConfigType = std::remove_cvref_t<decltype(Config)>;

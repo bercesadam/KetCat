@@ -84,6 +84,13 @@ namespace KetCat
 			Data.m_outputProbabilities =
                 m_ProbabilityExtractor.extractLogicalProbabilities(psiOp, true);
 
+			std::cout << "Probabilities: ";
+			for (size_t i = 0; i < Data.m_outputProbabilities.size(); ++i)
+			{
+				std::cout << "P(" << std::bitset<QubitCount>(i) << ")=" << Data.m_outputProbabilities[i] * 100.0 << "% ";
+			}
+            std::cout << std::endl; 
+
             for (natural_t i = 0; i < QubitCount; ++i)
             {
                 QubitData<FullHilbertSpace>& Qubit = Data.m_qubitDatum[i];
@@ -102,6 +109,7 @@ namespace KetCat
 				// If this qubit is one of the active qubits, include the laser parameters and update title
 				if (i == targets[0] || i == targets[1])
 				{
+					
                     Qubit.m_laser1Wavelength = Units::wavelengthNmFromOmegaAu(laser1.m_omega);
                     Qubit.m_laser1Intensity = Units::intensityWcm2FromFieldAu(laser1.m_amplitude);
                     Qubit.m_laser2Wavelength = Units::wavelengthNmFromOmegaAu(laser2.m_omega);

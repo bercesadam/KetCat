@@ -107,9 +107,9 @@ namespace KetCat
 
                     std::cout << "------------------------" << std::endl << std::endl;
                 }
-
-                m_FrameCounter++;
             }
+
+            m_FrameCounter++;
         }
 
     };

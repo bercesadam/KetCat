@@ -30,7 +30,7 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr natural_t SimuSaveNthFrame = 1E7;
     constexpr real_t TimeStepsPerInstruction = 1E8;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.
@@ -60,7 +60,7 @@ namespace KetCat
         NeutralAtomManifold<Config> m_Manifold;
 
         /// @brief Full system state vector in the product Hilbert space.
-        StateVector<typename GlobalStateManager::FullHilbertSpace> m_GlobalStateVector;
+        StateVector<typename GlobalStateManager::FullHilbertSpace> m_GlobalStateVector{};
 
         /// @brief Controller for pulse generation and rotating frame management.
         LaserPulseSequencer<Config, QubitCount> m_laserSequencer;
@@ -161,7 +161,6 @@ namespace KetCat
 
             const TwoPhotonLaserEnvelope& Envelope = *PulseEnvelope;
             const real_t TransitionTimeLimit = Envelope.getTransitionTimeLimit();
-            const real_t TimeShift = Envelope.getStartTime();
             TimeMaster::Clock().setTimeStep(TransitionTimeLimit / TimeStepsPerInstruction);
 
 			std::cout << "Starting pulse evolution for instruction. Transition time limit: " << TransitionTimeLimit << " a.u. (" <<
@@ -176,7 +175,7 @@ namespace KetCat
             {
                 // Obtain current Rabi amplitudes for Pump (Ωp) and Stokes (Ωs)
                 std::tie(Pump, Stokes) =
-                    Envelope(TimeMaster::Clock().getCurrentInstructionTime() + TimeShift);
+                    Envelope(TimeMaster::Clock().getCurrentInstructionTime());
 
                 // Map laser fields to the corresponding energy levels in the operation space
                 const natural_t GroundLevelIndex = Envelope.getGroundLevelIndex();

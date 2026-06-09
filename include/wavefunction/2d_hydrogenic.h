@@ -148,7 +148,6 @@ namespace KetCat
 
             const real_t ViewScale = 1.0; //PhysicalExtent / HilbertSpace::Extent;
 
-			std::cout << Factor << ", " << PhysicalExtent << std::endl;
             for (natural_t ix = 0; ix < Steps; ++ix)
             {
                 for (natural_t iz = 0; iz < Steps; ++iz)
