@@ -123,12 +123,12 @@ namespace KetCat
         {
             // 1. Find the pivot column with the largest diagonal population.
             natural_t Pivot = 0;
-            real_t MaxPop = rho.m[0][0].re;
+            real_t MaxPop = rho.at(0, 0).re;
             for (natural_t i = 1; i < LevelCount; ++i)
             {
-                if (rho.m[i][i].re > MaxPop)
+                if (rho.at(i, i).re > MaxPop)
                 {
-                    MaxPop = rho.m[i][i].re;
+                    MaxPop = rho.at(i, i).re;
                     Pivot = i;
                 }
             }
@@ -137,7 +137,7 @@ namespace KetCat
             StateVector<ReducedHilbertSpace> Coeffs{};
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                Coeffs[i] = rho.m[i][Pivot];
+                Coeffs[i] = rho.at(i, Pivot);
             }
 
             // 3. Normalize the extracted coefficients to ensure unit norm.
