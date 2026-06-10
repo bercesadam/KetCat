@@ -60,7 +60,7 @@ def load_kwf(path):
         floats_per_state = 2
         frame_bytes = floats_per_state * size * 8 * num_qubits
 
-        captions, times, frames, state_vectors, purities, stirap = [], [], [], [], [], []
+        captions, times, frames, state_vectors, bloch_vectors, purities, stirap = [], [], [], [], [], [], []
 
         while True:
             t_raw = f.read(8)
@@ -81,6 +81,11 @@ def load_kwf(path):
                 caption = f.read(cap_len).decode("utf-8")
                 frame_qubit_titles.append(caption)
 
+            b_bytes = num_qubits * 4 * 8
+            b_raw = f.read(b_bytes)
+            if len(b_raw) < b_bytes: break
+            b_vals =  np.array(struct.unpack(f"<{num_qubits * 4}d", b_raw)).reshape(num_qubits, 4)
+
             p_bytes = num_qubits * 8
             p_raw = f.read(p_bytes)
             if len(p_raw) < p_bytes: break
@@ -99,13 +104,14 @@ def load_kwf(path):
             times.append(t)
             frames.append(arr)
             state_vectors.append(state_vector)
+            bloch_vectors.append(b_vals)    
             purities.append(qubit_purities)
             stirap.append(s_vals)
 
-    return num_qubits, captions, np.array(times), np.array(frames), np.array(state_vectors), np.array(purities), np.array(stirap)
+    return num_qubits, captions, np.array(times), np.array(frames), np.array(state_vectors), np.array(bloch_vectors), np.array(purities), np.array(stirap)
 
 # Load data from file
-num_qubits, captions, times, raw, state_vectors, purities, stirap_data = load_kwf(kwf_file)
+num_qubits, captions, times, raw, state_vectors, bloch_data, purities, stirap_data = load_kwf(kwf_file)
 n_timesteps = raw.shape[0]
 state_dim = 2 ** num_qubits
 
@@ -177,7 +183,7 @@ ax_blochs = []
 bloch_vectors = []
 bloch_warnings = []
 
-def setup_beautiful_bloch(axis):
+def setup_bloch(axis):
     axis.set_axis_off()
 
     # High-density wireframe grid mesh matching legacy version
@@ -230,12 +236,12 @@ for q in range(num_qubits):
     )
     caption_boxes.append(box)
 
-    # Embed beautiful translucent inset 3D panel into the bottom-right corner
+    # Embed translucent inset 3D panel into the bottom-right corner
     pos = ax_q.get_position()
-    ax_b = fig.add_axes([pos.x1 - 0.14, pos.y0 + 0.01, 0.13, 0.18], projection='3d')
+    ax_b = fig.add_axes([pos.x1 - 0.2, pos.y0 + 0.01, 0.2, 0.3], projection='3d')
     ax_b.set_facecolor((0, 0, 0, 0))
     
-    setup_beautiful_bloch(ax_b)
+    setup_bloch(ax_b)
     
     # State tracking pointer vector
     b_vec, = ax_b.plot([0, 0], [0, 0], [0, 0], color="cyan", linewidth=2.5, marker='o', markersize=4, zorder=10)
@@ -327,7 +333,7 @@ def update(frame):
         axs[0, q].set_xlim(-current_limits[q], current_limits[q])
         axs[0, q].set_ylim(-current_limits[q], current_limits[q])
 
-        # 2. Update Embedded High-Fidelity Bloch Sphere Insets
+        # 2. Update Bloch Sphere Insets
         purity_q = purities[frame][q]
         if num_qubits > 1 and purity_q < 0.95:
             bloch_vectors[q].set_visible(False)
@@ -338,16 +344,14 @@ def update(frame):
             bloch_warnings[q].set_visible(False)
             ax_blochs[q].set_title(f"Q{q} Pure({purity_q:.2f})", color="darkgray", fontsize=7, y=0.98)
             
-            # Map global full-system probabilities down to single qubit Z projection space
-            mask_0 = [(i >> (num_qubits - 1 - q)) & 1 == 0 for i in range(state_dim)]
-            mask_1 = [(i >> (num_qubits - 1 - q)) & 1 == 1 for i in range(state_dim)]
-            
-            p_0 = np.sum(current_probs[mask_0])
-            p_1 = np.sum(current_probs[mask_1])
-            bz = p_0 - p_1
-            
-            bloch_vectors[q].set_data([0, 0], [0, 0])
-            bloch_vectors[q].set_3d_properties([0, bz])
+            bloch = bloch_data[frame][q]
+            a = complex(bloch[0], bloch[1])
+            b = complex(bloch[2], bloch[3])
+            bx = 2 * (a.real * b.real + a.imag * b.imag)
+            by = 2 * (a.real * b.imag - a.imag * b.real)
+            bz = (np.abs(a)**2) - (np.abs(b)**2)
+            bloch_vectors[q].set_data_3d([0, bx], [0, by], [0, bz])
+
 
     # 3. Update Qiskit-style Histogram Columns
     for bar, h in zip(bars, current_probs):

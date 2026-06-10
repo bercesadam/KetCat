@@ -124,6 +124,15 @@ namespace KetCat
                 m_File.write(view.m_qubitDatum[i].m_title.data(), captionLen);
             }
 
+            // Write Bloch vectors for each qubit
+            for (size_t i = 0; i < m_NumQubits; ++i)
+            {
+                writeRaw(static_cast<double>(view.m_qubitDatum[i].m_alpha.re));
+                writeRaw(static_cast<double>(view.m_qubitDatum[i].m_alpha.im));
+                writeRaw(static_cast<double>(view.m_qubitDatum[i].m_beta.re));
+                writeRaw(static_cast<double>(view.m_qubitDatum[i].m_beta.im));
+            }
+
             // Write purity values for each qubit
             for (size_t i = 0; i < m_NumQubits; ++i)
             {

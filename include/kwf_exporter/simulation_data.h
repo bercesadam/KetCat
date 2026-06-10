@@ -12,6 +12,10 @@ namespace KetCat
     template <hilbert_space_t FullHilbertSpace>
 	struct QubitData
 	{
+		/// @brief Complex amplitudes of the qubit's state in the logical basis {|0⟩, |1⟩}
+		complex_t m_alpha;
+		complex_t m_beta;
+
 		/// @brief Purity of the qubit's reduced density matrix (Tr(ρ²))
 		real_t m_purity;
 

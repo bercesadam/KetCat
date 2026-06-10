@@ -103,13 +103,16 @@ namespace KetCat
 				// Convert the reduced density matrix to a state vector in the local operation space for visualization
 				StateVector<OperationSpace> psiLocal = m_Manifold.getReducedStateFromDensityMatrix(Rho);
 
+				// Extract the logical amplitudes (|0⟩ and |1⟩) for the qubit from the local state vector
+                Qubit.m_alpha = psiLocal[ConfigType::Logical0Level];
+				Qubit.m_beta  = psiLocal[ConfigType::Logical1Level];
+
                 // Project the local tile state back to the full Hilbert space for visualization
                 Qubit.m_psi2D = m_Manifold.projectToFullHilbertSpace(psiLocal);
 
 				// If this qubit is one of the active qubits, include the laser parameters and update title
 				if (i == targets[0] || i == targets[1])
 				{
-					
                     Qubit.m_laser1Wavelength = Units::wavelengthNmFromOmegaAu(laser1.m_omega);
                     Qubit.m_laser1Intensity = Units::intensityWcm2FromFieldAu(laser1.m_amplitude);
                     Qubit.m_laser2Wavelength = Units::wavelengthNmFromOmegaAu(laser2.m_omega);
