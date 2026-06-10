@@ -1,4 +1,5 @@
 #pragma once
+#include <ostream>
 #include "core_types.h"
 
 
@@ -62,5 +63,23 @@ namespace KetCat
 
 		// @brief Phase φ for Raman rotations, in radians.
         real_t m_phase = 0.0;
+
+		friend std::ostream& operator<<(std::ostream& os, const PhysicalInstruction& instruction)
+		{
+			os << "PhysicalInstruction(Type: " << instructionNameToString(instruction.m_type)
+				<< ", Target(s): [";
+			for (natural_t i = 0; i < instruction.m_targetCount; ++i)
+			{
+				os << instruction.m_targets[i];
+				if (i < instruction.m_targetCount - 1)
+				{
+					os << ", ";
+				}
+			}
+			os << "], Theta: " << instruction.m_theta
+				<< ", Phase: " << instruction.m_phase
+				<< ")";
+			return os;
+		}
     };
 }

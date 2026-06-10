@@ -119,8 +119,8 @@ namespace KetCat
         template<typename GateOp>
         void executeGate(const GateOp& gate)
         {
-			m_SimulationObserver.setSimulationStepName(gateNameToString(gate.m_type) +
-                (gate.m_theta > 0.0 ? " (" + std::to_string(gate.m_theta) + ")" : ""));
+			m_SimulationObserver.appendSimulationStepName(gateNameToString(gate.m_type) +
+				(gate.m_theta > 0.0 ? " (" + std::to_string(gate.m_theta) + "); " : "; "));
 
             std::cout << "Starting gate compilation: " << gateNameToString(gate.m_type) << std::endl;
 
@@ -148,7 +148,9 @@ namespace KetCat
         ///      i ∂/∂t |Ψ⟩ = Ĥ(t)|Ψ⟩
         void executeInstruction(PhysicalInstruction& instruction)
         {
-			std::cout << "Executing instruction of type: " << static_cast<int>(instruction.m_type) << std::endl;
+            std::cout << "Executing instruction: " << instruction << std::endl;
+            m_SimulationObserver.appendSimulationStepName(instructionNameToString(instruction.m_type) + ", θ=" +
+                std::to_string(instruction.m_theta) + ", φ=" + std::to_string(instruction.m_phase) + "; ");
 
             auto PulseEnvelope = m_laserSequencer.calculateLaserEnvelope(instruction);
 
@@ -212,6 +214,9 @@ namespace KetCat
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();
+
+            // Reset simulation step title
+            m_SimulationObserver.resetSimulationStepName();
 
 			std::cout << "Completed pulse evolution for instruction." << std::endl;
             std::cout << "------------------------------------------" << std::endl;

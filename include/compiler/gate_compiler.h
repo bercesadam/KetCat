@@ -79,8 +79,6 @@ namespace KetCat
         template<GateType Type, natural_t QubitCount>
         constexpr void compileGate(const GateOperation<QubitCount>& op)
         {
-			std::cout << "Compiling gate: " << gateNameToString(Type) << " Theta: " << op.m_theta << std::endl;
-
             ///////////////////////////////////////////
             // -- BLOCH ROTATIONS --
             //
@@ -106,7 +104,7 @@ namespace KetCat
                     { op.m_targets[0] },
                     1,
                     op.m_theta,
-                    ConstexprMath::Pi / 2.0);
+                    -ConstexprMath::Pi / 2.0);
                     }
 
             //
@@ -329,8 +327,6 @@ namespace KetCat
         constexpr GateCompilerResult compile(
             const GateOperation<QubitCount>& op)
         {
-			std::cout << "Decomposing gate: " << gateNameToString(op.m_type) << std::endl;
-
             m_UsedInstructionsCount = 0;
             m_Instructions = {};
 

@@ -350,7 +350,9 @@ def update(frame):
             bx = 2 * (a.real * b.real + a.imag * b.imag)
             by = 2 * (a.real * b.imag - a.imag * b.real)
             bz = (np.abs(a)**2) - (np.abs(b)**2)
-            bloch_vectors[q].set_data_3d([0, bx], [0, by], [0, bz])
+            bloch_vectors[q].set_data([0, bx], [0, by])
+            bloch_vectors[q].set_3d_properties([0, bz])
+            print(a, b, bx, by, bz)
 
 
     # 3. Update Qiskit-style Histogram Columns

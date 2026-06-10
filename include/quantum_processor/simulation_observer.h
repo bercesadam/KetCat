@@ -67,9 +67,15 @@ namespace KetCat
         }
 
         /// @brief Update the metadata label for the current sequence of frames.
-        void setSimulationStepName(const std::string& stepName)
+        void appendSimulationStepName(const std::string& stepName)
         {
-            m_SimulationStepName = stepName;
+            m_SimulationStepName += stepName;
+        }
+
+        //  @brief Empty the metadata label 
+        void resetSimulationStepName()
+        {
+            m_SimulationStepName.clear();
         }
 
         /// @brief Sample the current quantum and laser state for export.

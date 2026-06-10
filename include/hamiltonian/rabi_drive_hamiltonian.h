@@ -201,8 +201,8 @@ namespace KetCat
                 /// Complex phase factor e^{iφ}
                 const complex_t PhaseFactor =
                 {
-                    std::cos(Laser.m_phase),
-                    -std::sin(Laser.m_phase)
+                    ConstexprMath::cos(Laser.m_phase),
+                    ConstexprMath::sin(Laser.m_phase)
                 };
 
                 /// Coupling term:
