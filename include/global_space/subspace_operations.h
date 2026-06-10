@@ -301,7 +301,7 @@ namespace KetCat
             natural_t Offset = 0;
             natural_t Multiplier = 1;
             natural_t rem = nonTargetBasisIndex;
-            for (int pos = QubitCount - 1; pos >= 0; --pos)
+            for (int pos = 0; pos < QubitCount; ++pos)
             {
                 if (isInTargets(pos, targets))
                 {
@@ -364,7 +364,7 @@ namespace KetCat
             for (natural_t i = 0; i < K; ++i)
             {
 
-                TileStrides[i] = ConstexprMath::pow(LocalDim, QubitCount - 1 - targetQdits[i]);
+                TileStrides[i] = ConstexprMath::pow(LocalDim, targetQdits[i]);
             }
 
             //  Size of a local tile corresponding to K target Qubits.
@@ -463,7 +463,7 @@ namespace KetCat
 
             for (natural_t i = 0; i < QubitCount; ++i)
             {
-                bool bit = bitstring[QubitCount - 1 - i];
+                bool bit = bitstring[i];
                 natural_t PhysicalLevel = (bit ? logical1 : logical0);
 
                 GlobalIndex += PhysicalLevel * Multiplier;
