@@ -27,7 +27,8 @@ namespace KetCat
         real_t m_Mu12;                ///< Dipole μ₁₂
         real_t m_Mu23;                ///< Dipole μ₂₃
         real_t m_Mu3r;                ///< Dipole μ₃ᵣ
-        real_t m_peakRabiFrequency;   ///< Max Ω₀
+        real_t m_peakRabiFrequencyP;   ///< Max Ω₀ (Pump)
+        real_t m_peakRabiFrequencyS;   ///< Max Ω₀ (Stokes)
         real_t m_pumpPhase;           ///< Phase φ
         real_t m_commonDetuning;      ///< Detuning Δ
         real_t m_targetTheta;         ///< Rotation angle θ
@@ -89,16 +90,18 @@ namespace KetCat
 
         /// @brief Evaluate pump and Stokes pulses at time t.
         /// @return Tuple: (PumpLaser, StokesLaser)
-        std::tuple<LaserPulse, LaserPulse> operator()(real_t time) const noexcept
+        TwoPhotonDrive operator()(real_t time) const noexcept
         {
-            const real_t ampP = m_Parameters.m_peakRabiP *
+            const real_t AmpP = m_Parameters.m_peakRabiP *
                 gaussian(time, m_Parameters.m_tP, m_Parameters.m_sigma);
-            const real_t ampS = m_Parameters.m_peakRabiS *
+            const real_t AmpS = m_Parameters.m_peakRabiS *
                 gaussian(time, m_Parameters.m_tS, m_Parameters.m_sigma);
 
-            return {
-                LaserPulse{ m_Parameters.m_GroundLevelIndex, m_Parameters.m_omegaP, ampP, m_Parameters.m_phaseP },
-                LaserPulse{ m_Parameters.m_GroundLevelIndex, m_Parameters.m_omegaS, ampS, 0.0 }
+            return
+            {
+                m_Parameters.m_GroundLevelIndex,
+                LaserPulse{ m_Parameters.m_omegaP, AmpP, m_Parameters.m_phaseP },
+                LaserPulse{ m_Parameters.m_omegaS, AmpS, 0.0 }
             };
         }
 
@@ -139,8 +142,8 @@ namespace KetCat
             Parameters.m_omegaS = (m_config.m_Level3Energy - m_config.m_Level2Energy) - m_config.m_commonDetuning;
 
 			// 2. Calculate peak Rabi frequencies based on the provided peak Rabi frequency and the dipole moments.
-            Parameters.m_peakRabiP = m_config.m_peakRabiFrequency;// *m_config.m_Mu12;
-            Parameters.m_peakRabiS = m_config.m_peakRabiFrequency * 1.05;// *m_config.m_Mu23;
+            Parameters.m_peakRabiP = m_config.m_peakRabiFrequencyP;
+            Parameters.m_peakRabiS = m_config.m_peakRabiFrequencyS;
 
 			// 3. Copy the pump phase from the configuration, which already includes the rotating frame correction.
             Parameters.m_phaseP = m_config.m_pumpPhase;

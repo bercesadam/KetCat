@@ -171,19 +171,12 @@ namespace KetCat
                 (Units::AtomicTimeToSeconds * TimeMaster::Clock().getTimeStep()) * 1E9 << " ns)" << std::endl;
 			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
 
-			LaserPulse Pump, Stokes;
+			TwoPhotonDrive Lasers;
 
             while (TimeMaster::Clock().getCurrentInstructionTime() < TransitionTimeLimit)
             {
-                // Obtain current Rabi amplitudes for Pump (Ωp) and Stokes (Ωs)
-                std::tie(Pump, Stokes) =
-                    Envelope(TimeMaster::Clock().getCurrentInstructionTime());
-
-                // Map laser fields to the corresponding energy levels in the operation space
-                const natural_t GroundLevelIndex = Envelope.getGroundLevelIndex();
-                typename MultiRwaRabiHamiltonian<ConfigType::LevelCount>::template laser_array_t Lasers;
-                Lasers[GroundLevelIndex] = Pump;
-                Lasers[GroundLevelIndex + 1] = Stokes;
+                // Obtain current laser drive parameters
+                Lasers = Envelope(TimeMaster::Clock().getCurrentInstructionTime());
 
                 // Propagate the global wavefunction by one time step Δt
 				// Depending on the instruction type, we evolve either a single qubit (Raman rotation) or two qubits (Rydberg blockade).
@@ -203,14 +196,14 @@ namespace KetCat
                
 				/// Capture the current state and laser configuration for visualization/export.
 				m_SimulationObserver.exportStep(m_GlobalStateVector,
-                    instruction.m_targets, Pump, Stokes);
+                    instruction.m_targets, Lasers.m_pump, Lasers.m_stokes);
 
                 TimeMaster::Clock().tick();
             }
 
 			// Ensure that the final state at the end of the pulse is captured
             m_SimulationObserver.exportStep(m_GlobalStateVector,
-                instruction.m_targets, Pump, Stokes, KEYFRAME);
+                instruction.m_targets, Lasers.m_pump, Lasers.m_stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse
             TimeMaster::Clock().resetCurrentInstructionClock();
@@ -228,9 +221,7 @@ namespace KetCat
         ///    1. Constructs the local RWA Hamiltonian Ĥ(t).
         ///    2. Builds the unitary propagator U(Δt) via Crank-Nicolson.
         ///    3. Applies U(Δt) to the target qubit in the global state vector.
-        void evolveOneQubitGlobalState(
-            const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers,
-            const natural_t affectedQubit)
+        void evolveOneQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t targetAtom)
         {
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
@@ -248,13 +239,11 @@ namespace KetCat
 			Solver.updateMatrices(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
-            std::array<natural_t, 1> targets = { affectedQubit };
+            std::array<natural_t, 1> targets = { targetAtom };
              GlobalStateManager::template performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
         }
 
-        void evolveTwoQubitGlobalState(
-            const MultiRwaRabiHamiltonian<ConfigType::LevelCount>::laser_array_t lasers,
-            const natural_t controlAtom, const natural_t targetAtom)
+        void evolveTwoQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t controlAtom, const natural_t targetAtom)
             requires (QubitCount >= 2)
         {
             static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =

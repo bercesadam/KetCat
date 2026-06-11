@@ -14,7 +14,9 @@ namespace KetCat
 {
     /// @brief Constant used to force an export step regardless of the frame decimation counter.
     /// Makes exportStep() calls look better, but I found defining an enum class a bit of an overkill.
-    constexpr bool KEYFRAME = true;
+    static constexpr bool KEYFRAME = true;
+
+    static constexpr bool VERBOSE = true;
 
     /// @brief Diagnostic and telemetry layer for recording simulation state.
     /// 
@@ -102,7 +104,7 @@ namespace KetCat
 
                 m_Exporter.writeTimestep(SimulationView);
 
-                if (isKeyFrame)
+                if (isKeyFrame || VERBOSE)
                 {
                     std::cout << "State vector: " << psi << std::endl;
                     for (natural_t q = 0; q < QubitCount; ++q)

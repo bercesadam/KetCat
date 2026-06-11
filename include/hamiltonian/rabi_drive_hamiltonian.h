@@ -74,7 +74,7 @@ namespace KetCat
         constexpr MultiRwaRabiHamiltonian(
             const std::array<real_t, LevelCount>& energies,
             const FullDipoleMatrix& dipoleMatrix,
-            const laser_array_t& lasers) noexcept
+            const TwoPhotonDrive& lasers) noexcept
             : m_Energies(energies),
             m_DipoleMatrix(dipoleMatrix)
         {
@@ -116,9 +116,12 @@ namespace KetCat
             ///   including:
             ///     • Rotating (resonant) contributions
             ///     • Counter-rotating (Bloch–Siegert) terms
-        constexpr void updateMainDiagonal(const std::array<LaserPulse, LevelCount - 1>& lasers) noexcept
+        constexpr void updateMainDiagonal(const TwoPhotonDrive& drive) noexcept
         {
             real_t CumulativeOmega = 0.0;
+            laser_array_t lasers;
+            lasers[drive.m_groundLevelOffset] = drive.m_pump;
+            lasers[drive.m_groundLevelOffset + 1] = drive.m_stokes;
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
@@ -128,7 +131,7 @@ namespace KetCat
                     CumulativeOmega += lasers[i - 1].m_omega;
                 }
 
-                const real_t RelativeEnergy = m_Energies[i] - m_Energies[0];
+                const real_t RelativeEnergy = m_Energies[i] - m_Energies[drive.m_groundLevelOffset];
                 const real_t Detuning = RelativeEnergy - CumulativeOmega;
 
                 /// --- AC Stark shift calculation ---
@@ -192,8 +195,12 @@ namespace KetCat
         ///   The Hermitian conjugate ensures:
         ///
         ///     Hᵢ₊₁,ᵢ = (Hᵢ,ᵢ₊₁)*
-        void updateOffDiagonal(const std::array<LaserPulse, LevelCount - 1>& lasers)
+        void updateOffDiagonal(const TwoPhotonDrive& drive)
         {
+            laser_array_t lasers;
+            lasers[drive.m_groundLevelOffset] = drive.m_pump;
+            lasers[drive.m_groundLevelOffset + 1] = drive.m_stokes;
+
             for (natural_t i = 0; i < LevelCount - 1; ++i)
             {
                 const LaserPulse& Laser = lasers[i];

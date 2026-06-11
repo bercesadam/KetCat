@@ -66,7 +66,7 @@ namespace KetCat
             if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
             {
                 m_peakRabiHz = 500e6;
-                m_commonDetuningHz = 1000e6;
+                m_commonDetuningHz = 5000e6;
             }
             else
             {
@@ -87,8 +87,13 @@ namespace KetCat
 			std::cout << "Dipole μ12: " << LaserConfig.m_Mu12 << " a.u." << std::endl;
 			std::cout << "Dipole μ23: " << LaserConfig.m_Mu23 << " a.u." << std::endl;
 
-            LaserConfig.m_peakRabiFrequency = Units::omegaAuFromHz(m_peakRabiHz);
+            LaserConfig.m_peakRabiFrequencyP = Units::omegaAuFromHz(m_peakRabiHz);
+            LaserConfig.m_peakRabiFrequencyS = Units::omegaAuFromHz(m_peakRabiHz);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
+            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
+            {
+                LaserConfig.m_peakRabiFrequencyS *= 1.2;
+            }
 
             LaserConfig.m_pumpPhase = instruction.m_phase;
             LaserConfig.m_protocol = TwoPhotonProtocol::Simultaneous;
