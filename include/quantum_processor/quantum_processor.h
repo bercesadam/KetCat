@@ -268,7 +268,7 @@ namespace KetCat
             SingleAtomExcitation.updateOffDiagonal(lasers);
             auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
 
-            RydbergBlockade.updateMatrix(SingleAtomHamiltonian);
+            RydbergBlockade.updateMatrix(SingleAtomHamiltonian, SingleAtomHamiltonian);
 
             Solver.updateMatrices(RydbergBlockade.getMatrix(), TimeMaster::Clock().getTimeStep());
 
