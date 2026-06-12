@@ -63,15 +63,21 @@ namespace KetCat
 				? ConfigType::Logical1Level
 				: ConfigType::Logical0Level;
 
+            real_t PeakRabiHzP = 0.0;
+            real_t PeakRabiHzS = 0.0;
+            real_t CommonDetuningHz = 0.0;
+
             if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
             {
-                m_peakRabiHz = 500e6;
-                m_commonDetuningHz = 5000e6;
+                PeakRabiHzP = 500e6;
+                PeakRabiHzS = 600e6;
+                CommonDetuningHz = 5000e6;
             }
             else
             {
-                m_peakRabiHz = 50e6;
-                m_commonDetuningHz = 500e6;
+                PeakRabiHzP = 50e6;
+                PeakRabiHzS = PeakRabiHzP;
+                CommonDetuningHz = 500e6;
             }
 
             LaserConfig.m_Level1Energy = m_energies[LaserConfig.m_GroundLevelIndex];
@@ -87,13 +93,9 @@ namespace KetCat
 			std::cout << "Dipole μ12: " << LaserConfig.m_Mu12 << " a.u." << std::endl;
 			std::cout << "Dipole μ23: " << LaserConfig.m_Mu23 << " a.u." << std::endl;
 
-            LaserConfig.m_peakRabiFrequencyP = Units::omegaAuFromHz(m_peakRabiHz);
-            LaserConfig.m_peakRabiFrequencyS = Units::omegaAuFromHz(m_peakRabiHz);
-            LaserConfig.m_commonDetuning = Units::omegaAuFromHz(m_commonDetuningHz);
-            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
-            {
-                LaserConfig.m_peakRabiFrequencyS *= 1.2;
-            }
+            LaserConfig.m_peakRabiFrequencyP = Units::omegaAuFromHz(PeakRabiHzP);
+            LaserConfig.m_peakRabiFrequencyS = Units::omegaAuFromHz(PeakRabiHzS);
+            LaserConfig.m_commonDetuning = Units::omegaAuFromHz(CommonDetuningHz);
 
             LaserConfig.m_pumpPhase = instruction.m_phase;
             LaserConfig.m_protocol = TwoPhotonProtocol::Simultaneous;
@@ -139,6 +141,11 @@ namespace KetCat
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
+            // Handle idle atoms (during CPHASE gates)
+            else if (instruction.m_type == PhysicalInstructionType::FreeEvolution)
+            {
+                // TODO Return a "turned off" laser
+            }
            
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             instruction.m_phase -= framePhase;
@@ -148,18 +155,6 @@ namespace KetCat
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
 
             return LaserEnvelope;
-        }
-
-        /// @brief Set peak Rabi frequency Ω_max / (2π).
-        void setPeakRabiHz(real_t hz)
-        {
-            m_peakRabiHz = hz;
-        }
-
-        /// @brief Set common intermediate detuning Δ / (2π).
-        void setDetuningHz(real_t hz)
-        {
-            m_commonDetuningHz = hz;
         }
     };
 }
