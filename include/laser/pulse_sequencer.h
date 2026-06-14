@@ -37,13 +37,13 @@ namespace KetCat
             Manifold::getDipoleMatrix();
 
 		/// @brief Peak Rabi frequency Ω₀ / (2π) for the Raman transition.
-        real_t m_peakRabiHz;
+        real_t m_peakRabiHz{};
 
 		/// @brief Common detuning Δ / (2π) for the intermediate state in the Raman transition.
-        real_t m_commonDetuningHz;
+        real_t m_commonDetuningHz{};
 
 		/// @brief Per-atom phases for the rotating frame, used to track virtual Z rotations and maintain coherence.
-        std::array<real_t, AtomCount> m_RWAFramePhases;
+        std::array<real_t, AtomCount> m_RWAFramePhases{};
 
 
         /// @brief Construct physical laser configuration for a pulse command.
