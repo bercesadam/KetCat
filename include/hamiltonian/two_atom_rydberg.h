@@ -90,7 +90,7 @@
                 // Apply the non-local Rydberg interaction penalty V_vdW to the diagonal state |r,r⟩
                 const natural_t VrrIndex = m_RydbergLevelIndex * LevelCount + m_RydbergLevelIndex;
                 m_hamiltonianMatrix[MAINDIAGONAL][VrrIndex] =
-                    m_hamiltonianMatrix[MAINDIAGONAL][VrrIndex];// +complex_t::fromReal(m_VVanDerWaals);
+                    m_hamiltonianMatrix[MAINDIAGONAL][VrrIndex] + complex_t::fromReal(m_VVanDerWaals);
             }
 
         private:
@@ -153,47 +153,52 @@
             ///
             /// @tparam LevelCount Dimension of the 1D Hilbert space (number of energy levels for one atom).
             /// @param H_1D        The 1D tridiagonal Hamiltonian operator matrix.
-            constexpr void create2DHamiltonian(const tridiagonal_matrix_t<LevelCount>& atom0Hamiltonian,
+            constexpr void create2DHamiltonian(
+                const tridiagonal_matrix_t<LevelCount>& atom0Hamiltonian,
                 const tridiagonal_matrix_t<LevelCount>& atom1Hamiltonian) noexcept
             {
                 m_hamiltonianMatrix = {};
 
                 constexpr natural_t TotalDim = LevelCount * LevelCount;
 
-                // Construct the 2D Kronecker products using a banded traversal.
-                // Populate the bands according to the solver's internal indexing scheme.
-                for (natural_t Row = 0; Row < TotalDim; ++Row)
+                for (natural_t row = 0; row < TotalDim; ++row)
                 {
-                    const natural_t i = Row / LevelCount; // State of the first atom
-                    const natural_t n = Row % LevelCount; // State of the second atom
+                    const natural_t atom0 = row % LevelCount;
+                    const natural_t atom1 = row / LevelCount;
 
-                    // MAIN DIAGONAL: H_1D ⊗ I + I ⊗ H_1D
-                    m_hamiltonianMatrix[MAINDIAGONAL][Row] = atom0Hamiltonian[MAINDIAGONAL][i] + atom1Hamiltonian[MAINDIAGONAL][n];
+                    // H0 ⊗ I + I ⊗ H1
+                    m_hamiltonianMatrix[MAINDIAGONAL][row] =
+                        atom0Hamiltonian[MAINDIAGONAL][atom0] +
+                        atom1Hamiltonian[MAINDIAGONAL][atom1];
 
-                    // NEAR BANDS: I ⊗ H_1D (Transitions of the second atom within the block)
-                    if (n < LevelCount - 1)
+                    //
+                    // atom0 transitions (±1)
+                    //
+                    if (atom0 < LevelCount - 1)
                     {
-                        m_hamiltonianMatrix[SUPERDIAGONAL][Row] = atom1Hamiltonian[SUPERDIAGONAL][n];
-                    }
-                    if (n > 0)
-                    {
-                        // Based on the tridiagonal matrix convention, SUBDIAGONAL[Row] 
-                        // represents the (Row, Row-1) element. Since we are within the block, it is indexed by n.
-                        m_hamiltonianMatrix[SUBDIAGONAL][Row] = atom1Hamiltonian[SUBDIAGONAL][n];
+                        m_hamiltonianMatrix[SUPERDIAGONAL][row] =
+                            atom0Hamiltonian[SUPERDIAGONAL][atom0];
                     }
 
-                    // FAR BANDS: H_1D ⊗ I (Transitions of the first atom between blocks)
-                    // If i < LevelCount - 1, there is a forward transition (i -> i+1) at the block level.
-                    // This maps to the UPPER_FAR[Row] band in the solver framework.
-                    if (i < LevelCount - 1)
+                    if (atom0 > 0)
                     {
-                        m_hamiltonianMatrix[UPPER_FAR][Row] = atom0Hamiltonian[SUPERDIAGONAL][i];
+                        m_hamiltonianMatrix[SUBDIAGONAL][row] =
+                            atom0Hamiltonian[SUBDIAGONAL][atom0];
                     }
-                    // If i > 0, there is a backward transition (i -> i-1) at the block level.
-                    // This maps to the LOWER_FAR[Row] band in the solver framework.
-                    if (i > 0)
+
+                    //
+                    // atom1 transitions (±LevelCount)
+                    //
+                    if (atom1 < LevelCount - 1)
                     {
-                        m_hamiltonianMatrix[LOWER_FAR][Row] = atom0Hamiltonian[SUBDIAGONAL][i];
+                        m_hamiltonianMatrix[UPPER_FAR][row] =
+                            atom1Hamiltonian[SUPERDIAGONAL][atom1];
+                    }
+
+                    if (atom1 > 0)
+                    {
+                        m_hamiltonianMatrix[LOWER_FAR][row] =
+                            atom1Hamiltonian[SUBDIAGONAL][atom1];
                     }
                 }
             }
