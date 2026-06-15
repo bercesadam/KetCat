@@ -31,7 +31,7 @@ namespace KetCat
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
     constexpr natural_t SimuSaveNthFrame = 1E7;
-    constexpr real_t TimeStepsPerInstruction = 1E8;
+    constexpr real_t TimeStepsPerInstruction = 5E8;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.
     template <natural_t QubitCount, NeutralAtomTypeConfig Config>
@@ -246,23 +246,19 @@ namespace KetCat
         void evolveTwoQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t controlAtom, const natural_t targetAtom)
             requires (QubitCount >= 2)
         {
-            static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
-                m_Manifold.getHartreeEnergies();
-
-            static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
-                m_Manifold.getDipoleMatrix();
+            static const std::array<real_t, ConfigType::LevelCount>
+                HartreeEnergies = m_Manifold.getHartreeEnergies();
+            static const square_matrix_t<ConfigType::LevelCount>
+                DipoleMatrix = m_Manifold.getDipoleMatrix();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
-
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
                 RydbergBlockade(Units::MeterToAtomicLength * 1E-9,
-                    ConfigType::RydbergLevel,
-                    HartreeEnergies,
-				DipoleMatrix);
+                    ConfigType::RydbergLevel, HartreeEnergies, DipoleMatrix);
 
-            // Use FiveBandGaussianElimination backend for two-qubit dense Hamiltonians
-            static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::FiveBandGaussianElimination> Solver;
+            static CrankNicolsonSolver<ConfigType::LevelCount,
+                LinearSolverBackend::FiveBandGaussianElimination> Solver;
 
             SingleAtomExcitation.updateMainDiagonal(lasers);
             SingleAtomExcitation.updateOffDiagonal(lasers);
@@ -270,9 +266,14 @@ namespace KetCat
 
             RydbergBlockade.updateMatrix(SingleAtomHamiltonian, SingleAtomHamiltonian);
 
-            Solver.updateMatrices(RydbergBlockade.getMatrix(), TimeMaster::Clock().getTimeStep());
+            // --- DIRAC (INTERACTION) PICTURE TRANSFORMATION ---
+            auto H_Schrodinger = RydbergBlockade.getMatrix();
+            auto H_Interaction =
+                InteractionPictureHamiltonian<ConfigType::LevelCount>::transform
+                (H_Schrodinger, TimeMaster::Clock().getGlobalTime());
 
-            // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
+            Solver.updateMatrices(H_Interaction, TimeMaster::Clock().getTimeStep());
+
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
             GlobalStateManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
         }
