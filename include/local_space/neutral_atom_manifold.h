@@ -131,7 +131,7 @@ namespace KetCat
         inline static square_matrix_t<ConfigType::LevelCount> m_dipoleMatrix;
 
 		/// @brief Eigenvalues of the energy levels in Hartree atomic units.
-        inline static std::array<real_t, ConfigType::LevelCount> m_hartreeEnergies;
+        inline static eigenenergies_t<ConfigType::LevelCount> m_hartreeEnergies;
 
         /// @brief Orthonormalized full spatial basis states (1D).
         ///
@@ -354,7 +354,7 @@ namespace KetCat
         ///
         /// @return
         ///   array of Hartree energies
-        static const std::array<real_t, ConfigType::LevelCount>& getHartreeEnergies() noexcept
+        static const eigenenergies_t<ConfigType::LevelCount>& getHartreeEnergies() noexcept
         {
             return m_hartreeEnergies;
 		}

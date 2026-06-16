@@ -8,21 +8,23 @@
 #include <type_traits>
 
 #include "logo.h"
+#include "simulation_observer.h"
 
 #include "local_space/neutral_atom_manifold.h"
+
+#include "global_space/rwa_frame.h"
 #include "global_space/subspace_operations.h"
-
-#include "quantum_circuit.h"
-#include "compiler/gate_compiler.h"
-
-#include "laser/pulse_sequencer.h"
+#include "global_space/interaction_picture.h"
 
 #include "hamiltonian/rabi_drive_hamiltonian.h"
 #include "hamiltonian/two_atom_rydberg.h"
 
-#include "solvers/crank_nicolson_solver.h"
+#include "laser/pulse_sequencer.h"
 
-#include "simulation_observer.h"
+#include "quantum_circuit.h"
+#include "compiler/gate_compiler.h"
+
+#include "solvers/crank_nicolson_solver.h"
 
 
 namespace KetCat
@@ -172,6 +174,8 @@ namespace KetCat
 			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
 
 			TwoPhotonDrive Lasers;
+            const eigenenergies_t<ConfigType::LevelCount>
+                SingleAtomEnergies = m_Manifold.getHartreeEnergies();
 
             while (TimeMaster::Clock().getCurrentInstructionTime() < TransitionTimeLimit)
             {
@@ -182,6 +186,7 @@ namespace KetCat
 				// Depending on the instruction type, we evolve either a single qubit (Raman rotation) or two qubits (Rydberg blockade).
                 if (instruction.m_type == PhysicalInstructionType::RamanRotation)
                 {
+                    static RwaFrame<ConfigType::LevelCount> BlochRotationRwa(SingleAtomEnergies, Lasers);
                     evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
                 }
                 else if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
@@ -189,6 +194,7 @@ namespace KetCat
                     if constexpr (QubitCount >= 2)
                     {
                         //evolveOneQubitGlobalState(Lasers, instruction.m_targets[0]);
+                        static RwaFrame<ConfigType::LevelCount> RydbergExcitationRwa(SingleAtomEnergies, Lasers);
                         evolveTwoQubitGlobalState(Lasers, instruction.m_targets[0], instruction.m_targets[1]);
                     }
                 }
@@ -223,7 +229,7 @@ namespace KetCat
         ///    3. Applies U(Δt) to the target qubit in the global state vector.
         void evolveOneQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t targetAtom)
         {
-            static const std::array<real_t, ConfigType::LevelCount> HartreeEnergies =
+            static const eigenenergies_t<ConfigType::LevelCount> HartreeEnergies =
                 m_Manifold.getHartreeEnergies();
 
             static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =

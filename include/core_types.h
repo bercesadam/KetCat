@@ -30,6 +30,10 @@ namespace KetCat
 	template<natural_t StateCount>
 	using probability_vector_t = std::array<real_t, StateCount>;
 
+	/// @brief Probability vector with compile-time fixed size (array of doubles).
+	template<natural_t StateCount>
+	using eigenenergies_t = std::array<real_t, StateCount>;
+
 	/// @brief Fixed-size list of qubit indices.
 	/// @tparam QBitCount Number of qubits in the list.
 	template<natural_t QBitCount>
@@ -49,7 +53,8 @@ namespace KetCat
 	///           index 1 corresponds to the main diagonal,
 	///       and index 2 corresponds to the subdiagonal.
 	template<natural_t LevelCount>
-	struct tridiagonal_matrix_t {
+	struct tridiagonal_matrix_t
+	{
 		static constexpr natural_t Dim = LevelCount;
 		std::array<std::array<complex_t, Dim>, 3U> data{};
 
@@ -72,7 +77,8 @@ namespace KetCat
 	//template<natural_t LevelCount>
 	//using five_band_matrix_t = std::array<std::array<complex_t, LevelCount * LevelCount>, 5U>;
 	template<natural_t LevelCount>
-	struct five_band_matrix_t {
+	struct five_band_matrix_t
+	{
 		static constexpr natural_t Dim = LevelCount * LevelCount;
 		std::array<std::array<complex_t, Dim>, 5U> data{};
 

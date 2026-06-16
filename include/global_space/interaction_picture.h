@@ -122,7 +122,7 @@ namespace KetCat
             {
                 auto Hij = H[SUPERDIAGONAL][i];
 
-                real_t dE = MainDiagonal[i] - MainDiagonal[i + 1];
+                real_t dE = MainDiagonal[i].re - MainDiagonal[i + 1].re;
                 HI[SUPERDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
@@ -131,7 +131,7 @@ namespace KetCat
             {
                 auto Hij = H[SUBDIAGONAL][i];
 
-                real_t dE = MainDiagonal[i] - MainDiagonal[i - 1];
+                real_t dE = MainDiagonal[i].re - MainDiagonal[i - 1].re;
                 HI[SUBDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
@@ -142,7 +142,7 @@ namespace KetCat
                 {
                     auto Hij = H[UPPER_FAR][i];
 
-                    real_t dE = MainDiagonal[i] - MainDiagonal[i + LevelCount];
+                    real_t dE = MainDiagonal[i].re - MainDiagonal[i + LevelCount].re;
                     HI[UPPER_FAR][i] = Hij * exp_i(dE * t);
                 }
 
@@ -150,7 +150,7 @@ namespace KetCat
                 {
                     auto Hij = H[LOWER_FAR][i];
 
-                    real_t dE = MainDiagonal[i] - MainDiagonal[i - LevelCount];
+                    real_t dE = MainDiagonal[i].re - MainDiagonal[i - LevelCount].re;
                     HI[LOWER_FAR][i] = Hij * exp_i(dE * t);
                 }
             }
