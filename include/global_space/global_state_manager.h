@@ -35,7 +35,7 @@ namespace KetCat
 		GlobalStateManager(std::bitset<QubitCount> initialState)
 		{
 			m_GlobalStateVector =
-				GlobalStateManager::basisStateFromBitstring(initialState,
+                SubspaceManager::basisStateFromBitstring(initialState,
 					ConfigType::Logical0Level, ConfigType::Logical1Level);
 		}
 
@@ -65,13 +65,13 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { targetAtom };
-            GlobalStateManager::template performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
+            SubspaceManager::template performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
         }
 
         void evolveTwoQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t controlAtom, const natural_t targetAtom)
             requires (QubitCount >= 2)
         {
-            static const std::array<real_t, ConfigType::LevelCount>
+            static const eigenenergies_t<ConfigType::LevelCount>
                 HartreeEnergies = m_Manifold.getHartreeEnergies();
 
             static const square_matrix_t<ConfigType::LevelCount>
@@ -105,15 +105,15 @@ namespace KetCat
             Solver.updateMatrices(H_Interaction, TimeMaster::Clock().getTimeStep());
 
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
-            GlobalStateManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
+            SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
         }
 
-        auto getStateVector() const
+        const auto& getStateVector() const
         {
             return m_GlobalStateVector;
         }
 
-        auto getManifold() const
+        const auto& getManifold() const
         {
             return m_Manifold;
         }
