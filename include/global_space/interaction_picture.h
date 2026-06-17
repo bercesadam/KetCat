@@ -97,62 +97,75 @@ namespace KetCat
     ///   • Only off-diagonals survive
     ///   • Uses banded structure (no dense ops!)
     ///
-    template<natural_t LevelCount>
+    template<natural_t SingleAtomLevelCount, natural_t QubitCount>
     class InteractionPictureHamiltonian
     {
-        static constexpr natural_t Dim = LevelCount * LevelCount;
-
+        /// @brief Local two-qubit subspace dimension ($LevelCount \times LevelCount$, e.g., 36).
+        static constexpr natural_t Dim = ConstexprMath::pow(SingleAtomLevelCount, QubitCount(;
+        )
     public:
-        using matrix_t = five_band_matrix_t<LevelCount>;
+        using matrix_t = five_band_matrix_t<SingleAtomLevelCount>;
 
+        /**
+         * @brief Transforms the Schrödinger-picture (RWA) 5-band matrix into the Interaction Picture.
+         *
+         * @param H
+         * The current RWA Hamiltonian matrix containing Detuning, AC Stark shifts, and vdW blockade.
+         * @param localRwaEnergies
+         * The pre-calculated pure RWA detuning baseline array for the 2-qubit subspace (size: Dim).
+         * @param t
+         * The current absolute global simulation time.
+         *
+         * @return matrix_t
+         * The effective Interaction Picture Hamiltonian matrix ready for the numerical solver.
+         */
         static matrix_t transform(
             const matrix_t& H,
+            const std::array<real_t, Dim>& localRwaEnergies,
             real_t t) noexcept
         {
             matrix_t HI{};
 
-            const auto& MainDiagonal = H[MAINDIAGONAL];
-
-            // --- DIAGONAL → ZERO ---
+            // --- 1. MAIN DIAGONAL: Strip the pure RWA detuning baseline ---
+            // Since H[MAINDIAGONAL][i] contains (Detuning + StarkShift + vdW) and localRwaEnergies[i]
+            // contains only the pure Detuning, the subtraction leaves the dynamic Stark shifts and 
+            // static vdW blockade energies completely intact in the main diagonal.
             for (natural_t i = 0; i < Dim; ++i)
             {
-                HI[MAINDIAGONAL][i] = complex_t::zero();
+                HI[MAINDIAGONAL][i] = H[MAINDIAGONAL][i] - complex_t::fromReal(localRwaEnergies[i]);
             }
 
-            // --- SUPER DIAGONAL (i → i+1)
+            // --- 2. SUPER DIAGONAL (i → i+1) ---
+            // Coherent couplings are rotated using the pure RWA detuning energy differences.
             for (natural_t i = 0; i < Dim - 1; ++i)
             {
                 auto Hij = H[SUPERDIAGONAL][i];
-
-                real_t dE = MainDiagonal[i].re - MainDiagonal[i + 1].re;
+                real_t dE = localRwaEnergies[i] - localRwaEnergies[i + 1];
                 HI[SUPERDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
-            // --- SUB DIAGONAL (i → i-1)
+            // --- 3. SUB DIAGONAL (i → i-1) ---
             for (natural_t i = 1; i < Dim; ++i)
             {
                 auto Hij = H[SUBDIAGONAL][i];
-
-                real_t dE = MainDiagonal[i].re - MainDiagonal[i - 1].re;
+                real_t dE = localRwaEnergies[i] - localRwaEnergies[i - 1];
                 HI[SUBDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
-            // --- FAR DIAGONALS
+            // --- 4. FAR DIAGONALS (Cross-talk / Inter-qubit transitions) ---
             for (natural_t i = 0; i < Dim; ++i)
             {
                 if (i + LevelCount < Dim)
                 {
                     auto Hij = H[UPPER_FAR][i];
-
-                    real_t dE = MainDiagonal[i].re - MainDiagonal[i + LevelCount].re;
+                    real_t dE = localRwaEnergies[i] - localRwaEnergies[i + LevelCount];
                     HI[UPPER_FAR][i] = Hij * exp_i(dE * t);
                 }
 
                 if (i >= LevelCount)
                 {
                     auto Hij = H[LOWER_FAR][i];
-
-                    real_t dE = MainDiagonal[i].re - MainDiagonal[i - LevelCount].re;
+                    real_t dE = localRwaEnergies[i] - localRwaEnergies[i - LevelCount];
                     HI[LOWER_FAR][i] = Hij * exp_i(dE * t);
                 }
             }
@@ -161,6 +174,9 @@ namespace KetCat
         }
 
     private:
+        /**
+         * @brief Evaluates the complex phase factor $e^{i x}$ using compile-time compatible math.
+         */
         static complex_t exp_i(real_t x) noexcept
         {
             return {
