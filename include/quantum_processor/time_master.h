@@ -17,7 +17,7 @@ namespace KetCat
     class TimeMaster
     {
         /// @brief Indicates whether the clock has been initialized.
-        bool m_isInitialized = false;
+        bool m_isInstructionStart = true;
 
         /// @brief Fixed TDSE evolution timestep in atomic units.
         real_t m_dt = 0.1;
@@ -61,21 +61,6 @@ namespace KetCat
             return instance;
         }
 
-        /// @brief Initialize the simulation timestep.
-        ///
-        /// @param dt
-        ///   Fixed evolution timestep in atomic units.
-        ///
-        /// @details
-        ///   Initialization is performed only once.
-        ///
-        ///   Subsequent calls are ignored in order to preserve
-        ///   global timing consistency across the simulation.
-        ///
-        void init()
-        {
-        }
-
         /// @brief Set the simulation timestep.
         ///
         /// @param dt
@@ -112,10 +97,20 @@ namespace KetCat
             return m_currentInstructionTime;
         }
 
+        /// @brief Determine if we are currently at the beginning of a new instruction.
+        ///
+        /// @return
+        ///   Current instruction-local evolution time.
+        bool isInstructionStart() const
+        {
+            return m_isInstructionStart;
+        }
+
         /// @brief Reset the instruction-local timer.
         void resetCurrentInstructionClock()
         {
             m_currentInstructionTime = 0.0;
+            m_isInstructionStart = true;
         }
 
         /// @brief Advance the global simulation clock by one timestep.
@@ -123,6 +118,7 @@ namespace KetCat
         {
             m_globalTime += m_dt;
             m_currentInstructionTime += m_dt;
+            m_isInstructionStart = false;
         }
     };
 }

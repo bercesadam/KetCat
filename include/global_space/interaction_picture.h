@@ -33,7 +33,7 @@ namespace KetCat
         ///     ψ_I[i] = ψ[i] * exp(+i E_i t)
         ///
         template<typename StateVectorType>
-        static void toDiracPicture(
+        static StateVectorType toDiracPicture(
             StateVectorType& psi,
             const std::array<real_t, HilbertDim>& diagEnergies,
             real_t t) noexcept
@@ -63,11 +63,13 @@ namespace KetCat
         ///     ψ[i] = ψ_I[i] * exp(-i E_i t)
         ///
         template<typename StateVectorType>
-        static void toSchrodingerPicture(
+        static StateVectorType toSchrodingerPicture(
             StateVectorType& psi,
             const std::array<real_t, HilbertDim>& diagEnergies,
             real_t t) noexcept
         {
+            StateVectorType Result = psi;
+
             for (natural_t i = 0; i < HilbertDim; ++i)
             {
                 const real_t PhaseArg = diagEnergies[i] * t;
@@ -78,7 +80,7 @@ namespace KetCat
                    -ConstexprMath::sin(PhaseArg)   // -i
                 };
 
-                psi[i] = psi[i] * Phase;
+                Result[i] = psi[i] * Phase;
             }
         }
     };
