@@ -80,6 +80,9 @@ namespace KetCat
             static const RwaFrame<ConfigType::LevelCount>
                 RwaFrame(HartreeEnergies, lasers);
 
+            static const eigenenergies_t<ConstexprMath::pow(ConfigType::LevelCount, 2U)>
+                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<2U>();
+
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
@@ -92,17 +95,14 @@ namespace KetCat
 
             SingleAtomExcitation.updateMainDiagonal(lasers);
             SingleAtomExcitation.updateOffDiagonal(lasers);
-            auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix();
+            auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix(); 
 
             RydbergBlockade.updateMatrix(SingleAtomHamiltonian, SingleAtomHamiltonian);
+            auto H = InteractionPictureHamiltonian<ConfigType::LevelCount, 2U>
+                ::transform(RydbergBlockade.getMatrix(), RwaFrameEnergies,
+                    TimeMaster::Clock().getGlobalTime());
 
-            // --- DIRAC (INTERACTION) PICTURE TRANSFORMATION ---
-            auto H_Schrodinger = RydbergBlockade.getMatrix();
-            auto H_Interaction =
-                InteractionPictureHamiltonian<ConfigType::LevelCount>::transform
-                (H_Schrodinger, TimeMaster::Clock().getGlobalTime());
-
-            Solver.updateMatrices(H_Interaction, TimeMaster::Clock().getTimeStep());
+            Solver.updateMatrices(H, TimeMaster::Clock().getTimeStep());
 
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
             SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);

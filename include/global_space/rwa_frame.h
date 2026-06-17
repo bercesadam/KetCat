@@ -42,7 +42,7 @@ namespace KetCat
         }
 
         template<natural_t QubitCount>
-        constexpr auto generateGlobalRwaEnergies() noexcept
+        constexpr auto generateGlobalRwaEnergies() const noexcept
         {
             constexpr natural_t GlobalDim =
                 ConstexprMath::pow(LevelCount, QubitCount);

@@ -97,14 +97,14 @@ namespace KetCat
     ///   • Only off-diagonals survive
     ///   • Uses banded structure (no dense ops!)
     ///
-    template<natural_t SingleAtomLevelCount, natural_t QubitCount>
+    template<natural_t LevelCount, natural_t QubitCount>
     class InteractionPictureHamiltonian
     {
         /// @brief Local two-qubit subspace dimension ($LevelCount \times LevelCount$, e.g., 36).
-        static constexpr natural_t Dim = ConstexprMath::pow(SingleAtomLevelCount, QubitCount(;
-        )
+        static constexpr natural_t Dim = ConstexprMath::pow(LevelCount, QubitCount);
+
     public:
-        using matrix_t = five_band_matrix_t<SingleAtomLevelCount>;
+        using matrix_t = five_band_matrix_t<LevelCount>;
 
         /**
          * @brief Transforms the Schrödinger-picture (RWA) 5-band matrix into the Interaction Picture.
