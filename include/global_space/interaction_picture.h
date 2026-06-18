@@ -51,6 +51,8 @@ namespace KetCat
 
                 Result[i] = psi[i] * Phase;
             }
+
+            return Result;
         }
 
         /// @brief Transform Interaction (Dirac) → Schrödinger picture
@@ -82,6 +84,8 @@ namespace KetCat
 
                 Result[i] = psi[i] * Phase;
             }
+
+            return Result;
         }
     };
 

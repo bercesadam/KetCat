@@ -452,11 +452,11 @@ namespace KetCat
         /// @param logical1    Physical level corresponding to the logical '1' state
 		/// @return            A state vector of size d^C with amplitude 1 at the index corresponding
         ///                    to the specified bitstring and 0 elsewhere.
-        static constexpr StateVector<FullHilbertSpace, QuantumPicture::Schrodinger>
+        static constexpr StateVector<FullHilbertSpace, QuantumPicture::Dirac>
             basisStateFromBitstring(std::bitset<QubitCount> bitstring,
                 natural_t logical0, natural_t logical1) noexcept
         {
-            StateVector<FullHilbertSpace, QuantumPicture::Schrodinger> Result{};
+            StateVector<FullHilbertSpace, QuantumPicture::Dirac> Result{};
 
             natural_t GlobalIndex = 0;
             natural_t Multiplier = 1;

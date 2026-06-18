@@ -48,7 +48,7 @@ namespace KetCat
 		GlobalStateManager(std::bitset<QubitCount> initialState)
             : m_CurrentRwaFrame(eigenenergies_t<ConfigType::LevelCount>{}, TwoPhotonDrive{})
 		{
-            m_GlobalStateVectorSchrodinger =
+            m_GlobalStateVectorDirac =
                 SubspaceManager::basisStateFromBitstring(initialState,
 					ConfigType::Logical0Level, ConfigType::Logical1Level);
 		}
