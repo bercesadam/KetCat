@@ -5,9 +5,21 @@
 
 namespace KetCat
 {
+	/// @brief Specifies the quantum mechanical picture used to interpret the state vector's phase evolution.
+	/// @details
+	/// Schrödinger: The state vector carries the full, fast - oscillating physical energy phase.
+	/// Dirac: The state vector tracks only the slowly varying interaction dynamics (perturbations).
+	/// 
+	enum class QuantumPicture
+	{
+		Schrodinger,
+		Dirac // aka, Interaction Picture
+	};
+
 	/// @brief Represents a quantum state vector in a Hilbert space of given dimension.
-	/// @tparam Dim  Dimension of the Hilbert space (number of basis states).
-	template <hilbert_space_t HilbertSpace>
+	/// @tparam Dim     Dimension of the Hilbert space (number of basis states).
+	/// @tparam Picture The quantum picture in which the state vector is interpreted.
+	template <hilbert_space_t HilbertSpace, QuantumPicture Picture = QuantumPicture::Schrodinger>
 	struct StateVector
 	{
 		/// Type alias for the Hilbert space type
@@ -19,6 +31,8 @@ namespace KetCat
 		/// Underlying state vector array
 		state_vector_t<Size> m_StateVector;
 
+		/// The point of time of the simulation to which the state vector is applicable
+		natural_t m_TimeStamp;
 
 		/// INDEXING ///////////////////////////////////////////////////////////////////////
 
