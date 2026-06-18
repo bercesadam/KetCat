@@ -39,7 +39,7 @@ namespace KetCat
         /// This implementation is optimized to O(d^(C+1)) complexity by directly 
         /// mapping the Little-Endian strides instead of performing a full O(d^2C) search.
         static constexpr Matrix<LevelCount>
-            reducedDensityMatrix(const StateVector<FullHilbertSpace>& psi,
+            reducedDensityMatrix(const StateVector<FullHilbertSpace, QuantumPicture::Schrodinger>& psi,
                 natural_t qubitIndex) noexcept
         {
             Matrix<LevelCount> Rho{};

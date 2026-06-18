@@ -402,12 +402,12 @@ namespace KetCat
         ///
         /// The result is a contiguous tile containing all d^K amplitudes
         /// of the target subsystem.
-        template <natural_t K>
+        template <natural_t K, QuantumPicture P>
         static constexpr void
-        gatherTile(const StateVector<FullHilbertSpace>& fullSpace,
+        gatherTile(const StateVector<FullHilbertSpace, P>& fullSpace,
                 const qbit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
-                StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& out) noexcept
+                StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>, P>& out) noexcept
         {
             tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
                 [&](natural_t LocalIndex, natural_t GlobalIndex)
@@ -431,12 +431,12 @@ namespace KetCat
         ///
         /// Each amplitude of the tile is mapped to its corresponding
         /// global basis index.
-        template <natural_t K>
+        template <natural_t K, QuantumPicture P>
         static constexpr void
-        scatterTile(StateVector<FullHilbertSpace>& fullSpace,
+        scatterTile(StateVector<FullHilbertSpace, P>& fullSpace,
                     const qbit_list_t<K>& targetQdits,
                     natural_t nonTargetBasisIndex,
-                    const StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>>& in) noexcept
+                    const StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>, P>& in) noexcept
         {
             tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
                 [&](natural_t LocalIndex, natural_t GlobalIndex)
@@ -452,11 +452,11 @@ namespace KetCat
         /// @param logical1    Physical level corresponding to the logical '1' state
 		/// @return            A state vector of size d^C with amplitude 1 at the index corresponding
         ///                    to the specified bitstring and 0 elsewhere.
-        static constexpr StateVector<FullHilbertSpace>
+        static constexpr StateVector<FullHilbertSpace, QuantumPicture::Schrodinger>
             basisStateFromBitstring(std::bitset<QubitCount> bitstring,
                 natural_t logical0, natural_t logical1) noexcept
         {
-            StateVector<FullHilbertSpace> Result{};
+            StateVector<FullHilbertSpace, QuantumPicture::Schrodinger> Result{};
 
             natural_t GlobalIndex = 0;
             natural_t Multiplier = 1;
@@ -491,21 +491,21 @@ namespace KetCat
         ///    a. Gathers the relevant amplitudes from the global state vector into a local tile vector.
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
-        template <natural_t K, LinearSolverBackend L>
+        template <natural_t K, LinearSolverBackend L, QuantumPicture P>
         static constexpr void performTimeEvolution(CrankNicolsonSolver<LocalDim, L>& solver,
-                                            StateVector<FullHilbertSpace>& psi,
+                                            StateVector<FullHilbertSpace, P>& psi,
                                             qbit_list_t<K> targetQdits) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
-            StateVector<FullHilbertSpace> psiUpdated = psi;
+            StateVector<FullHilbertSpace, P> psiUpdated = psi;
 
             for (int b = 0; b < BlockCount; ++b)
             {
                 StateVector<OperationSpace<K>> local{};
-                gatherTile<K>(psi, targetQdits, b, local);
+                gatherTile<K, P>(psi, targetQdits, b, local);
                 auto updatedLocal = solver(local);
-                scatterTile<K>(psiUpdated, targetQdits, b, updatedLocal);
+                scatterTile<K, P>(psiUpdated, targetQdits, b, updatedLocal);
             }
 
             psi = psiUpdated;

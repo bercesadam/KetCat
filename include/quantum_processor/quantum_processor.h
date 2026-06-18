@@ -167,14 +167,14 @@ namespace KetCat
                 else { }
                
 				/// Capture the current state and laser configuration for visualization/export.
-				m_SimulationObserver.exportStep(m_GlobalStateManager.getSchrodingerStateVector(),
+				m_SimulationObserver.exportStep(m_GlobalStateManager.getStateVector(),
                     instruction.m_targets, Lasers.m_pump, Lasers.m_stokes);
 
                 TimeMaster::Clock().tick();
             }
 
 			// Ensure that the final state at the end of the pulse is captured
-            m_SimulationObserver.exportStep(m_GlobalStateManager.getSchrodingerStateVector(),
+            m_SimulationObserver.exportStep(m_GlobalStateManager.getStateVector(),
                 instruction.m_targets, Lasers.m_pump, Lasers.m_stokes, KEYFRAME);
 
             /// Reset instruction-local timing state for the next pulse

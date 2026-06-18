@@ -95,11 +95,11 @@ namespace KetCat
        /// and debug purposes. For visualization of entangled states, use the
        /// density-matrix version below.
         template <spatial_hilbert_space_t HilbertSpace>
-        constexpr StateVector<HilbertSpace>
+        constexpr StateVector<HilbertSpace, QuantumPicture::Schrodinger>
             embed(const basis_set_t<HilbertSpace, LevelCount>& basisSet,
-                const StateVector<ReducedHilbertSpace>& coeffs) const noexcept
+                const StateVector<ReducedHilbertSpace, QuantumPicture::Schrodinger>& coeffs) const noexcept
         {
-            StateVector<HilbertSpace> Psi{ complex_t::zero() };
+            StateVector<HilbertSpace, QuantumPicture::Schrodinger> Psi{ complex_t::zero() };
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
@@ -118,7 +118,7 @@ namespace KetCat
        ///          FiniteHilbertSpace<LevelCount> while preserving essential phase relations under entanglement.
        /// @param rho The reduced density matrix of the qubit.
        /// @return    A normalized state vector in the reduced finite Hilbert space.
-        constexpr StateVector<ReducedHilbertSpace>
+        constexpr StateVector<ReducedHilbertSpace, QuantumPicture::Schrodinger>
             extractCoherentState(const Matrix<LevelCount>& rho) const noexcept
         {
             // 1. Find the pivot column with the largest diagonal population.
@@ -134,7 +134,7 @@ namespace KetCat
             }
 
             // 2. Extract the complex coefficients from the dominant pivot column.
-            StateVector<ReducedHilbertSpace> Coeffs{};
+            StateVector<ReducedHilbertSpace, QuantumPicture::Schrodinger> Coeffs{};
             for (natural_t i = 0; i < LevelCount; ++i)
             {
                 Coeffs[i] = rho.at(i, Pivot);

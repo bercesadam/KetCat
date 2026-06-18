@@ -20,7 +20,7 @@ namespace KetCat
 		real_t m_purity;
 
 		/// @brief 2D spatial wavefunction of the atom corresponding to this qubit
-		StateVector<FullHilbertSpace> m_psi2D;
+		StateVector<FullHilbertSpace, QuantumPicture::Schrodinger> m_psi2D;
 
 		/// @brief Laser parameters for this qubit (Wavelength and Intensity)
 		real_t m_laser1Wavelength;

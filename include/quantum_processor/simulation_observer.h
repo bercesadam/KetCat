@@ -90,8 +90,8 @@ namespace KetCat
         /// @details
         ///    Calculates the instantaneous basis state probabilities and passes 
         ///    the formatted view to the binary exporter if the capture criteria are met.
-        void exportStep(const StateVector<FullHilbertSpace>& psi, const qbit_list_t<2> targets,
-			const LaserPulse& laser1, const LaserPulse& laser2,
+        void exportStep(const StateVector<FullHilbertSpace, QuantumPicture::Schrodinger>& psi,
+            const qbit_list_t<2> targets, const LaserPulse& laser1, const LaserPulse& laser2,
             const bool isKeyFrame = false)
         {
             if (m_FrameCounter % m_SaveNthFrame == 0 || isKeyFrame)

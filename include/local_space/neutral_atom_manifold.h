@@ -323,8 +323,8 @@ namespace KetCat
         /// @detail
         ///    Reserved for visualization and spatially resolved analysis. Not used for time evolution or control dynamics,
         ///    which operate entirely within the reduced space.
-        StateVector<SingleAtomFullHilbertSpace> projectToFullHilbertSpace
-        (const StateVector<SingleAtomOperationHilbertSpace>& reducedState) const noexcept
+        StateVector<SingleAtomFullHilbertSpace, QuantumPicture::Schrodinger> projectToFullHilbertSpace
+        (const StateVector<SingleAtomOperationHilbertSpace, QuantumPicture::Schrodinger>& reducedState) const noexcept
         {
             return m_operationSpace.embed(*m_basisStates2D, reducedState);
         }
@@ -334,7 +334,7 @@ namespace KetCat
         /// @param densityMatrix The reduced density matrix of the atom, used to extract the dominant coherent state vector components.
         /// @return
 		///    Reduced state vector in the finite Hilbert space, containing the amplitudes for the basis set
-		StateVector<SingleAtomOperationHilbertSpace> getReducedStateFromDensityMatrix
+		StateVector<SingleAtomOperationHilbertSpace, QuantumPicture::Schrodinger> getReducedStateFromDensityMatrix
         (const Matrix<ConfigType::LevelCount>& densityMatrix) const noexcept
         {
             return m_operationSpace.extractCoherentState(densityMatrix);

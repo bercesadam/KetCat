@@ -19,7 +19,7 @@ namespace KetCat
 	/// @brief Represents a quantum state vector in a Hilbert space of given dimension.
 	/// @tparam Dim     Dimension of the Hilbert space (number of basis states).
 	/// @tparam Picture The quantum picture in which the state vector is interpreted.
-	template <hilbert_space_t HilbertSpace, QuantumPicture Picture = QuantumPicture::Schrodinger>
+	template <hilbert_space_t HilbertSpace, QuantumPicture Picture = QuantumPicture::Dirac>
 	struct StateVector
 	{
 		/// Type alias for the Hilbert space type

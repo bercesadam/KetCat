@@ -31,6 +31,9 @@ namespace KetCat
         /// @brief Type alias for the Quantum Picture converter helper class
         using PictureConverter = InteractionPictureStateTransformer<typename SubspaceManager::FullHilbertSpace>;
 
+        /// @brief The currently active RWA frame.
+        RwaFrame<ConfigType::LevelCount> m_CurrentRwaFrame;
+
 		/// @brief Full system state vector in the product Hilbert space, in Interaction picture
         /// @details Used during the operations, updated most of the time
 		StateVector<typename SubspaceManager::FullHilbertSpace, QuantumPicture::Dirac>
@@ -43,6 +46,7 @@ namespace KetCat
 
     public:
 		GlobalStateManager(std::bitset<QubitCount> initialState)
+            : m_CurrentRwaFrame(eigenenergies_t<ConfigType::LevelCount>{}, TwoPhotonDrive{})
 		{
             m_GlobalStateVectorSchrodinger =
                 SubspaceManager::basisStateFromBitstring(initialState,
@@ -73,7 +77,6 @@ namespace KetCat
             Hamiltonian.updateOffDiagonal(lasers);
             Solver.updateMatrices(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
 
-            // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { targetAtom };
             SubspaceManager::template performTimeEvolution<1>(Solver, m_GlobalStateVectorDirac, targets);
         }
@@ -103,6 +106,11 @@ namespace KetCat
             static CrankNicolsonSolver<ConfigType::LevelCount,
                 LinearSolverBackend::FiveBandGaussianElimination> Solver;
 
+            if (TimeMaster::Clock().isInstructionStart())
+            {
+                prepareNewInstructionState(RwaFrame);
+            }
+
             SingleAtomExcitation.updateMainDiagonal(lasers);
             SingleAtomExcitation.updateOffDiagonal(lasers);
             auto SingleAtomHamiltonian = SingleAtomExcitation.getMatrix(); 
@@ -118,18 +126,15 @@ namespace KetCat
             SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVectorDirac, targets);
         }
 
-        const auto& getSchrodingerStateVector() const
+        const auto& getStateVector()
         {
             if (m_GlobalStateVectorDirac.m_TimeStamp > m_GlobalStateVectorSchrodinger.m_TimeStamp)
             {
-                m_GlobalStateVectorSchrodinger = PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac);
+                const eigenenergies_t Energies = m_CurrentRwaFrame.generateGlobalRwaEnergies<QubitCount>();
+                m_GlobalStateVectorSchrodinger =
+                    PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac, Energies);
             }
             return m_GlobalStateVectorSchrodinger;
-        }
-
-        const auto& getDiracStateVector() const
-        {
-            return m_GlobalStateVectorDirac;
         }
 
         const auto& getManifold() const
@@ -138,9 +143,18 @@ namespace KetCat
         }
 
     private:
-        void prepareNewInstructionState()
+        void prepareNewInstructionState(const decltype(m_CurrentRwaFrame)& newRwaFrame)
         {
-            m_GlobalStateVectorDirac = PictureConverter::toDiracPicture(m_GlobalStateVectorSchrodinger);
+            const eigenenergies_t CurrentEnergies = m_CurrentRwaFrame.generateGlobalRwaEnergies<QubitCount>();
+            const eigenenergies_t NewEnergies = newRwaFrame.generateGlobalRwaEnergies<QubitCount>();
+
+            m_GlobalStateVectorSchrodinger =
+                PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac, CurrentEnergies);
+
+            m_GlobalStateVectorDirac =
+                PictureConverter::toDiracPicture(m_GlobalStateVectorSchrodinger, NewEnergies);
+
+            m_CurrentRwaFrame = newRwaFrame;
         }
 	};
 }

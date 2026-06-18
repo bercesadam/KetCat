@@ -37,6 +37,7 @@ namespace KetCat
             const std::array<real_t, HilbertSpace::Dim>& diagEnergies) noexcept
         {
             StateVector<HilbertSpace, QuantumPicture::Dirac> Result{};
+            Result.m_TimeStamp = psi.m_TimeStamp;
 
             for (natural_t i = 0; i < HilbertSpace::Dim; ++i)
             {
@@ -66,7 +67,8 @@ namespace KetCat
             StateVector<HilbertSpace, QuantumPicture::Dirac>& psi,
             const std::array<real_t, HilbertSpace::Dim>& diagEnergies) noexcept
         {
-            StateVector<HilbertSpace, QuantumPicture::Schrodinger> Result = psi;
+            StateVector<HilbertSpace, QuantumPicture::Schrodinger> Result{};
+            Result.m_TimeStamp = psi.m_TimeStamp;
 
             for (natural_t i = 0; i < HilbertSpace::Dim; ++i)
             {

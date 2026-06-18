@@ -16,7 +16,8 @@ namespace KetCat
     {
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
         using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
-        using FullStateVectorType = StateVector<typename GlobalStateManager::FullHilbertSpace>;
+        using FullStateVectorType =
+            StateVector<typename GlobalStateManager::FullHilbertSpace, QuantumPicture::Schrodinger>;
 
         static constexpr natural_t LogicalDimSize = ConstexprMath::pow(natural_t(2), QubitCount);
 

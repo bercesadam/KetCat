@@ -45,7 +45,7 @@ namespace KetCat
         }
 
         std::string compileCaption(const std::string simulationStepName,
-            real_t time, const StateVector<OperationSpace>& psiLocal) const
+            real_t time, const StateVector<OperationSpace, QuantumPicture::Schrodinger>& psiLocal) const
         {
             std::ostringstream Title;
             Title << std::fixed << std::setprecision(2);
@@ -70,7 +70,7 @@ namespace KetCat
         SimulationView<FullHilbertSpace, QubitCount> build(
             const std::string simulationStepName,
             const real_t time,
-            const StateVector<GlobalSpace>& psiOp,
+            const StateVector<GlobalSpace, QuantumPicture::Schrodinger>& psiOp,
             const qbit_list_t<2> targets,
             const LaserPulse& laser1,
             const LaserPulse& laser2)
@@ -101,7 +101,7 @@ namespace KetCat
                 Qubit.m_purity = DensityMatrixHelper::purity(Rho);
 
 				// Convert the reduced density matrix to a state vector in the local operation space for visualization
-				StateVector<OperationSpace> psiLocal = m_Manifold.getReducedStateFromDensityMatrix(Rho);
+				StateVector<OperationSpace, QuantumPicture::Schrodinger> psiLocal = m_Manifold.getReducedStateFromDensityMatrix(Rho);
 
 				// Extract the logical amplitudes (|0⟩ and |1⟩) for the qubit from the local state vector
                 Qubit.m_alpha = psiLocal[ConfigType::Logical0Level];
