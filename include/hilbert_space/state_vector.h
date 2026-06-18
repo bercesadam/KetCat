@@ -29,10 +29,10 @@ namespace KetCat
 		static constexpr natural_t Size = HilbertSpace::Dim;
 
 		/// Underlying state vector array
-		state_vector_t<Size> m_StateVector;
+		state_vector_t<Size> m_StateVector{};
 
 		/// The point of time of the simulation to which the state vector is applicable
-		natural_t m_TimeStamp;
+		natural_t m_TimeStamp{};
 
 		/// INDEXING ///////////////////////////////////////////////////////////////////////
 

@@ -27,14 +27,24 @@ namespace KetCat
 
 		/// @brief Physical manifold defining the atomic structure and seed states.
 		NeutralAtomManifold<Config> m_Manifold;
+        
+        /// @brief Type alias for the Quantum Picture converter helper class
+        using PictureConverter = InteractionPictureStateTransformer<typename SubspaceManager::FullHilbertSpace>;
 
-		/// @brief Full system state vector in the product Hilbert space.
-		StateVector<typename SubspaceManager::FullHilbertSpace> m_GlobalStateVector{};
+		/// @brief Full system state vector in the product Hilbert space, in Interaction picture
+        /// @details Used during the operations, updated most of the time
+		StateVector<typename SubspaceManager::FullHilbertSpace, QuantumPicture::Dirac>
+            m_GlobalStateVectorDirac{};
+
+        /// @brief Full system state vector in the product Hilbert space, in Schrödinger picture
+        /// @details Used during the operations, updated most of the time
+        StateVector<typename SubspaceManager::FullHilbertSpace, QuantumPicture::Schrodinger>
+            m_GlobalStateVectorSchrodinger{};
 
     public:
 		GlobalStateManager(std::bitset<QubitCount> initialState)
 		{
-			m_GlobalStateVector =
+            m_GlobalStateVectorSchrodinger =
                 SubspaceManager::basisStateFromBitstring(initialState,
 					ConfigType::Logical0Level, ConfigType::Logical1Level);
 		}
@@ -65,7 +75,7 @@ namespace KetCat
 
             // Map the local 1-qubit Hamiltonian operation to the global N-qubit state vector
             std::array<natural_t, 1> targets = { targetAtom };
-            SubspaceManager::template performTimeEvolution<1>(Solver, m_GlobalStateVector, targets);
+            SubspaceManager::template performTimeEvolution<1>(Solver, m_GlobalStateVectorDirac, targets);
         }
 
         void evolveTwoQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t controlAtom, const natural_t targetAtom)
@@ -80,7 +90,7 @@ namespace KetCat
             static const RwaFrame<ConfigType::LevelCount>
                 RwaFrame(HartreeEnergies, lasers);
 
-            static const eigenenergies_t<ConstexprMath::pow(ConfigType::LevelCount, 2U)>
+            static const eigenenergies_t<ConstexprMath::pow(ConfigType::LevelCount, natural_t{2})>
                 RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<2U>();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
@@ -105,17 +115,32 @@ namespace KetCat
             Solver.updateMatrices(H, TimeMaster::Clock().getTimeStep());
 
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
-            SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVector, targets);
+            SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVectorDirac, targets);
         }
 
-        const auto& getStateVector() const
+        const auto& getSchrodingerStateVector() const
         {
-            return m_GlobalStateVector;
+            if (m_GlobalStateVectorDirac.m_TimeStamp > m_GlobalStateVectorSchrodinger.m_TimeStamp)
+            {
+                m_GlobalStateVectorSchrodinger = PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac);
+            }
+            return m_GlobalStateVectorSchrodinger;
+        }
+
+        const auto& getDiracStateVector() const
+        {
+            return m_GlobalStateVectorDirac;
         }
 
         const auto& getManifold() const
         {
             return m_Manifold;
+        }
+
+    private:
+        void prepareNewInstructionState()
+        {
+            m_GlobalStateVectorDirac = PictureConverter::toDiracPicture(m_GlobalStateVectorSchrodinger);
         }
 	};
 }

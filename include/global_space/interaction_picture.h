@@ -17,7 +17,7 @@ namespace KetCat
     ///
     /// Works on the full global Hilbert space/state vector
     ///
-    template<natural_t HilbertDim>
+    template<hilbert_space_t HilbertSpace>
     class InteractionPictureStateTransformer
     {
     public:
@@ -32,15 +32,15 @@ namespace KetCat
         /// Applies:
         ///     ψ_I[i] = ψ[i] * exp(+i E_i t)
         ///
-        template<typename StateVectorType>
-        static StateVectorType toDiracPicture(
-            StateVectorType& psi,
-            const std::array<real_t, HilbertDim>& diagEnergies,
-            real_t t) noexcept
+        static StateVector<HilbertSpace, QuantumPicture::Dirac> toDiracPicture(
+            StateVector<HilbertSpace, QuantumPicture::Schrodinger>& psi,
+            const std::array<real_t, HilbertSpace::Dim>& diagEnergies) noexcept
         {
-            for (natural_t i = 0; i < HilbertDim; ++i)
+            StateVector<HilbertSpace, QuantumPicture::Dirac> Result{};
+
+            for (natural_t i = 0; i < HilbertSpace::Dim; ++i)
             {
-                const real_t PhaseArg = diagEnergies[i] * t;
+                const real_t PhaseArg = diagEnergies[i] * psi.m_TimeStamp;
 
                 const complex_t Phase =
                 {
@@ -48,7 +48,7 @@ namespace KetCat
                     ConstexprMath::sin(PhaseArg)   // +i
                 };
 
-                psi[i] = psi[i] * Phase;
+                Result[i] = psi[i] * Phase;
             }
         }
 
@@ -62,17 +62,15 @@ namespace KetCat
         /// Applies:
         ///     ψ[i] = ψ_I[i] * exp(-i E_i t)
         ///
-        template<typename StateVectorType>
-        static StateVectorType toSchrodingerPicture(
-            StateVectorType& psi,
-            const std::array<real_t, HilbertDim>& diagEnergies,
-            real_t t) noexcept
+        static StateVector<HilbertSpace, QuantumPicture::Schrodinger> toSchrodingerPicture(
+            StateVector<HilbertSpace, QuantumPicture::Dirac>& psi,
+            const std::array<real_t, HilbertSpace::Dim>& diagEnergies) noexcept
         {
-            StateVectorType Result = psi;
+            StateVector<HilbertSpace, QuantumPicture::Schrodinger> Result = psi;
 
-            for (natural_t i = 0; i < HilbertDim; ++i)
+            for (natural_t i = 0; i < HilbertSpace::Dim; ++i)
             {
-                const real_t PhaseArg = diagEnergies[i] * t;
+                const real_t PhaseArg = diagEnergies[i] * psi.m_TimeStamp;
 
                 const complex_t Phase =
                 {
