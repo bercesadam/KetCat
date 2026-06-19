@@ -115,7 +115,7 @@ namespace KetCat
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
-                RydbergBlockade(Units::MeterToAtomicLength * 1E-9,
+                RydbergBlockade(Units::MeterToAtomicLength * 3E-8,
                     ConfigType::RydbergLevel, HartreeEnergies, DipoleMatrix);
 
             static CrankNicolsonSolver<ConfigType::LevelCount,
