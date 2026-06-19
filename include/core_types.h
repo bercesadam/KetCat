@@ -91,6 +91,44 @@ namespace KetCat
 	/// and the last two correspond to the ±LevelCount diagonals.
 	constexpr natural_t UPPER_FAR = 3;
 	constexpr natural_t LOWER_FAR = 4;
+
+	/// @brief Type trait detecting any specialization of tridiagonal_matrix_t.
+	template<typename T>
+	struct is_tridiagonal_matrix : std::false_type {};
+
+	template<natural_t LevelCount>
+	struct is_tridiagonal_matrix<tridiagonal_matrix_t<LevelCount>>
+		: std::true_type {
+	};
+
+	/// @brief Type trait detecting any specialization of five_band_matrix_t.
+	template<typename T>
+	struct is_five_band_matrix : std::false_type {};
+
+	template<natural_t LevelCount>
+	struct is_five_band_matrix<five_band_matrix_t<LevelCount>>
+		: std::true_type {
+	};
+
+	/// @brief Concept matching any tridiagonal_matrix_t specialization.
+	template<typename T>
+	concept TridiagonalMatrix =
+		is_tridiagonal_matrix<
+		std::remove_cvref_t<T>
+		>::value;
+
+	/// @brief Concept matching any five_band_matrix_t specialization.
+	template<typename T>
+	concept FiveBandMatrix =
+		is_five_band_matrix<
+		std::remove_cvref_t<T>
+		>::value;
+
+	/// @brief Concept matching all supported sparse banded Hamiltonian matrix types.
+	template<typename T>
+	concept BandedMatrix =
+		TridiagonalMatrix<T> ||
+		FiveBandMatrix<T>;
 }
 
 ///@brief Tag struct to hold the spatial dimension's number

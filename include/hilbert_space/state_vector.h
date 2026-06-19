@@ -32,7 +32,7 @@ namespace KetCat
 		state_vector_t<Size> m_StateVector{};
 
 		/// The point of time of the simulation to which the state vector is applicable
-		natural_t m_TimeStamp{};
+		real_t m_TimeStamp{};
 
 		/// INDEXING ///////////////////////////////////////////////////////////////////////
 

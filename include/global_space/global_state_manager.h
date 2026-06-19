@@ -1,7 +1,5 @@
 #pragma once
 #include <bitset>
-#include <algorithm> 
-#include <ranges>
 
 #include "local_space/neutral_atom_manifold.h"
 
@@ -68,17 +66,34 @@ namespace KetCat
             static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
                 m_Manifold.getDipoleMatrix();
 
+            static const RwaFrame<ConfigType::LevelCount>
+                RwaFrame(HartreeEnergies, lasers);
+
+            static const eigenenergies_t<ConfigType::LevelCount>
+                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<natural_t{1}>();
+
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
 
             static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::ThomasTridiagonal> Solver;
 
+            if (TimeMaster::Clock().isInstructionStart())
+            {
+                prepareNewInstructionState(RwaFrame);
+            }
+
             Hamiltonian.updateMainDiagonal(lasers);
             Hamiltonian.updateOffDiagonal(lasers);
-            Solver.updateMatrices(Hamiltonian.getMatrix(), TimeMaster::Clock().getTimeStep());
+            
+            auto H = InteractionPictureHamiltonian<ConfigType::LevelCount, 1U>
+                ::transform(Hamiltonian.getMatrix(), RwaFrameEnergies,
+                    TimeMaster::Clock().getGlobalTime());
+
+            Solver.updateMatrices(H, TimeMaster::Clock().getTimeStep());
 
             std::array<natural_t, 1> targets = { targetAtom };
             SubspaceManager::template performTimeEvolution<1>(Solver, m_GlobalStateVectorDirac, targets);
+            m_GlobalStateVectorDirac.m_TimeStamp = TimeMaster::Clock().getGlobalTime();
         }
 
         void evolveTwoQubitGlobalState(const TwoPhotonDrive& lasers, const natural_t controlAtom, const natural_t targetAtom)
@@ -94,7 +109,7 @@ namespace KetCat
                 RwaFrame(HartreeEnergies, lasers);
 
             static const eigenenergies_t<ConstexprMath::pow(ConfigType::LevelCount, natural_t{2})>
-                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<2U>();
+                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<natural_t{2}>();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
@@ -124,6 +139,7 @@ namespace KetCat
 
             std::array<natural_t, 2> targets = { controlAtom, targetAtom };
             SubspaceManager::template performTimeEvolution<2>(Solver, m_GlobalStateVectorDirac, targets);
+            m_GlobalStateVectorDirac.m_TimeStamp = TimeMaster::Clock().getGlobalTime();
         }
 
         const auto& getStateVector()

@@ -108,8 +108,6 @@ namespace KetCat
         static constexpr natural_t Dim = ConstexprMath::pow(LevelCount, QubitCount);
 
     public:
-        using matrix_t = five_band_matrix_t<LevelCount>;
-
         /**
          * @brief Transforms the Schrödinger-picture (RWA) 5-band matrix into the Interaction Picture.
          *
@@ -123,12 +121,12 @@ namespace KetCat
          * @return matrix_t
          * The effective Interaction Picture Hamiltonian matrix ready for the numerical solver.
          */
-        static matrix_t transform(
-            const matrix_t& H,
-            const std::array<real_t, Dim>& localRwaEnergies,
-            real_t t) noexcept
+        template<BandedMatrix MatrixType>
+        static MatrixType transform(const MatrixType& H,
+            const eigenenergies_t<Dim>& localRwaEnergies,
+            const real_t t) noexcept
         {
-            matrix_t HI{};
+            MatrixType HI{};
 
             // --- 1. MAIN DIAGONAL: Strip the pure RWA detuning baseline ---
             // Since H[MAINDIAGONAL][i] contains (Detuning + StarkShift + vdW) and localRwaEnergies[i]
@@ -144,7 +142,7 @@ namespace KetCat
             for (natural_t i = 0; i < Dim - 1; ++i)
             {
                 auto Hij = H[SUPERDIAGONAL][i];
-                real_t dE = localRwaEnergies[i] - localRwaEnergies[i + 1];
+                real_t dE = localRwaEnergies[i + 1] - localRwaEnergies[i];
                 HI[SUPERDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
@@ -152,25 +150,28 @@ namespace KetCat
             for (natural_t i = 1; i < Dim; ++i)
             {
                 auto Hij = H[SUBDIAGONAL][i];
-                real_t dE = localRwaEnergies[i] - localRwaEnergies[i - 1];
+                real_t dE = localRwaEnergies[i - 1] - localRwaEnergies[i];
                 HI[SUBDIAGONAL][i] = Hij * exp_i(dE * t);
             }
 
-            // --- 4. FAR DIAGONALS (Cross-talk / Inter-qubit transitions) ---
-            for (natural_t i = 0; i < Dim; ++i)
+            if constexpr (FiveBandMatrix<MatrixType>)
             {
-                if (i + LevelCount < Dim)
+                // --- 4. FAR DIAGONALS (Cross-talk / Inter-qubit transitions) ---
+                for (natural_t i = 0; i < Dim; ++i)
                 {
-                    auto Hij = H[UPPER_FAR][i];
-                    real_t dE = localRwaEnergies[i] - localRwaEnergies[i + LevelCount];
-                    HI[UPPER_FAR][i] = Hij * exp_i(dE * t);
-                }
+                    if (i + LevelCount < Dim)
+                    {
+                        auto Hij = H[UPPER_FAR][i];
+                        real_t dE = localRwaEnergies[i + LevelCount] - localRwaEnergies[i];
+                        HI[UPPER_FAR][i] = Hij * exp_i(dE * t);
+                    }
 
-                if (i >= LevelCount)
-                {
-                    auto Hij = H[LOWER_FAR][i];
-                    real_t dE = localRwaEnergies[i] - localRwaEnergies[i - LevelCount];
-                    HI[LOWER_FAR][i] = Hij * exp_i(dE * t);
+                    if (i >= LevelCount)
+                    {
+                        auto Hij = H[LOWER_FAR][i];
+                        real_t dE = localRwaEnergies[i - LevelCount] - localRwaEnergies[i];
+                        HI[LOWER_FAR][i] = Hij * exp_i(dE * t);
+                    }
                 }
             }
 
