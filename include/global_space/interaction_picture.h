@@ -45,8 +45,8 @@ namespace KetCat
 
                 const complex_t Phase =
                 {
-                    ConstexprMath::cos(PhaseArg),
-                    ConstexprMath::sin(PhaseArg)   // +i
+                    std::cos(PhaseArg),
+                    std::sin(PhaseArg)   // +i
                 };
 
                 Result[i] = psi[i] * Phase;
@@ -78,8 +78,8 @@ namespace KetCat
 
                 const complex_t Phase =
                 {
-                    ConstexprMath::cos(PhaseArg),
-                   -ConstexprMath::sin(PhaseArg)   // -i
+                    std::cos(PhaseArg),
+                    -std::sin(PhaseArg)   // -i
                 };
 
                 Result[i] = psi[i] * Phase;
@@ -109,18 +109,18 @@ namespace KetCat
 
     public:
         /**
-         * @brief Transforms the Schrödinger-picture (RWA) 5-band matrix into the Interaction Picture.
-         *
-         * @param H
-         * The current RWA Hamiltonian matrix containing Detuning, AC Stark shifts, and vdW blockade.
-         * @param localRwaEnergies
-         * The pre-calculated pure RWA detuning baseline array for the 2-qubit subspace (size: Dim).
-         * @param t
-         * The current absolute global simulation time.
-         *
-         * @return matrix_t
-         * The effective Interaction Picture Hamiltonian matrix ready for the numerical solver.
-         */
+            * @brief Transforms the Schrödinger-picture (RWA) 5-band matrix into the Interaction Picture.
+            *
+            * @param H
+            * The current RWA Hamiltonian matrix containing Detuning, AC Stark shifts, and vdW blockade.
+            * @param localRwaEnergies
+            * The pre-calculated pure RWA detuning baseline array for the 2-qubit subspace (size: Dim).
+            * @param t
+            * The current absolute global simulation time.
+            *
+            * @return matrix_t
+            * The effective Interaction Picture Hamiltonian matrix ready for the numerical solver.
+            */
         template<BandedMatrix MatrixType>
         static MatrixType transform(const MatrixType& H,
             const eigenenergies_t<Dim>& localRwaEnergies,
@@ -180,13 +180,13 @@ namespace KetCat
 
     private:
         /**
-         * @brief Evaluates the complex phase factor $e^{i x}$ using compile-time compatible math.
-         */
+            * @brief Evaluates the complex phase factor $e^{i x}$ using compile-time compatible math.
+            */
         static complex_t exp_i(real_t x) noexcept
         {
             return {
-                ConstexprMath::cos(x),
-                ConstexprMath::sin(x)
+                std::cos(x),
+                std::sin(x)
             };
         }
     };
