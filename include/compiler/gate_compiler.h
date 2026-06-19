@@ -195,15 +195,26 @@ namespace KetCat
                 // while leaving all other computational basis
                 // states unchanged.
                 //
+                const natural_t ctrl = op.m_targets[0];
+                const natural_t trgt = op.m_targets[1];
+
+                constexpr real_t phaseShift = ConstexprMath::Pi + (ConstexprMath::Pi / 2.23606797749979); // 2.236067... = sqrt(5)
+
                 append(
                     PhysicalInstructionType::RydbergExcitation,
-                    {
-                        op.m_targets[0], // control
-                        op.m_targets[1]  // target
-                    },
+                    { ctrl, trgt },
                     2,
-                    ConstexprMath::Pi * 2,
-                    0.0);
+                    ConstexprMath::Pi,
+                    0.0
+                );
+
+                append(
+                    PhysicalInstructionType::RydbergExcitation,
+                    { ctrl, trgt },
+                    2,
+                    ConstexprMath::Pi,
+                    phaseShift
+                );
             }
 
             ///////////////////////////////////////////
