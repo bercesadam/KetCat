@@ -29,8 +29,8 @@ namespace KetCat
         /// @brief Type alias for the Quantum Picture converter helper class
         using PictureConverter = InteractionPictureStateTransformer<typename SubspaceManager::FullHilbertSpace>;
 
-        /// @brief The currently active RWA frame.
-        RwaFrame<ConfigType::LevelCount> m_CurrentRwaFrame;
+        /// @brief The RWA frame.
+        RwaFrame<ConfigType::LevelCount> m_RwaFrame;
 
 		/// @brief Full system state vector in the product Hilbert space, in Interaction picture
         /// @details Used during the operations, updated most of the time
@@ -44,11 +44,13 @@ namespace KetCat
 
     public:
 		GlobalStateManager(std::bitset<QubitCount> initialState)
-            : m_CurrentRwaFrame(eigenenergies_t<ConfigType::LevelCount>{}, TwoPhotonDrive{})
+            : m_RwaFrame(m_Manifold.getHartreeEnergies())
 		{
             m_GlobalStateVectorDirac =
                 SubspaceManager::basisStateFromBitstring(initialState,
 					ConfigType::Logical0Level, ConfigType::Logical1Level);
+
+            m_GlobalStateVectorSchrodinger.m_StateVector = m_GlobalStateVectorDirac.m_StateVector;
 		}
 
 
@@ -66,21 +68,13 @@ namespace KetCat
             static const square_matrix_t<ConfigType::LevelCount> DipoleMatrix =
                 m_Manifold.getDipoleMatrix();
 
-            static const RwaFrame<ConfigType::LevelCount>
-                RwaFrame(HartreeEnergies, lasers);
-
             static const eigenenergies_t<ConfigType::LevelCount>
-                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<natural_t{1}>();
+                RwaFrameEnergies = m_RwaFrame.getSingleRwaEnergies();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
 
             static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::ThomasTridiagonal> Solver;
-
-            if (TimeMaster::Clock().isInstructionStart())
-            {
-                prepareNewInstructionState(RwaFrame);
-            }
 
             Hamiltonian.updateMainDiagonal(lasers);
             Hamiltonian.updateOffDiagonal(lasers);
@@ -105,11 +99,8 @@ namespace KetCat
             static const square_matrix_t<ConfigType::LevelCount>
                 DipoleMatrix = m_Manifold.getDipoleMatrix();
 
-            static const RwaFrame<ConfigType::LevelCount>
-                RwaFrame(HartreeEnergies, lasers);
-
             static const eigenenergies_t<ConstexprMath::pow(ConfigType::LevelCount, natural_t{2})>
-                RwaFrameEnergies = RwaFrame.generateGlobalRwaEnergies<natural_t{2}>();
+                RwaFrameEnergies = m_RwaFrame.generateGlobalRwaEnergies<natural_t{2}>();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
                 SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
@@ -120,11 +111,6 @@ namespace KetCat
 
             static CrankNicolsonSolver<ConfigType::LevelCount,
                 LinearSolverBackend::FiveBandGaussianElimination> Solver;
-
-            if (TimeMaster::Clock().isInstructionStart())
-            {
-                prepareNewInstructionState(RwaFrame);
-            }
 
             SingleAtomExcitation.updateMainDiagonal(lasers);
             SingleAtomExcitation.updateOffDiagonal(lasers);
@@ -146,7 +132,7 @@ namespace KetCat
         {
             if (m_GlobalStateVectorDirac.m_TimeStamp > m_GlobalStateVectorSchrodinger.m_TimeStamp)
             {
-                const eigenenergies_t Energies = m_CurrentRwaFrame.generateGlobalRwaEnergies<QubitCount>();
+                static const eigenenergies_t Energies = m_RwaFrame.generateGlobalRwaEnergies<QubitCount>();
                 m_GlobalStateVectorSchrodinger =
                     PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac, Energies);
             }
@@ -156,21 +142,6 @@ namespace KetCat
         const auto& getManifold() const
         {
             return m_Manifold;
-        }
-
-    private:
-        void prepareNewInstructionState(const decltype(m_CurrentRwaFrame)& newRwaFrame)
-        {
-            const eigenenergies_t CurrentEnergies = m_CurrentRwaFrame.generateGlobalRwaEnergies<QubitCount>();
-            const eigenenergies_t NewEnergies = newRwaFrame.generateGlobalRwaEnergies<QubitCount>();
-
-            m_GlobalStateVectorSchrodinger =
-                PictureConverter::toSchrodingerPicture(m_GlobalStateVectorDirac, CurrentEnergies);
-
-            m_GlobalStateVectorDirac =
-                PictureConverter::toDiracPicture(m_GlobalStateVectorSchrodinger, NewEnergies);
-
-            m_CurrentRwaFrame = newRwaFrame;
         }
 	};
 }

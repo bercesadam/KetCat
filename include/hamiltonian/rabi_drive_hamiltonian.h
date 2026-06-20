@@ -131,7 +131,7 @@ namespace KetCat
                     CumulativeOmega += lasers[i - 1].m_omega;
                 }
 
-                const real_t RelativeEnergy = m_Energies[i] - m_Energies[drive.m_groundLevelOffset];
+                const real_t RelativeEnergy = m_Energies[i] - m_Energies[0];
                 const real_t Detuning = RelativeEnergy - CumulativeOmega;
 
                 /// --- AC Stark shift calculation ---

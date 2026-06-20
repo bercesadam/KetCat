@@ -13,21 +13,16 @@ namespace KetCat
         std::array<real_t, LevelCount> m_SingleRwaEnergies{};
 
     public:
-        constexpr RwaFrame(const eigenenergies_t<LevelCount>& singleAtomEnergies,
-                           const TwoPhotonDrive& drive) noexcept
+        constexpr RwaFrame(const eigenenergies_t<LevelCount>& singleAtomEnergies) noexcept
         {
             real_t CumulativeOmega = 0.0;
             std::array<real_t, LevelCount - 1> LaserOmegas{};
 
-            if (drive.m_groundLevelOffset < LevelCount - 1)
-            {
-                LaserOmegas[drive.m_groundLevelOffset] = drive.m_pump.m_omega;
-            }
-
-            if (drive.m_groundLevelOffset + 1 < LevelCount - 1)
-            {
-                LaserOmegas[drive.m_groundLevelOffset + 1] = drive.m_stokes.m_omega;
-            }
+            // Currently hardcoded for testing, TODO clean up and generalise
+            LaserOmegas[0] = (singleAtomEnergies[1] - singleAtomEnergies[0]) + Units::omegaAuFromHz(500e6);
+            LaserOmegas[1] = (singleAtomEnergies[2] - singleAtomEnergies[1]) - Units::omegaAuFromHz(500e6);
+            LaserOmegas[2] = (singleAtomEnergies[3] - singleAtomEnergies[2]) + Units::omegaAuFromHz(5000e6);
+            LaserOmegas[3] = (singleAtomEnergies[4] - singleAtomEnergies[3]) - Units::omegaAuFromHz(5000e6);
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
@@ -36,7 +31,7 @@ namespace KetCat
                     CumulativeOmega += LaserOmegas[i - 1];
                 }
 
-                const real_t relativeEnergy = singleAtomEnergies[i] - singleAtomEnergies[drive.m_groundLevelOffset];
+                const real_t relativeEnergy = singleAtomEnergies[i] - singleAtomEnergies[0];
                 m_SingleRwaEnergies[i] = relativeEnergy - CumulativeOmega;
             }
         }
@@ -65,5 +60,15 @@ namespace KetCat
 
             return GlobalRwaEnergies;
         }
+
+        /// @brief Retrieve the single-atom effective RWA energy array.
+        ///
+        /// @return 
+        ///   A reference to the calculated stationary RWA diagonals.
+        constexpr const std::array<real_t, LevelCount>& getSingleRwaEnergies() const noexcept
+        {
+            return m_SingleRwaEnergies;
+        }
+
     };
 }
