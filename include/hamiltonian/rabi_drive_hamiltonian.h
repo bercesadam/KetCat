@@ -1,6 +1,7 @@
 #pragma once 
 #include "core_types.h"
 #include "laser/laser_pulse.h"
+#include "global_space/rwa_frame.h"
 
 
 namespace KetCat
@@ -47,10 +48,13 @@ namespace KetCat
         using laser_array_t = std::array<LaserPulse, LevelCount - 1>;
 
     private:
-        /// @brief Bare energy levels of the system (e.g. Hartree units).
-        std::array<real_t, LevelCount> m_Energies{};
+        /// @brief Bare energy levels of the system (in Hartree units).
+        eigenenergies_t<LevelCount> m_AtomEigenEnergies{};
 
-        /// @brief Full dipole transition matrix μᵢⱼ.
+        /// @brief Reference energy levels of the rotating frame
+        eigenenergies_t<LevelCount> m_RwaEnergies{};
+
+        /// @brief Full dipole transition matrliix μᵢⱼ.
         FullDipoleMatrix m_DipoleMatrix{};
 
         /// @brief Internal tridiagonal Hamiltonian representation.
@@ -73,14 +77,13 @@ namespace KetCat
         ///   off-diagonal (Rabi couplings) terms.
         constexpr MultiRwaRabiHamiltonian(
             const std::array<real_t, LevelCount>& energies,
-            const FullDipoleMatrix& dipoleMatrix,
-            const TwoPhotonDrive& lasers) noexcept
-            : m_Energies(energies),
+            const RwaFrame<LevelCount>& rwa,
+            const FullDipoleMatrix& dipoleMatrix) noexcept
+            : m_AtomEigenEnergies(energies),
+            m_RwaEnergies(rwa.getSingleRwaEnergies()),
             m_DipoleMatrix(dipoleMatrix)
         {
             m_hamiltonianMatrix = {};
-            updateMainDiagonal(lasers);
-            updateOffDiagonal(lasers);
         }
 
         /// @brief Get the current Hamiltonian matrix.
@@ -125,14 +128,7 @@ namespace KetCat
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
-                /// Accumulate rotating-frame frequency shift
-                if (i > 0)
-                {
-                    CumulativeOmega += lasers[i - 1].m_omega;
-                }
-
-                const real_t RelativeEnergy = m_Energies[i] - m_Energies[0];
-                const real_t Detuning = RelativeEnergy - CumulativeOmega;
+                const real_t Detuning = m_RwaEnergies[i];
 
                 /// --- AC Stark shift calculation ---
                 real_t StarkShift = 0.0;
@@ -159,7 +155,7 @@ namespace KetCat
                         ///   Ωᵢⱼ/2 = −½ · μᵢⱼ · E
                         const real_t OmegaRabiHalf = -0.5 * DipoleElm * Laser.m_amplitude;
 
-                        const real_t DeltaE = m_Energies[i] - m_Energies[j];
+                        const real_t DeltaE = m_AtomEigenEnergies[i] - m_AtomEigenEnergies[j];
 
                         /// Rotating (near-resonant) contribution
                         const real_t ResonantDenom = DeltaE - Laser.m_omega;

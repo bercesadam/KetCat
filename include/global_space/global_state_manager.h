@@ -72,7 +72,7 @@ namespace KetCat
                 RwaFrameEnergies = m_RwaFrame.getSingleRwaEnergies();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
-                Hamiltonian(HartreeEnergies, DipoleMatrix, lasers);
+                Hamiltonian(HartreeEnergies, m_RwaFrame, DipoleMatrix);
 
             static CrankNicolsonSolver<ConfigType::LevelCount, LinearSolverBackend::ThomasTridiagonal> Solver;
 
@@ -103,7 +103,7 @@ namespace KetCat
                 RwaFrameEnergies = m_RwaFrame.generateGlobalRwaEnergies<natural_t{2}>();
 
             static MultiRwaRabiHamiltonian<ConfigType::LevelCount>
-                SingleAtomExcitation(HartreeEnergies, DipoleMatrix, lasers);
+                SingleAtomExcitation(HartreeEnergies, m_RwaFrame, DipoleMatrix);
 
             static TwoAtomRydbergBlockade<ConfigType::LevelCount>
                 RydbergBlockade(Units::MeterToAtomicLength * 3E-8,
