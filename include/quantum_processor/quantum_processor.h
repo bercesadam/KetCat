@@ -16,7 +16,7 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr natural_t SimuSaveNthFrame = 2E6;
+    constexpr natural_t SimuSaveNthFrame = 1E6;
     constexpr real_t TimeStepsPerInstruction = 5E7;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.

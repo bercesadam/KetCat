@@ -5,7 +5,7 @@
 #include <cmath>
 #include <array>
 
-#include "quantum_processor/quantum_processor.h"
+#include "quantum_processor/qpu_diag.h"
 #include "gate_calibration/gate_diagnostics.h" 
 #include "gate_calibration/phase_corrections.h"
 
@@ -85,9 +85,9 @@ namespace KetCat
             > Config;
 
         constexpr natural_t sweep_steps = 10;
-        std::array<real_t, sweep_steps> theta_points;
-        std::array<real_t, sweep_steps> rx_phase_errors;
-        std::array<real_t, sweep_steps> ry_phase_errors;
+        std::array<real_t, sweep_steps> theta_points{};
+        std::array<real_t, sweep_steps> rx_phase_errors{};
+        TwoQubitCalibResult cz_results{};
 
         // Prepare angles from 0 to pi using fixed-size containers required by the template
         for (size_t i = 0; i < sweep_steps; ++i)
@@ -95,15 +95,15 @@ namespace KetCat
             real_t theta = (ConstexprMath::Pi * (i + 1)) / static_cast<real_t>(sweep_steps);
             theta_points[i] = theta;
         }
-
+        /*
         using CircuitType = QuantumCircuit<1>;
         using QPUType = QuantumProcessor<1, Config>;
         using GlobalStateVectorType = decltype(std::declval<QPUType>().globalStateVector());
-
+        */
         // -------------------------------------------------------------------------
         // 1. SWEEP: Rx Gate calibration
         // -------------------------------------------------------------------------
-        for (size_t i = 0; i < sweep_steps; ++i)
+        /*for (size_t i = 0; i < sweep_steps; ++i)
         {
             real_t theta = theta_points[i];
             std::array<GlobalStateVectorType, 2> basis_outputs;
@@ -133,12 +133,48 @@ namespace KetCat
             rx_phase_errors[i] = PhaseError;
 
             std::cout << "Phase err at " << theta << " is: " << PhaseError << std::endl;
+        }*/
+
+        // -------------------------------------------------------------------------
+        // 2. SWEEP: 2-Qubit CZ (CPhase) Kapu diagnosztika
+        // -------------------------------------------------------------------------
+        std::cout << "\n>> Starting Two-Qubit CZ Gate Phase-Tracking Sweep..." << std::endl;
+
+        using Circuit2Q = QuantumCircuit<2>;
+        using QPU2Q = QuantumProcessor<2, Config>;
+
+        square_matrix_t<4> u_cz_eff{};
+
+        // Végigmegyünk a kétqubites bázisállapotokon: 00, 01, 10, 11
+        for (natural_t BaseState = 0; BaseState < 4; ++BaseState)
+        {
+            auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("cz_calib_" + std::to_string(BaseState) + ".kwf", BaseState);
+            Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
+
+            const auto EffectiveStateVector = Diag.getGlobalStateVector();
+
+            // A 2-qubites globális Hilbert-tér dimenziója atomi szinten: 6 * 6 = 36 állapot
+            // Ki kell gyűjtenünk a 4 tiszta logikai bázisállapotot:
+            // |00> = L0*LevelCount + L0
+            // |01> = L1*LevelCount + L0  (ha a kis-endian sorrendet nézzük)
+            constexpr natural_t Index00 = Config.Logical0Level + Config.Logical0Level * Config.LevelCount;
+            constexpr natural_t Index01 = Config.Logical1Level + Config.Logical0Level * Config.LevelCount;
+            constexpr natural_t Index10 = Config.Logical0Level + Config.Logical1Level * Config.LevelCount;
+            constexpr natural_t Index11 = Config.Logical1Level + Config.Logical1Level * Config.LevelCount;
+
+            u_cz_eff[0][BaseState] = EffectiveStateVector[Index00];
+            u_cz_eff[1][BaseState] = EffectiveStateVector[Index01];
+            u_cz_eff[2][BaseState] = EffectiveStateVector[Index10];
+            u_cz_eff[3][BaseState] = EffectiveStateVector[Index11];
         }
+
+        // Kiszámoljuk az elcsúszott azimutális fázisokat
+        cz_results = GateDiagnostic<4>::analyzeCPhase(u_cz_eff);
 
         // -------------------------------------------------------------------------
         // HEADER EXPORT
         // -------------------------------------------------------------------------
-        generateCalibrationHeader<sweep_steps>(theta_points, rx_phase_errors, TwoQubitCalibResult{});
+        generateCalibrationHeader<sweep_steps>(theta_points, rx_phase_errors, cz_results);
 
         return 0;
     }

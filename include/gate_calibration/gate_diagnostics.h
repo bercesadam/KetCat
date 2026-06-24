@@ -229,10 +229,10 @@ namespace KetCat
         }
 
         /// @brief Dynamically builds the theoretical, ideal unitary matrix of Rx(theta) matching GateTraits
-        static Matrix<2> buildIdealRx(real_t theta) noexcept
+        static Matrix buildIdealRx(real_t theta) noexcept
         {
             const real_t halfTheta = theta / 2.0;
-            Matrix<2> U;
+            Matrix U;
             U.at(0, 0) = complex_t(std::cos(halfTheta), 0.0);
             U.at(0, 1) = complex_t(0.0, -std::sin(halfTheta));
             U.at(1, 0) = complex_t(0.0, -std::sin(halfTheta));
@@ -241,10 +241,10 @@ namespace KetCat
         }
 
         /// @brief Dynamically builds the theoretical, ideal unitary matrix of Ry(theta)
-        static Matrix<2> buildIdealRy(real_t theta) noexcept
+        static Matrix buildIdealRy(real_t theta) noexcept
         {
             const real_t halfTheta = theta / 2.0;
-            Matrix<2> U;
+            Matrix U;
             U.at(0, 0) = complex_t(std::cos(halfTheta), 0.0);
             U.at(0, 1) = complex_t(-std::sin(halfTheta), 0.0);
             U.at(1, 0) = complex_t(std::sin(halfTheta), 0.0);

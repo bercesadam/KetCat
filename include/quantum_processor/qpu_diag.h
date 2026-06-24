@@ -28,9 +28,9 @@ namespace KetCat
 			return m_processor;
 		}
 
-		auto& getGlobalStateVector() const
+		const auto& getGlobalStateVector()
 		{
-			return m_processor.m_GlobalStateVector;
+			return m_processor.m_GlobalStateManager.getStateVector();
 		}
 
 		void executePhysicalInstruction(const PhysicalInstruction& instruction)
