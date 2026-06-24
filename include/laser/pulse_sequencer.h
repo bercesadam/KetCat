@@ -141,12 +141,7 @@ namespace KetCat
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
-            // Handle idle atoms (during CPHASE gates)
-            else if (instruction.m_type == PhysicalInstructionType::FreeEvolution)
-            {
-                // TODO Return a "turned off" laser
-            }
-           
+
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             instruction.m_phase -= framePhase;
 
@@ -154,7 +149,32 @@ namespace KetCat
             TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(instruction));
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
 
+            // 
+            applyPostGatePhaseCorrection(instruction);
+
             return LaserEnvelope;
+        }
+
+    private:
+        constexpr void applyPostGatePhaseCorrection(PhysicalInstruction& instruction) noexcept
+        {
+            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
+            {
+                const real_t SingleAtomCzPhaseError = 1.57;
+
+                m_RWAFramePhases[instruction.m_targets[0]] += SingleAtomCzPhaseError;
+                m_RWAFramePhases[instruction.m_targets[1]] += SingleAtomCzPhaseError;
+
+                std::cout << "Applied CZ frame correction after RydbergExcitation: +" << SingleAtomCzPhaseError << " rad" << std::endl;
+            }
+            else if (instruction.m_type == PhysicalInstructionType::RamanRotation) // vagy amilyen típusjelzést használsz az 1-qubites kapukra
+            {
+                //auto rxInterpolator = GateCalibrationTable::getRxCalib();
+                //real_t rxError = rxInterpolator.evaluate(instruction.m_theta);
+
+                //framePhase += rxError;
+                //std::cout << "Applied Rx frame correction after RamanRotation for theta " << instruction.m_theta << ": +" << rxError << " rad" << std::endl;
+            }
         }
     };
 }
