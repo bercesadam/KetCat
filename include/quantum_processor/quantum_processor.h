@@ -123,7 +123,7 @@ namespace KetCat
         {
             std::cout << "Executing instruction: " << instruction << std::endl;
             m_SimulationObserver.appendSimulationStepName(instructionNameToString(instruction.m_type) + ", θ=" +
-                std::to_string(instruction.m_theta) + ", φ=" + std::to_string(instruction.m_phase) + "; ");
+                std::to_string(instruction.m_theta) + ", φ=" + std::to_string(instruction.m_phases[0].m_phase) + "; ");
 
             auto PulseEnvelope = m_laserSequencer.calculateLaserEnvelope(instruction);
 
@@ -142,7 +142,7 @@ namespace KetCat
                 (Units::AtomicTimeToSeconds * TransitionTimeLimit) * 1E9 << " ns" << std::endl;
 			std::cout << "Time step: " << TimeMaster::Clock().getTimeStep() << " a.u. (" <<
                 (Units::AtomicTimeToSeconds * TimeMaster::Clock().getTimeStep()) * 1E9 << " ns)" << std::endl;
-			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phase << " radians" << std::endl;
+			std::cout << "Theta: " << instruction.m_theta << " radians, Phase: " << instruction.m_phases[0].m_phase << " radians" << std::endl;
 
 			TwoPhotonDrive Lasers;
 

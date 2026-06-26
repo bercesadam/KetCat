@@ -97,7 +97,9 @@ namespace KetCat
             LaserConfig.m_peakRabiFrequencyS = Units::omegaAuFromHz(PeakRabiHzS);
             LaserConfig.m_commonDetuning = Units::omegaAuFromHz(CommonDetuningHz);
 
-            LaserConfig.m_pumpPhase = instruction.m_phase;
+            LaserConfig.m_pumpPhase = instruction.m_phases[0].m_phase;
+            LaserConfig.m_pumpPhase2 = instruction.m_phases[1].m_phase;
+            LaserConfig.m_pumpPhase2Timing = instruction.m_phases[1].m_time;
             LaserConfig.m_protocol = TwoPhotonProtocol::Simultaneous;
 
             LaserConfig.m_targetTheta = instruction.m_theta;
@@ -141,9 +143,17 @@ namespace KetCat
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
-
+            // Handle idle atoms (during CPHASE gates)
+            else if (instruction.m_type == PhysicalInstructionType::FreeEvolution)
+            {
+                // TODO Return a "turned off" laser
+            }
+           
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
-            instruction.m_phase -= framePhase;
+            for (TimeDependentPhase& p : instruction.m_phases)
+            {
+                p.m_phase -= framePhase;
+            }
 
             // Generate physical laser parameters via Builder
             TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(instruction));

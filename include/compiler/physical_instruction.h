@@ -45,6 +45,16 @@ namespace KetCat
 	/// the number of targets without the full struct as well, allowing more elegant handling for debugging.
     static constexpr natural_t TARGET_INACTIVE = std::numeric_limits<natural_t>::max();
 
+    struct TimeDependentPhase
+    {
+        real_t m_time  = -1.0;
+        real_t m_phase =  0.0;
+    };
+
+    template<natural_t Count>
+    using phase_timings_t = std::array< TimeDependentPhase, Count>;
+
+    static constexpr natural_t MAX_PHASE_TIMINGS = 2U;
 
 	/// @brief Concrete instance of a physical control instruction, ready for pulse generation and execution.
     struct PhysicalInstruction
@@ -62,7 +72,7 @@ namespace KetCat
         real_t m_theta = 0.0;
 
 		// @brief Phase φ for Raman rotations, in radians.
-        real_t m_phase = 0.0;
+        phase_timings_t<MAX_PHASE_TIMINGS> m_phases;
 
 		friend std::ostream& operator<<(std::ostream& os, const PhysicalInstruction& instruction)
 		{
@@ -77,7 +87,7 @@ namespace KetCat
 				}
 			}
 			os << "], Theta: " << instruction.m_theta
-				<< ", Phase: " << instruction.m_phase
+				<< ", Phase: " << instruction.m_phases[0].m_phase
 				<< ")";
 			return os;
 		}

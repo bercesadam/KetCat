@@ -58,7 +58,7 @@ namespace KetCat
         std::cout << "\n>> [KetCat] gate_calibration_map.h successfully generated!" << std::endl;
     }
 
-    int main()
+    int performGateCalibration()
     {
         std::cout << "====================================================" << std::endl;
         std::cout << "     KetCat QUANTUM GATE SWEEP & NEWTON CALIBRATION " << std::endl;
@@ -74,7 +74,7 @@ namespace KetCat
 
             0, /* Index of the logical level 0 */
             2, /* Index of the logical level 1 */
-            5, /* Index of the Rydberg level */
+            4, /* Index of the Rydberg level */
 
             QuantumNumber<6, s>,  /*0*/
             QuantumNumber<6, p>,  /*1*/
@@ -84,53 +84,55 @@ namespace KetCat
             QuantumNumber<20, p>  /*5*/
             > Config;
 
-        constexpr natural_t sweep_steps = 10;
-        std::array<real_t, sweep_steps> theta_points{};
-        std::array<real_t, sweep_steps> rx_phase_errors{};
-        TwoQubitCalibResult cz_results{};
+        constexpr natural_t sweep_steps = 4;
+        std::array<real_t, sweep_steps> ThetaSamplingPoints{};
+        std::array<real_t, sweep_steps> RxGatePhaseErrors{};
+        TwoQubitCalibResult CzResults{};
 
         // Prepare angles from 0 to pi using fixed-size containers required by the template
         for (size_t i = 0; i < sweep_steps; ++i)
         {
             real_t theta = (ConstexprMath::Pi * (i + 1)) / static_cast<real_t>(sweep_steps);
-            theta_points[i] = theta;
+            ThetaSamplingPoints[i] = theta;
         }
-        /*
+        
         using CircuitType = QuantumCircuit<1>;
-        using QPUType = QuantumProcessor<1, Config>;
-        using GlobalStateVectorType = decltype(std::declval<QPUType>().globalStateVector());
-        */
+        using QPUDiagType = QPUDiagnostics<1, Config>;
+        using GlobalStateVectorType =
+            StateVector<FiniteHilbertSpace<Config.LevelCount>, QuantumPicture::Schrodinger>;
+        
         // -------------------------------------------------------------------------
         // 1. SWEEP: Rx Gate calibration
         // -------------------------------------------------------------------------
         /*for (size_t i = 0; i < sweep_steps; ++i)
         {
-            real_t theta = theta_points[i];
-            std::array<GlobalStateVectorType, 2> basis_outputs;
+            real_t theta = ThetaSamplingPoints[i];
+            std::array<GlobalStateVectorType, 2> BasisOutputs;
+            auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
 
             // Running from pure |0> state
             {
-                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
-                auto QPU = QPUType("x_calib_0_" + std::to_string(theta) + ".kwf", 0);
-                QPU.execute<1>(Circuit);
-                basis_outputs[0] = QPU.globalStateVector();
+                auto Diag = QPUDiagType::createQPUWithInitialState("x_calib_0_" + std::to_string(theta) + ".kwf", 0);
+                Diag.QPU().execute<1>(Circuit);
+                BasisOutputs[0] = Diag.getGlobalStateVector();
+                TimeMaster::Clock().reset();
             }
 
             // Running from pure |1> state
             {
-                auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
-                auto QPU = QPUType("x_calib_1_" + std::to_string(theta) + ".kwf", 1);
-                QPU.execute<1>(Circuit);
-                basis_outputs[1] = QPU.globalStateVector();
+                auto Diag = QPUDiagType::createQPUWithInitialState("x_calib_1_" + std::to_string(theta) + ".kwf", 1);
+                Diag.QPU().execute<1>(Circuit);
+                BasisOutputs[1] = Diag.getGlobalStateVector();
+                TimeMaster::Clock().reset();
             }
 
             // Build the effective 2x2 matrix using the GateDiagnostic class
-            Matrix<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(basis_outputs);
+            Matrix<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(BasisOutputs);
             Matrix<2> U_ideal = GateDiagnostic<2>::buildIdealRx(theta);
 
             // Compute the phase error between the theoretical and effective representations
             real_t PhaseError = GateDiagnostic<2>::globalPhase(U_eff, U_ideal);
-            rx_phase_errors[i] = PhaseError;
+            RxGatePhaseErrors[i] = PhaseError;
 
             std::cout << "Phase err at " << theta << " is: " << PhaseError << std::endl;
         }*/
@@ -140,9 +142,6 @@ namespace KetCat
         // -------------------------------------------------------------------------
         std::cout << "\n>> Starting Two-Qubit CZ Gate Phase-Tracking Sweep..." << std::endl;
 
-        using Circuit2Q = QuantumCircuit<2>;
-        using QPU2Q = QuantumProcessor<2, Config>;
-
         square_matrix_t<4> u_cz_eff{};
 
         // Végigmegyünk a kétqubites bázisállapotokon: 00, 01, 10, 11
@@ -150,6 +149,7 @@ namespace KetCat
         {
             auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("cz_calib_" + std::to_string(BaseState) + ".kwf", BaseState);
             Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
+            TimeMaster::Clock().reset();
 
             const auto EffectiveStateVector = Diag.getGlobalStateVector();
 
@@ -169,19 +169,17 @@ namespace KetCat
         }
 
         // Kiszámoljuk az elcsúszott azimutális fázisokat
-        cz_results = GateDiagnostic<4>::analyzeCPhase(u_cz_eff);
+        CzResults = GateDiagnostic<4>::analyzeCPhase(u_cz_eff);
 
         // -------------------------------------------------------------------------
         // HEADER EXPORT
         // -------------------------------------------------------------------------
-        generateCalibrationHeader<sweep_steps>(theta_points, rx_phase_errors, cz_results);
-
-        return 0;
+        generateCalibrationHeader<sweep_steps>(ThetaSamplingPoints, RxGatePhaseErrors, CzResults);
     }
 }
 
 int main()
 {
-    KetCat::main();
+    KetCat::performGateCalibration();
     return 0;
 }

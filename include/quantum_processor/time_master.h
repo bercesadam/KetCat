@@ -113,6 +113,14 @@ namespace KetCat
             m_isInstructionStart = true;
         }
 
+        /// @brief Reset all timers; for diagnostics only.
+        void reset()
+        {
+            m_currentInstructionTime = 0.0;
+            m_globalTime = 0.0;
+            m_isInstructionStart = true;
+        }
+
         /// @brief Advance the global simulation clock by one timestep.
         void tick()
         {

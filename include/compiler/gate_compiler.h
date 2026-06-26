@@ -33,13 +33,13 @@ namespace KetCat
         natural_t m_UsedInstructionsCount = 0;
         physical_instructions_list_t m_Instructions = {};
 
-        /// @brief Append a native physical instruction.
+        /// @brief Append a native physical instruction, with phase timings array.
         constexpr void append(
             PhysicalInstructionType type,
             std::initializer_list<natural_t> targets,
             natural_t targetCount,
             real_t theta,
-            real_t phase)
+            phase_timings_t<MAX_PHASE_TIMINGS> phases)
         {
             PhysicalInstruction& Instruction =
                 m_Instructions[m_UsedInstructionsCount];
@@ -50,7 +50,7 @@ namespace KetCat
                 { TARGET_INACTIVE, TARGET_INACTIVE },
                 targetCount,
                 theta,
-                phase
+                phases
             };
 
             natural_t i = 0;
@@ -61,6 +61,17 @@ namespace KetCat
             }
 
             ++m_UsedInstructionsCount;
+        }
+
+        /// @brief Append a native physical instruction.
+        constexpr void append(
+            PhysicalInstructionType type,
+            std::initializer_list<natural_t> targets,
+            natural_t targetCount,
+            real_t theta,
+            real_t phase)
+        {
+            append(type, targets, targetCount, theta, { TimeDependentPhase{0.0, phase} });
         }
 
         /// @brief Append all instructions from another compiler result.
@@ -198,22 +209,14 @@ namespace KetCat
                 const natural_t ctrl = op.m_targets[0];
                 const natural_t trgt = op.m_targets[1];
 
-                constexpr real_t phaseShift = ConstexprMath::Pi + (ConstexprMath::Pi / 2.23606797749979); // 2.236067... = sqrt(5)
+                constexpr real_t phaseShift = 1.17321; //ConstexprMath::Pi + (ConstexprMath::Pi / 2.23606797749979); // 2.236067... = sqrt(5)
 
                 append(
                     PhysicalInstructionType::RydbergExcitation,
                     { ctrl, trgt },
                     2,
-                    ConstexprMath::Pi,
-                    0.0
-                );
-
-                append(
-                    PhysicalInstructionType::RydbergExcitation,
-                    { ctrl, trgt },
-                    2,
-                    ConstexprMath::Pi,
-                    phaseShift
+                    2 * ConstexprMath::Pi,
+                    { TimeDependentPhase{0.0, 0.0}, TimeDependentPhase{0.5, phaseShift} }
                 );
             }
 

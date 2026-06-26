@@ -30,6 +30,8 @@ namespace KetCat
         real_t m_peakRabiFrequencyP;   ///< Max Ω₀ (Pump)
         real_t m_peakRabiFrequencyS;   ///< Max Ω₀ (Stokes)
         real_t m_pumpPhase;           ///< Phase φ
+        real_t m_pumpPhase2;
+        real_t m_pumpPhase2Timing;
         real_t m_commonDetuning;      ///< Detuning Δ
         real_t m_targetTheta;         ///< Rotation angle θ
         TwoPhotonProtocol m_protocol = TwoPhotonProtocol::STIRAP;
@@ -47,6 +49,8 @@ namespace KetCat
             real_t m_peakRabiP;       ///< Peak amplitude for the pump laser
             real_t m_peakRabiS;       ///< Peak amplitude for the Stokes laser
             real_t m_phaseP;         ///< Pump phase
+            real_t m_phaseP2;
+            real_t m_phaseP2Time;
             real_t m_sigma;          ///< Gaussian width
             real_t m_tP;             ///< Pump center
             real_t m_tS;             ///< Stokes center
@@ -97,10 +101,17 @@ namespace KetCat
             const real_t AmpS = m_Parameters.m_peakRabiS *
                 gaussian(time, m_Parameters.m_tS, m_Parameters.m_sigma);
 
+            real_t ActualPhase = m_Parameters.m_phaseP;
+            if ((time / m_Parameters.m_tLimit) >= m_Parameters.m_phaseP2Time)
+            {
+                ActualPhase = m_Parameters.m_phaseP2;
+            }
+           
+
             return
             {
                 m_Parameters.m_GroundLevelIndex,
-                LaserPulse{ m_Parameters.m_omegaP, AmpP, m_Parameters.m_phaseP },
+                LaserPulse{ m_Parameters.m_omegaP, AmpP, ActualPhase },
                 LaserPulse{ m_Parameters.m_omegaS, AmpS, 0.0 }
             };
         }
@@ -147,6 +158,8 @@ namespace KetCat
 
 			// 3. Copy the pump phase from the configuration, which already includes the rotating frame correction.
             Parameters.m_phaseP = m_config.m_pumpPhase;
+            Parameters.m_phaseP2 = m_config.m_pumpPhase2;
+            Parameters.m_phaseP2Time = m_config.m_pumpPhase2Timing;
 
             // 4. Protocol-specific timing calculation
             if (m_config.m_protocol == TwoPhotonProtocol::Simultaneous)

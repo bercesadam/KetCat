@@ -55,7 +55,7 @@ namespace KetCat
         ///
         template<typename HilbertSpace>
         static constexpr Matrix buildEffectiveGate(
-            const std::array<StateVector<HilbertSpace>, Dim>& basisOutputs) noexcept
+            const std::array<StateVector<HilbertSpace, QuantumPicture::Schrodinger>, Dim>& basisOutputs) noexcept
         {
             Matrix Result;
             Result.setZero();

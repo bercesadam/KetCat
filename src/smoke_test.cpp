@@ -49,8 +49,8 @@ int main()
 	);
 
     //QuantumProcessor<2, Config>("grover.kwf").execute(Grover); 
-    //QuantumProcessor<2, Config>("bell.kwf").execute(Bell);
+    QuantumProcessor<2, Config>("bell.kwf").execute(Bell);
 
-    auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("test.kwf", 1);
-    Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
+    auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("test.kwf", 3);
+    //Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
 }
