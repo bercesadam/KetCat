@@ -352,8 +352,6 @@ def update(frame):
             bz = (np.abs(a)**2) - (np.abs(b)**2)
             bloch_vectors[q].set_data([0, bx], [0, by])
             bloch_vectors[q].set_3d_properties([0, bz])
-            print(a, b, bx, by, bz)
-
 
     # 3. Update Qiskit-style Histogram Columns
     for bar, h in zip(bars, current_probs):
