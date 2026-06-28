@@ -16,7 +16,7 @@ namespace KetCat
     /// @brief Defining these as global constants here, as they work out well and
     /// currently I see no point to expose them ie. in the contructor the the QPU
     /// so it grabs these values directly from here.
-    constexpr natural_t SimuSaveNthFrame = 1E6;
+    constexpr natural_t SimuSaveNthFrame = 4E5;
     constexpr real_t TimeStepsPerInstruction = 5E7;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.
@@ -55,6 +55,7 @@ namespace KetCat
             : QuantumProcessor(simulationOutputFileName, std::bitset<QubitCount>{})
         {  
 			printLogo();
+            TimeMaster::Clock().reset();
         }
 
         /// @brief Execute a logical quantum circuit.
@@ -122,8 +123,25 @@ namespace KetCat
         void executeInstruction(PhysicalInstruction& instruction)
         {
             std::cout << "Executing instruction: " << instruction << std::endl;
-            m_SimulationObserver.appendSimulationStepName(instructionNameToString(instruction.m_type) + ", θ=" +
-                std::to_string(instruction.m_theta) + ", φ=" + std::to_string(instruction.m_phases[0].m_phase) + "; ");
+
+            // Construct simulation step name for visualization
+            m_SimulationObserver.appendSimulationStepName(instructionNameToString(instruction.m_type));
+
+            // For Virtual Z gates, indicate rotation angle as phase shift
+            if (instruction.m_type == PhysicalInstructionType::VirtualZ)
+            {
+                m_SimulationObserver.appendSimulationStepName(", φ=" + std::format("{:.2f}", instruction.m_theta) + "; ");
+            }
+            // For Raman (Bloch) rotations, indicate the rotation angle θ
+            else if (instruction.m_type == PhysicalInstructionType::RamanRotation)
+            {
+                m_SimulationObserver.appendSimulationStepName(", θ=" + std::format("{:.2f}", instruction.m_theta) + "; ");
+            }
+            else
+            {
+                m_SimulationObserver.appendSimulationStepName("; ");
+            }
+            
 
             auto PulseEnvelope = m_laserSequencer.calculateLaserEnvelope(instruction);
 

@@ -48,7 +48,7 @@ namespace KetCat
             real_t time, const StateVector<OperationSpace, QuantumPicture::Schrodinger>& psiLocal) const
         {
             std::ostringstream Title;
-            Title << std::fixed << std::setprecision(2);
+            Title << std::fixed << std::setprecision(1);
             Title << "Atom: " << getElementName(ConfigType::ChemicalElement);
             Title << " (Z=" << AtomicNumber<ConfigType::ChemicalElement>::value << ")|";
             Title << simulationStepName << "|"; 
@@ -119,7 +119,7 @@ namespace KetCat
                     Qubit.m_laser2Intensity = Units::intensityWcm2FromFieldAu(laser2.m_amplitude);
 
                     Qubit.m_title =
-                        compileCaption("Qubit " + std::to_string(i) + " " + simulationStepName, time, psiLocal);
+                        compileCaption(simulationStepName, time, psiLocal);
                     m_lastGateName[i] = simulationStepName;
 				}
 				// For non-active qubits, set laser parameters to zero and print the last active gate name
@@ -130,7 +130,7 @@ namespace KetCat
                     Qubit.m_laser2Wavelength = {};
                     Qubit.m_laser2Intensity  = {};
                     Qubit.m_title =
-                        compileCaption("Qubit " + std::to_string(i) + " is idle, last gate: " + m_lastGateName[i], time, psiLocal);
+                        compileCaption("Idle, last gate : " + m_lastGateName[i], time, psiLocal);
                 }
 
             }

@@ -16,7 +16,7 @@ namespace KetCat
     /// Makes exportStep() calls look better, but I found defining an enum class a bit of an overkill.
     static constexpr bool KEYFRAME = true;
 
-    static constexpr bool VERBOSE = true;
+    static constexpr bool VERBOSE = false;
 
     /// @brief Diagnostic and telemetry layer for recording simulation state.
     /// 
