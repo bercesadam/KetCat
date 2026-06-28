@@ -1,8 +1,11 @@
 #pragma once
 #include "local_space/neutral_atom_config.h"
 
-namespace KetCat
+
+namespace KetCat::AtomConfig
 {
+    using namespace SpectroscopicLetters;
+
     NeutralAtomTypeConfig
         <
         Element::Cs,
@@ -12,7 +15,7 @@ namespace KetCat
 
         0, /* Index of the logical level 0 */
         2, /* Index of the logical level 1*/
-        5, /* Index of the Rydberg level */
+        4, /* Index of the Rydberg level */
 
         QuantumNumber<6, s>,  /*0*/
         QuantumNumber<6, p>,  /*1*/
@@ -20,5 +23,5 @@ namespace KetCat
         QuantumNumber<10, p>, /*3*/
         QuantumNumber<20, s>, /*4*/
         QuantumNumber<20, p>  /*5*/
-        > AtomConfig;
+        > Cesium_6Level;
 }

@@ -1,29 +1,11 @@
+#include "config.h"
 #include "quantum_processor/qpu_diag.h"
+
 
 int main()
 {
     using namespace KetCat;
-    using namespace SpectroscopicLetters;
-
-    NeutralAtomTypeConfig
-        <
-        Element::Cs,
-
-        256, /* Spatial discretization steps count */
-        100.0, /* Spatial extent in a.u. */
-
-        0, /* Index of the logical level 0 */
-        2, /* Index of the logical level 1*/
-        4, /* Index of the Rydberg level */
-
-        QuantumNumber<6, s>,  /*0*/
-        QuantumNumber<6, p>,  /*1*/
-        QuantumNumber<7, s>,  /*2*/
-        QuantumNumber<10, p>, /*3*/
-        QuantumNumber<20, s>, /*4*/
-        QuantumNumber<20, p>  /*5*/
-        > Config;
-
+    
     auto Grover = QuantumCircuit<2>().withGates(
 		QuantumGate<1, GateType::H>().toBits(0),
         QuantumGate<1, GateType::H>().toBits(1),
@@ -43,14 +25,34 @@ int main()
         QuantumGate<1, GateType::H>().toBits(1)
     );
 	
-	auto Bell = QuantumCircuit<2>().withGates(
+	auto GHZ = QuantumCircuit<3>().withGates(
 		QuantumGate<1, GateType::H>().toBits(0),
-		QuantumGate<2, GateType::CX>().toBits(0, 1)
+		QuantumGate<2, GateType::CX>().toBits(0, 1),
+        QuantumGate<2, GateType::CX>().toBits(1, 2)
 	);
 
-    //QuantumProcessor<2, Config>("grover.kwf").execute(Grover); 
-    QuantumProcessor<2, Config>("bell.kwf").execute(Bell);
+    constexpr real_t Theta_P0_2_3 = 2.0 * ConstexprMath::acos(ConstexprMath::sqrt(2.0 / 3.0));
+    auto FairDice = QuantumCircuit<3>().withGates(
+        QuantumGate<1, GateType::H>().toBits(0),
+        QuantumGate<1, GateType::RY>().withTheta(Theta_P0_2_3).toBits(2),
+        QuantumGate<1, GateType::X>().toBits(2),
+        QuantumGate<1, GateType::RY>().withTheta(ConstexprMath::Pi / 4).toBits(1),
+        QuantumGate<2, GateType::CX>().toBits(2, 1),
+        QuantumGate<1, GateType::RY>().withTheta(-ConstexprMath::Pi / 4).toBits(1),
+        QuantumGate<2, GateType::CX>().toBits(2, 1),
+        QuantumGate<1, GateType::X>().toBits(2)
+    );
 
-    auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("test.kwf", 3);
+    auto Test = QuantumCircuit<1>().withGates(
+        //QuantumGate<1, GateType::X>().toBits(0),
+        QuantumGate<1, GateType::H>().toBits(0)
+    );
+
+    //QuantumProcessor<1, AtomConfig::Cesium_6Level>("h.kwf").execute(Test);
+    //QuantumProcessor<3, Config>("dice.kwf").execute(FairDice);
+    //QuantumProcessor<2, AtomConfig::Cesium_6Level>("grover.kwf").execute(Grover);
+    QuantumProcessor<3, AtomConfig::Cesium_6Level>("ghz.kwf").execute(GHZ);
+
+    //auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("test.kwf", 3);
     //Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
 }

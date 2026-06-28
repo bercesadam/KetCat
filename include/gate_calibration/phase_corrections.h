@@ -7,9 +7,9 @@ namespace KetCat
     /// @brief Calibration result structure for a two-qubit gate
     struct TwoQubitCalibResult
     {
-        real_t controlFramePhaseError = 0.0;
-        real_t targetFramePhaseError = 0.0;
-        real_t actualCzPhase = 0.0;
+        real_t m_controlFramePhaseError = 0.0;
+        real_t m_targetFramePhaseError = 0.0;
+        real_t m_actualCzPhase = 0.0;
     };
 
     /// @brief Exact polynomial interpolator using Newton divided differences.
@@ -64,7 +64,7 @@ namespace KetCat
             //   m_coefficients[i] contains Newton coefficient aᵢ.
             for (natural_t Order = 1; Order < DataPoints; ++Order)
             {
-                for (natural_t i = DataPoints; i >= Order; --i)
+                for (natural_t i = DataPoints - 1; i >= Order; --i)
                 {
                     const real_t Dx =  m_X[i] - m_X[i - Order];
 

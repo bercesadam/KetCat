@@ -1,10 +1,14 @@
 #pragma once
 #include <optional>
+
 #include "atomic_units.h"
 #include "two_photon_laser.h"
 #include "quantum_processor/time_master.h"
 #include "compiler/physical_instruction.h"
 #include "local_space/neutral_atom_manifold.h"
+
+#include "codegen/gate_calibration_map.h"
+
 
 namespace KetCat
 {
@@ -159,7 +163,7 @@ namespace KetCat
             TwoPhotonPulseBuilder LaserBuilder(prepareLaserConfig(instruction));
             TwoPhotonLaserEnvelope LaserEnvelope = LaserBuilder.build();
 
-            // 
+            // Apply post-gate phase error RWA frame corrections, in case the gates are calibrated
             applyPostGatePhaseCorrection(instruction);
 
             return LaserEnvelope;
@@ -168,23 +172,23 @@ namespace KetCat
     private:
         constexpr void applyPostGatePhaseCorrection(PhysicalInstruction& instruction) noexcept
         {
+#if defined(CALIBRATED_GATES) && !defined(DISABLE_PHASE_GATE_CORRECTION) 
+
             if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
             {
-                const real_t SingleAtomCzPhaseError = 1.57;
-
-                m_RWAFramePhases[instruction.m_targets[0]] += SingleAtomCzPhaseError;
-                m_RWAFramePhases[instruction.m_targets[1]] += SingleAtomCzPhaseError;
-
-                std::cout << "Applied CZ frame correction after RydbergExcitation: +" << SingleAtomCzPhaseError << " rad" << std::endl;
+                static constexpr TwoQubitCalibResult CzError = GateCalibrationTable::getCPhaseCalib();
+                m_RWAFramePhases[instruction.m_targets[0]] += CzError.m_controlFramePhaseError;
+                m_RWAFramePhases[instruction.m_targets[1]] += CzError.m_targetFramePhaseError;
+                std::cout << "Applied RWA frame correction after RydbergExcitation: +" << CzError.m_controlFramePhaseError << " rad" << std::endl;
             }
-            else if (instruction.m_type == PhysicalInstructionType::RamanRotation) // vagy amilyen típusjelzést használsz az 1-qubites kapukra
+            else if (instruction.m_type == PhysicalInstructionType::RamanRotation)
             {
-                //auto rxInterpolator = GateCalibrationTable::getRxCalib();
-                //real_t rxError = rxInterpolator.evaluate(instruction.m_theta);
-
-                //framePhase += rxError;
-                //std::cout << "Applied Rx frame correction after RamanRotation for theta " << instruction.m_theta << ": +" << rxError << " rad" << std::endl;
+                static auto PhaseInterpolator = GateCalibrationTable::getRxCalib();
+                real_t PhaseError = PhaseInterpolator.evaluate(instruction.m_theta);
+                m_RWAFramePhases[instruction.m_targets[0]] += PhaseError;
+                std::cout << "Applied RWA frame correction after RamanRotation for theta " << instruction.m_theta << ": +" << PhaseError << " rad" << std::endl;
             }
+#endif
         }
     };
 }

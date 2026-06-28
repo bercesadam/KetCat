@@ -5,6 +5,8 @@
 #include <cmath>
 #include <array>
 
+#define DISABLE_PHASE_GATE_CORRECTION
+#include "config.h"
 #include "quantum_processor/qpu_diag.h"
 #include "gate_calibration/gate_diagnostics.h" 
 #include "gate_calibration/phase_corrections.h"
@@ -12,7 +14,22 @@
 
 namespace KetCat
 {
-    // Helper function to export the final static C++ lookup table matching the PolynomialInterpolator format
+    /// @brief Structure to hold static phase correction metadata for a two-qubit CPhase gate.
+    struct TwoQubitStaticCalib
+    {
+        real_t controlError;    ///< Residual phase tracking error accumulated on the control qubit.
+        real_t targetError;     ///< Residual phase tracking error accumulated on the target qubit.
+        real_t actualCzPhase;   ///< The actual, physically realized entangling phase of the CZ gate.
+    };
+
+    /// @brief Generates an offline static C++ configuration header mapping physical calibration results.
+    /// @details Outputs a structured header file (`gate_calibration_map.h`) containing a compiled-in 
+    ///          Newton polynomial interpolator for arbitrary Rx single-qubit rotations and fixed corrections 
+    ///          for the two-qubit Rydberg CPhase gate.
+    /// @tparam SweepSteps The number of discrete sampling points evaluated during the calibration sweep.
+    /// @param sweepAngles The collection of target rotation angles ($\theta$) used during the calibration sweep.
+    /// @param rxErrors The calculated phase errors corresponding to each rotation angle in `sweepAngles`.
+    /// @param cz The structured results of the two-qubit CZ entangling gate diagnostics.
     template <natural_t SweepSteps>
     void generateCalibrationHeader(
         const std::array<real_t, SweepSteps>& sweepAngles,
@@ -26,21 +43,20 @@ namespace KetCat
         header << "// ==========================================================================\n";
         header << "#pragma once\n";
         header << "#include \"core_types.h\"\n";
-        header << "#include \"gate_diagnostics/polynomial_interpolator.h\"\n\n";
+        header << "#include \"gate_diagnostics/polynomial_interpolator.h\"\n\n#define CALIBRATED_GATES\n\n";
         header << "namespace KetCat\n{\n";
-        header << "    struct TwoQubitStaticCalib { real_t controlError; real_t targetError; real_t actualCzPhase; };\n\n";
         header << "    class GateCalibrationTable\n    {\n";
         header << "    public:\n";
-        header << "        static constexpr natural_t CalibrationPoints = " << SweepSteps << ";\n\n";
+        header << "        static constexpr natural_t CalibrationPoints = " << SweepSteps + 1 << ";\n\n";
 
         // Export Rx Interpolator Data
         header << "        // Exact Newton polynomial interpolator for arbitrary Rx rotations\n";
         header << "        static inline PolynomialInterpolator<CalibrationPoints> getRxCalib() noexcept\n";
         header << "        {\n";
-        header << "            constexpr std::array<real_t, CalibrationPoints> x = {";
+        header << "            constexpr std::array<real_t, CalibrationPoints> x = {0.0, ";
         for (size_t i = 0; i < SweepSteps; ++i) header << sweepAngles[i] << (i == SweepSteps - 1 ? "" : ", ");
         header << "};\n";
-        header << "            constexpr std::array<real_t, CalibrationPoints> y = {";
+        header << "            constexpr std::array<real_t, CalibrationPoints> y = {0.0, ";
         for (size_t i = 0; i < SweepSteps; ++i) header << rxErrors[i] << (i == SweepSteps - 1 ? "" : ", ");
         header << "};\n";
         header << "            return PolynomialInterpolator<CalibrationPoints>(x, y);\n";
@@ -58,59 +74,44 @@ namespace KetCat
         std::cout << "\n>> [KetCat] gate_calibration_map.h successfully generated!" << std::endl;
     }
 
+    /// @brief Executes a comprehensive calibration sweep for single-qubit Rx and two-qubit CZ gates.
+    /// @details Simulates physical pulse actions on a neutral-atom hardware configuration using a multi-level 
+    ///          atomic basis (e.g., Cesium). Quantifies phase deviations caused by off-resonant driving, 
+    ///          Rydberg interactions, and Doppler shifts, exporting the results to an analytical lookup header.
+    /// @return Returns 0 upon successful completion of the sweep sequence and header generation.
     int performGateCalibration()
     {
-        std::cout << "====================================================" << std::endl;
-        std::cout << "     KetCat QUANTUM GATE SWEEP & NEWTON CALIBRATION " << std::endl;
-        std::cout << "====================================================" << std::endl;
+        std::cout << "=========================================" << std::endl;
+        std::cout << "     KetCat QUANTUM GATE CALIBRATION " << std::endl;
+        std::cout << "=========================================" << std::endl;
 
-        using SpectroscopicLetters::s, SpectroscopicLetters::p;
-        constexpr NeutralAtomTypeConfig
-            <
-            Element::Cs,
-
-            256,  /* Spatial discretization steps count */
-            100.0, /* Spatial extent in a.u. */
-
-            0, /* Index of the logical level 0 */
-            2, /* Index of the logical level 1 */
-            4, /* Index of the Rydberg level */
-
-            QuantumNumber<6, s>,  /*0*/
-            QuantumNumber<6, p>,  /*1*/
-            QuantumNumber<7, s>,  /*2*/
-            QuantumNumber<10, p>, /*3*/
-            QuantumNumber<20, s>, /*4*/
-            QuantumNumber<20, p>  /*5*/
-            > Config;
-
-        constexpr natural_t sweep_steps = 4;
+        constexpr natural_t sweep_steps = 8;
         std::array<real_t, sweep_steps> ThetaSamplingPoints{};
         std::array<real_t, sweep_steps> RxGatePhaseErrors{};
         TwoQubitCalibResult CzResults{};
 
-        // Prepare angles from 0 to pi using fixed-size containers required by the template
+        // Prepare rotation angles ranging uniformly from 0 to Pi using fixed-size containers required by the template
         for (size_t i = 0; i < sweep_steps; ++i)
         {
             real_t theta = (ConstexprMath::Pi * (i + 1)) / static_cast<real_t>(sweep_steps);
             ThetaSamplingPoints[i] = theta;
         }
-        
+
         using CircuitType = QuantumCircuit<1>;
         using QPUDiagType = QPUDiagnostics<1, Config>;
         using GlobalStateVectorType =
             StateVector<FiniteHilbertSpace<Config.LevelCount>, QuantumPicture::Schrodinger>;
-        
+
         // -------------------------------------------------------------------------
-        // 1. SWEEP: Rx Gate calibration
+        // 1. SWEEP: Single-Qubit Rx Gate Calibration
         // -------------------------------------------------------------------------
-        /*for (size_t i = 0; i < sweep_steps; ++i)
+        for (size_t i = 0; i < sweep_steps; ++i)
         {
             real_t theta = ThetaSamplingPoints[i];
             std::array<GlobalStateVectorType, 2> BasisOutputs;
             auto Circuit = CircuitType().withGates(QuantumGate<1, GateType::RX>().withTheta(theta).toBits(0));
 
-            // Running from pure |0> state
+            // Execute the circuit using a pure |0> computational basis state initialization
             {
                 auto Diag = QPUDiagType::createQPUWithInitialState("x_calib_0_" + std::to_string(theta) + ".kwf", 0);
                 Diag.QPU().execute<1>(Circuit);
@@ -118,7 +119,7 @@ namespace KetCat
                 TimeMaster::Clock().reset();
             }
 
-            // Running from pure |1> state
+            // Execute the circuit using a pure |1> computational basis state initialization
             {
                 auto Diag = QPUDiagType::createQPUWithInitialState("x_calib_1_" + std::to_string(theta) + ".kwf", 1);
                 Diag.QPU().execute<1>(Circuit);
@@ -126,25 +127,25 @@ namespace KetCat
                 TimeMaster::Clock().reset();
             }
 
-            // Build the effective 2x2 matrix using the GateDiagnostic class
+            // Reconstruct the empirical 2x2 unitary transformation matrix via the diagnostic subsystem
             Matrix<2> U_eff = GateDiagnostic<2>::buildEffectiveGate(BasisOutputs);
             Matrix<2> U_ideal = GateDiagnostic<2>::buildIdealRx(theta);
 
-            // Compute the phase error between the theoretical and effective representations
+            // Compute the global/relative phase error discrepancy between the theoretical target and effective realizations
             real_t PhaseError = GateDiagnostic<2>::globalPhase(U_eff, U_ideal);
             RxGatePhaseErrors[i] = PhaseError;
 
             std::cout << "Phase err at " << theta << " is: " << PhaseError << std::endl;
-        }*/
+        }
 
         // -------------------------------------------------------------------------
-        // 2. SWEEP: 2-Qubit CZ (CPhase) Kapu diagnosztika
+        // 2. SWEEP: Two-Qubit Controlled-Phase (CZ) Gate Diagnostics
         // -------------------------------------------------------------------------
         std::cout << "\n>> Starting Two-Qubit CZ Gate Phase-Tracking Sweep..." << std::endl;
 
-        square_matrix_t<4> u_cz_eff{};
+        square_matrix_t<4> EffectiveCzGateMatrix{};
 
-        // Végigmegyünk a kétqubites bázisállapotokon: 00, 01, 10, 11
+        // Iterate through all two-qubit computational basis states: |00>, |01>, |10>, and |11>
         for (natural_t BaseState = 0; BaseState < 4; ++BaseState)
         {
             auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("cz_calib_" + std::to_string(BaseState) + ".kwf", BaseState);
@@ -153,28 +154,29 @@ namespace KetCat
 
             const auto EffectiveStateVector = Diag.getGlobalStateVector();
 
-            // A 2-qubites globális Hilbert-tér dimenziója atomi szinten: 6 * 6 = 36 állapot
-            // Ki kell gyűjtenünk a 4 tiszta logikai bázisállapotot:
-            // |00> = L0*LevelCount + L0
-            // |01> = L1*LevelCount + L0  (ha a kis-endian sorrendet nézzük)
+            // The total dimensionality of the 2-qubit global physical Hilbert space is 6 * 6 = 36 atomic levels.
+            // We isolate and extract the complex amplitudes associated with the 4 pure logical computational basis states.
+            // Using a standard little-endian bit sequencing layout, the physical index offsets are calculated below:
             constexpr natural_t Index00 = Config.Logical0Level + Config.Logical0Level * Config.LevelCount;
             constexpr natural_t Index01 = Config.Logical1Level + Config.Logical0Level * Config.LevelCount;
             constexpr natural_t Index10 = Config.Logical0Level + Config.Logical1Level * Config.LevelCount;
             constexpr natural_t Index11 = Config.Logical1Level + Config.Logical1Level * Config.LevelCount;
 
-            u_cz_eff[0][BaseState] = EffectiveStateVector[Index00];
-            u_cz_eff[1][BaseState] = EffectiveStateVector[Index01];
-            u_cz_eff[2][BaseState] = EffectiveStateVector[Index10];
-            u_cz_eff[3][BaseState] = EffectiveStateVector[Index11];
+            EffectiveCzGateMatrix[0][BaseState] = EffectiveStateVector[Index00];
+            EffectiveCzGateMatrix[1][BaseState] = EffectiveStateVector[Index01];
+            EffectiveCzGateMatrix[2][BaseState] = EffectiveStateVector[Index10];
+            EffectiveCzGateMatrix[3][BaseState] = EffectiveStateVector[Index11];
         }
 
-        // Kiszámoljuk az elcsúszott azimutális fázisokat
-        CzResults = GateDiagnostic<4>::analyzeCPhase(u_cz_eff);
+        // Quantify the shifted azimuthal phases, cross-talk, and frame-tracking metrics
+        CzResults = GateDiagnostic<4>::analyzeCPhase(EffectiveCzGateMatrix);
 
         // -------------------------------------------------------------------------
         // HEADER EXPORT
         // -------------------------------------------------------------------------
         generateCalibrationHeader<sweep_steps>(ThetaSamplingPoints, RxGatePhaseErrors, CzResults);
+
+        return 0;
     }
 }
 

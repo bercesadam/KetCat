@@ -187,11 +187,10 @@ namespace KetCat
                 const real_t r = HilbertSpace::gridToR(i);
 
                 const real_t nFactor = N_star - (l + 1.0);
-                const real_t logValue =
+                const real_t LogValue =
                     (l + 1.0 + 0.3 * nFactor) * log(r) - Zeta * r;
 
-               // const real_t logValue = (l + 1.0) * ConstexprMath::log(r) - (Zeta / N_star) * r;
-                Psi[i] = complex_t::fromReal(ConstexprMath::exp(logValue));
+                Psi[i] = complex_t::fromReal(ConstexprMath::exp(LogValue));
             }
 
             // Enforce discrete radial normalization: Σ |u|² · Δr = 1
