@@ -153,7 +153,7 @@ y_coord = np.linspace(-L, L, Ny)
 def phase_to_rgb(psi):
     phase = (np.angle(psi) + np.pi) / (2 * np.pi)
     phase = phase - np.floor(phase)
-    amplitude = np.abs(psi) ** 2
+    amplitude = np.abs(psi) 
     if amplitude.max() > 0:
         amplitude /= amplitude.max()
 
@@ -229,7 +229,7 @@ for q in range(num_qubits):
     spatial_images.append(img)
     ax_q.set_xlabel("x (a.u.)", fontsize=9)
     ax_q.set_ylabel("y (a.u.)", fontsize=9)
-    ax_q.set_title(f"Atom {q} Subspace", fontsize=11, weight='bold')
+    ax_q.set_title(f"Qubit {q} Subspace", fontsize=11, weight='bold')
 
     box = ax_q.text(
         0.02, 0.98, "", transform=ax_q.transAxes, fontsize=8, color="white",
@@ -278,7 +278,7 @@ fig.text(ref_pos, 0.1, "KetCat AB INITIO NEUTRAL ATOM\nQUANTUM COMPUTER SIMULATO
          color="black", fontsize=6, weight="bold", ha="left", va="top")
 
 # Experiment title is currently hardcoded for demo videos!
-fig.text(ref_pos, 0.07, "2-Qubit Grover Search demo\n(with search target |11⟩)", 
+fig.text(ref_pos, 0.07, "3-Qubit Greenberger–Horne–Zeilinger state demo\n(maximally entangled state)", 
          color="black", fontsize=7, weight="bold", style="italic", ha="left", va="top")
 
 # 2. Shared Laser Diagnostics Panel (Next to Logo)
@@ -288,7 +288,7 @@ ax_stirap.set_yscale('log')
 ax_stirap.tick_params(colors='black', labelsize=8)
 for spine in ax_stirap.spines.values():
     spine.set_color('black')
-ax_stirap.set_xlabel("Time (sec)", color="black", fontsize=8)
+ax_stirap.set_xlabel("Laser control  - Global time (sec)", color="black", fontsize=8)
 ax_stirap.set_ylabel("Intensity (W/cm²)", color="black", fontsize=8)
 
 laser1_line, = ax_stirap.plot([], [], color="lime", linewidth=1.5, label="Pump")
@@ -299,7 +299,7 @@ ax_stirap.set_xlim(times[0], times[-1])
 
 max_laser_val = max(np.max(stirap_data[:, :, [1, 3]]), 200.0)
 ax_stirap.set_ylim(0.1, max_laser_val * 1.5) 
-ax_stirap.legend(loc="upper right", framealpha=0.6, facecolor="black", edgecolor="none", fontsize=7, labelcolor="black")
+ax_stirap.legend(loc="upper right", framealpha=0.6, facecolor="black", edgecolor="none", fontsize=7, labelcolor="white")
 
 # 3. Shared Global Phase Colorbar (Perfectly in the middle)
 colorbar_rgb = phase_to_rgb(np.exp(1j * np.linspace(-np.pi, np.pi, 256)).reshape(1, -1))
@@ -323,7 +323,7 @@ ax_qiskit.tick_params(colors='black', labelsize=7, axis='x', rotation=90 if num_
 for spine in ax_qiskit.spines.values():
     spine.set_color('black')
 
-current_limits = [L] * num_qubits
+current_limits = [25] * num_qubits
 
 # --- Frame Renderer Pipeline ---
 def update(frame):
