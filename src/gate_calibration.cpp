@@ -81,6 +81,8 @@ namespace KetCat
     /// @return Returns 0 upon successful completion of the sweep sequence and header generation.
     int performGateCalibration()
     {
+        auto Config = AtomConfig::Cesium_6Level;
+
         std::cout << "=========================================" << std::endl;
         std::cout << "     KetCat QUANTUM GATE CALIBRATION " << std::endl;
         std::cout << "=========================================" << std::endl;
