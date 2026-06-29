@@ -5,7 +5,7 @@
 Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
 The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
-<video src="doc/grover.mp4" width="1024" style="text-align:center" autoplay loop muted playsinline></video>
+[doc/grover.mp4](https://github.com/user-attachments/assets/3146ad7b-f2b9-4ea8-a238-321670be8a65)
 A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation (integrated on a bit more than 600 million timesteps).
 
 ---
