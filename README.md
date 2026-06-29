@@ -5,8 +5,8 @@
 Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
 The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
-<img src="https://raw.githubusercontent.com/bercesadam/QuantumCircuitsinCompiler/master/doc/demo.gif" alt="One qubit demonstration" width="1024" style="text-align:center">
-A successful test of single-qubit gates on a Cesium atom with STIRAP Laser drive, performed purely with solving the Time-Dependent Schrödinger (actually integrated on ~80 million time steps).
+<video src="doc/grover.mp4" width="1024" style="text-align:center" autoplay loop muted playsinline></video>
+A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation (integrated on a bit more than 600 million timesteps).
 
 ---
 
