@@ -63,18 +63,18 @@ namespace KetCat
         SimulationObserver(const NeutralAtomManifold<Config>& manifold,
             const std::string fileName, const natural_t saveNthFrame)
             : m_ViewBuilder(manifold),
-              m_Exporter(fileName, QubitCount), 
-              m_SaveNthFrame(saveNthFrame)
-        {
-        }
+            m_Exporter(fileName, QubitCount),
+            m_SaveNthFrame(saveNthFrame)
+        {}
 
-        /// @brief Update the metadata label for the current sequence of frames.
+        /// @brief Update the metadata label by appending text to the current simulation sequence name.
+        /// @param stepName String fragment containing the operational token to append.
         void appendSimulationStepName(const std::string& stepName)
         {
             m_SimulationStepName += stepName;
         }
 
-        //  @brief Empty the metadata label 
+        /// @brief Clears out the accumulated metadata step name label string.
         void resetSimulationStepName()
         {
             m_SimulationStepName.clear();
@@ -82,10 +82,11 @@ namespace KetCat
 
         /// @brief Sample the current quantum and laser state for export.
         ///
-        /// @param psi The current single-qubit operational wavefunction.
-        /// @param laser1 Current state of the pump laser.
-        /// @param laser2 Current state of the Stokes laser.
-        /// @param isKeyFrame If true, ignores m_SaveNthFrame and forces a write.
+        /// @param psi The current uncompressed multi-qubit wavefunction state vector |ψ⟩.
+        /// @param targets List containing active target qubit indices affected by operations.
+        /// @param laser1 Current state of the pump laser pulse framework.
+        /// @param laser2 Current state of the Stokes laser pulse framework.
+        /// @param isKeyFrame If true, ignores m_SaveNthFrame and forces an immediate data write.
         ///
         /// @details
         ///    Calculates the instantaneous basis state probabilities and passes 
@@ -109,8 +110,8 @@ namespace KetCat
                     std::cout << "State vector: " << psi << std::endl;
                     for (natural_t q = 0; q < QubitCount; ++q)
                     {
-						std::cout << SimulationView.m_qubitDatum[q].m_title << std::endl;
-						std::cout << "Purity of qubit " << q << ": " << SimulationView.m_qubitDatum[q].m_purity << std::endl;
+                        std::cout << SimulationView.m_qubitDatum[q].m_title << std::endl;
+                        std::cout << "Purity of qubit " << q << ": " << SimulationView.m_qubitDatum[q].m_purity << std::endl;
                     }
 
                     std::cout << "------------------------" << std::endl << std::endl;
@@ -119,6 +120,5 @@ namespace KetCat
 
             m_FrameCounter++;
         }
-
     };
 }

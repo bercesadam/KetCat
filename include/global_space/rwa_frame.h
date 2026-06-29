@@ -6,13 +6,22 @@
 
 namespace KetCat
 {
+    /// @brief Manages the Rotating Wave Approximation (RWA) reference frames for single and multi-atom systems.
+    /// @details Calculates the static energy shifts induced by transforming the atomic Hamiltonian into the 
+    /// rotating frame of the driving laser fields, tracking the relative energy offsets across multi-level manifolds.
+    /// @tparam LevelCount The number of single-atom atomic energy levels.
     template<natural_t LevelCount>
     class RwaFrame
     {
     private:
+        /// @brief Calculated effective stationary single-atom RWA frame energies.
         std::array<real_t, LevelCount> m_SingleRwaEnergies{};
 
     public:
+        /// @brief Constructs the RWA frame configuration based on bare single-atom energy levels.
+        /// @details Maps the physical atomic energy spectrum to a rotating frame defined by a sequence of 
+        /// laser frequencies ω_i. The transformation evaluates relative energy terms as E_RWA = ΔE_bare - ∑ω_laser.
+        /// @param singleAtomEnergies Array containing the bare atomic eigenenergies (e.g., Hartree fields).
         constexpr RwaFrame(const eigenenergies_t<LevelCount>& singleAtomEnergies) noexcept
         {
             real_t CumulativeOmega = 0.0;
@@ -36,6 +45,12 @@ namespace KetCat
             }
         }
 
+        /// @brief Generates the global multi-atom RWA frame diagonal matrix representation.
+        /// @details Constructs the joint uncompressed energy spectrum in the full product Hilbert space 
+        /// via symmetric additive combinations of single-atom RWA frame components. 
+        /// The resulting dimension scales as Dim = LevelCount^QubitCount.
+        /// @tparam QubitCount Total number of physical atoms layouted in the quantum registry.
+        /// @return An array populated with the joint product-space diagonal RWA energy levels.
         template<natural_t QubitCount>
         constexpr auto generateGlobalRwaEnergies() const noexcept
         {
@@ -69,6 +84,5 @@ namespace KetCat
         {
             return m_SingleRwaEnergies;
         }
-
     };
 }

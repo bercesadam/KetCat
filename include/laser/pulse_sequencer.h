@@ -147,11 +147,6 @@ namespace KetCat
                 framePhase += instruction.m_theta;
                 return std::nullopt;
             }
-            // Handle idle atoms (during CPHASE gates)
-            else if (instruction.m_type == PhysicalInstructionType::FreeEvolution)
-            {
-                // TODO Return a "turned off" laser
-            }
            
             // Apply rotating frame correction: φ_eff = φ_laser - φ_frame
             for (TimeDependentPhase& p : instruction.m_phases)
@@ -170,6 +165,15 @@ namespace KetCat
         }
 
     private:
+        /// @brief Applies dynamic phase corrections to the Rotating Wave Approximation (RWA) frames following entangling or local operations.
+        ///
+        /// @details
+        /// When `CALIBRATED_GATES` is active and `DISABLE_PHASE_GATE_CORRECTION` is omitted, this function injects 
+        /// compensatory phase updates directly into the RWA frame tracking registers of the target atoms. 
+        /// For Rydberg excitations (e.g., Controlled-Phase gates), fixed control and target frame errors are added. 
+        /// For Raman rotations, a nonlinear phase error is evaluated dynamically via interpolation as a function of the rotation angle.
+        ///
+        /// @param instruction The executed physical control pulse structure containing target indices and operational parameters.
         constexpr void applyPostGatePhaseCorrection(PhysicalInstruction& instruction) noexcept
         {
 #if defined(CALIBRATED_GATES) && !defined(DISABLE_PHASE_GATE_CORRECTION) 
