@@ -263,11 +263,11 @@ namespace KetCat
 
             TwoQubitCalibResult result;
             // Phase shift of the target qubit relative to |00>
-            result.targetFramePhaseError = p01 - p00;
+            result.m_targetFramePhaseError = p01 - p00;
             // Phase shift of the control qubit relative to |00>
-            result.controlFramePhaseError = p10 - p00;
+            result.m_controlFramePhaseError = p10 - p00;
             // The pure non-local two-qubit phase (ideally this is pi)
-            result.actualCzPhase = p11 - p10 - p01 + p00;
+            result.m_actualCzPhase = p11 - p10 - p01 + p00;
 
             return result;
         }
