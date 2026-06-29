@@ -11,7 +11,7 @@ namespace KetCat::AtomConfig
         Element::Cs,
 
         256, /* Spatial discretization steps count */
-        100.0, /* Spatial extent in a.u. */
+        200.0, /* Spatial extent in a.u. */
 
         0, /* Index of the logical level 0 */
         2, /* Index of the logical level 1*/
@@ -24,4 +24,9 @@ namespace KetCat::AtomConfig
         QuantumNumber<20, s>, /*4*/
         QuantumNumber<20, p>  /*5*/
         > Cesium_6Level;
+}
+
+namespace KetCat::SimulationConfig
+{
+    static constexpr natural_t SimuSaveNthFrame = 4E5;
 }

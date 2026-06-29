@@ -13,10 +13,8 @@
 
 namespace KetCat
 {
-    /// @brief Defining these as global constants here, as they work out well and
-    /// currently I see no point to expose them ie. in the contructor the the QPU
-    /// so it grabs these values directly from here.
-    constexpr natural_t SimuSaveNthFrame = 4E5;
+    /// @brief Hardcoding this value here for now, as it's a sweet spot between speed and
+    /// optimal sampling frequency to catch fast rotating terms even during Rydberg excitations.
     constexpr real_t TimeStepsPerInstruction = 5E7;
 
 	/// @brief Forward declare Diagnostic class for friend declaration.
@@ -80,7 +78,7 @@ namespace KetCat
 		/// The public constructor initializes all qubits to |0⟩ by default, corresponding to the ground state of the atoms by default.
         QuantumProcessor(std::string simulationOutputFileName, std::bitset<QubitCount> initialState) :
             m_GlobalStateManager(initialState),
-            m_SimulationObserver(m_GlobalStateManager.getManifold(), simulationOutputFileName, SimuSaveNthFrame)
+            m_SimulationObserver(m_GlobalStateManager.getManifold(), simulationOutputFileName, SimulationConfig::SimuSaveNthFrame)
         {
         }
 

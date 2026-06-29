@@ -68,10 +68,12 @@ namespace KetCat
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
 
     public:
+        /// @brief Hardcoding this for now, for accurate capturing of the radial part of 
+        /// wavefunction used for dipole matrix calculation  
         using SingleAtomRadialHilbertSpace = InfiniteHilbertSpace<1_D, 2560, 500.0>;
-        //typename ConfigType::template HilbertSpaceStub<1_D>;
 
-        using SingleAtomFullHilbertSpace = InfiniteHilbertSpace<2_D, 256, 200.0>;
+        /// @brief Hilbert space type used for representing the visualized wavefunction
+        using SingleAtomFullHilbertSpace = typename ConfigType::template HilbertSpaceStub<2_D>;
 
     private:
         /// @brief Reduced-energy Hilbert space used for time evolution.
