@@ -66,7 +66,7 @@ namespace KetCat
         header << "        // Static corrections for the fixed two-qubit Rydberg CPhase (CZ) gate\n";
         header << "        static constexpr TwoQubitStaticCalib getCPhaseCalib() noexcept\n";
         header << "        {\n";
-        header << "            return { " << cz.controlFramePhaseError << ", " << cz.targetFramePhaseError << ", " << cz.actualCzPhase << " };\n";
+        header << "            return { " << cz.m_controlFramePhaseError << ", " << cz.m_targetFramePhaseError << ", " << cz.m_actualCzPhase << " };\n";
         header << "        }\n";
         header << "    };\n";
         header << "}\n";
