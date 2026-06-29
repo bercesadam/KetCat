@@ -5,8 +5,9 @@
 Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
 The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
-[doc/grover.mp4](https://github.com/user-attachments/assets/3146ad7b-f2b9-4ea8-a238-321670be8a65)
-A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation (integrated on a bit more than 600 million timesteps).
+[![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
+
+A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
 
 ---
 
@@ -84,10 +85,11 @@ The **main execution flow**, governed by the `QuantumProcessor` class, is struct
 - A `QuantumCircuit` (composed of `QuantumGate`s) is specified using a compile-time, type-safe DSL interface.
 - Logical quantum gates are compiled into physical control instructions:
 - Laser parameters and pulse sequences are generated  
-  (currently based on two-photon adiabatic **STIRAP** protocols)
 - A time-dependent Hamiltonian is constructed for each time step based on the pulse envelope
+- The perturbations of the state vector and Hamiltonians are being splitted into an Interaction (Dirac) picture
 - The TDSE is numerically integrated over a selected subspace of the global state vector
-- The resulting state is projected into various subspaces for visualization and evaluation
+- The "easy part", the atomic eigenenergies are solved analytically to get the Schrödinger picture for outputs calculation
+- The resulting state is projected into various subspaces (ie. logical probabilities, or density matrices to get single qubit purity and basis state amplitudes for visualization and evaluation
 ---
 
 ### Mathematical and Physical Foundations
