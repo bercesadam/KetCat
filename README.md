@@ -15,13 +15,11 @@ A successful test of 2-qubit Grover Search demonstration on Cesium atoms, perfor
 The project is intended to be a bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
 KetCat is not a mass-market research tool; it is an independent, one-man research and engineering project, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
-
-### Current Focus: Neutral Atoms & STIRAP
 The project began as a fully `constexpr` logical circuit simulator. Today, the focus has shifted entirely to the Physical Layer:
 
 *   **Ab Initio Simulation**: Numerically solving the TDSE with high temporal resolution (millions of time steps).
 *   **Laser-Atom Interactions**: High-fidelity modeling of alkali atom (e.g., Cesium) pulse shaping and population transfer.
-*   **Gate Design**: Realizing quantum gates (Hadamard, Pauli rotations) via fractional and inverted **STIRAP** (Stimulated Raman Adiabatic Passage) protocols.
+*   **Gate Design**: Realizing quantum gates via Raman lasers on Ladder Systems (for Bloch rotations and Rydberg excitation for CPHASE gates)
 *   **Hybrid Basis Sets**: Combining **Slater-Type Orbitals (STO)** for core-electron shielding with **Quantum Defect Theory (QDT)** for high-lying Rydberg states.
 
 ### The "Architect" Approach (Engineering Principles)
