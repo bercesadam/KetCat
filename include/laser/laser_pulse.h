@@ -12,7 +12,7 @@ namespace KetCat
         /// @brief Electric field amplitude ε₀.
         real_t m_amplitude = 0.0; 
         /// @brief Temporal phase offset φ in radians.
-        real_t m_phases = 0.0;     
+        real_t m_phase = 0.0;     
     };
 
     /// @brief Encapsulates a two-photon driving configuration.
