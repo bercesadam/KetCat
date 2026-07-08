@@ -128,14 +128,19 @@ namespace KetCat
 
             for (natural_t i = 0; i < LevelCount; ++i)
             {
+                // Baseline RWA energy offset (pure detuning)
                 const real_t Detuning = m_RwaEnergies[i];
-
-                /// --- AC Stark shift calculation ---
                 real_t StarkShift = 0.0;
 
                 for (natural_t level = 0; level < LevelCount - 1; ++level)
                 {
                     const auto& Laser = lasers[level];
+
+                    // Skip evaluation if the laser field is not active
+                    if (Laser.m_amplitude < 1e-15)
+                    {
+                        continue;
+                    }
 
                     for (natural_t j = 0; j < LevelCount; ++j)
                     {
@@ -144,29 +149,35 @@ namespace KetCat
                             continue;
                         }
 
-                        if ((level == i && j == i + 1) || (level == i - 1 && j == i - 1))
+                        // Retrieve the physical dipole matrix element in atomic units
+                        const real_t DipoleElm = m_DipoleMatrix[i][j].re;
+                        if (ConstexprMath::abs(DipoleElm) < 1e-15)
                         {
                             continue;
                         }
 
-                        const real_t DipoleElm = m_DipoleMatrix[i][j].re;
-
-                        /// Half Rabi frequency:
-                        ///   Ωᵢⱼ/2 = −½ · μᵢⱼ · E
+                        // Half Rabi frequency: Ωᵢⱼ/2 = −½ · μᵢⱼ · E
                         const real_t OmegaRabiHalf = -0.5 * DipoleElm * Laser.m_amplitude;
-
                         const real_t DeltaE = m_AtomEigenEnergies[i] - m_AtomEigenEnergies[j];
 
-                        /// Rotating (near-resonant) contribution
+                        // If the transition between level 'i' and 'j' is directly driven by the 
+                        // current laser channel, it is handled exactly by the off-diagonal terms.
+                        // Including it here perturbatively would cause division by zero and double-counting.
+                        if ((i == level && j == level + 1) || (i == level + 1 && j == level))
+                        {
+                            continue;
+                        }
+
+                        // Rotating (near-resonant) contribution
                         const real_t ResonantDenom = DeltaE - Laser.m_omega;
-                        if (ConstexprMath::abs(ResonantDenom) > 1e-9)
+                        if (ConstexprMath::abs(ResonantDenom) > 1e-6)
                         {
                             StarkShift += (OmegaRabiHalf * OmegaRabiHalf) / ResonantDenom;
                         }
 
-                        /// Counter-rotating (Bloch–Siegert) contribution
+                        // Counter-rotating (Bloch–Siegert) contribution
                         const real_t anti_ResonantDenom = DeltaE + Laser.m_omega;
-                        if (ConstexprMath::abs(anti_ResonantDenom) > 1e-9)
+                        if (ConstexprMath::abs(anti_ResonantDenom) > 1e-6)
                         {
                             StarkShift += (OmegaRabiHalf * OmegaRabiHalf) / anti_ResonantDenom;
                         }
@@ -204,15 +215,17 @@ namespace KetCat
                 /// Complex phase factor e^{iφ}
                 const complex_t PhaseFactor =
                 {
-                    ConstexprMath::cos(Laser.m_phase),
-                    ConstexprMath::sin(Laser.m_phase)
+                    ConstexprMath::cos(Laser.m_phases),
+                    ConstexprMath::sin(Laser.m_phases)
                 };
 
                 /// Coupling term:
                 ///   Ω/2 = −½ · μ · E · e^{iφ}
-                const complex_t Coupling = m_DipoleMatrix[i][i + 1]
-                    * (0.5 * Laser.m_amplitude)
-                    * PhaseFactor;
+                const real_t DipoleElm = m_DipoleMatrix[i][i + 1].re;
+
+                /// Coupling term:
+                ///   Ω/2 = −½ · μ · E · e^{iφ}
+                const complex_t Coupling = complex_t{ -0.5 * Laser.m_amplitude } * PhaseFactor;
 
                 m_hamiltonianMatrix[SUPERDIAGONAL][i] = Coupling;
                 m_hamiltonianMatrix[SUBDIAGONAL][i + 1] = Coupling.conj();

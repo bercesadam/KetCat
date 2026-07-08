@@ -28,8 +28,8 @@ namespace KetCat
             std::array<real_t, LevelCount - 1> LaserOmegas{};
 
             // Currently hardcoded for testing, TODO clean up and generalise
-            LaserOmegas[0] = (singleAtomEnergies[1] - singleAtomEnergies[0]) + Units::omegaAuFromHz(500e6);
-            LaserOmegas[1] = (singleAtomEnergies[2] - singleAtomEnergies[1]) - Units::omegaAuFromHz(500e6);
+            LaserOmegas[0] = (singleAtomEnergies[1] - singleAtomEnergies[0]) + Units::omegaAuFromHz(1500e6);
+            LaserOmegas[1] = (singleAtomEnergies[2] - singleAtomEnergies[1]) - Units::omegaAuFromHz(1500e6);
             LaserOmegas[2] = (singleAtomEnergies[3] - singleAtomEnergies[2]) + Units::omegaAuFromHz(5000e6);
             LaserOmegas[3] = (singleAtomEnergies[4] - singleAtomEnergies[3]) - Units::omegaAuFromHz(5000e6);
 

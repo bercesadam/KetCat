@@ -176,24 +176,13 @@ namespace KetCat
     private:
         void setupRaman(detail::EnvelopeParams& Parameters) const
         {
-            real_t geomPeakRabi = std::sqrt(Parameters.m_peakRabiP * Parameters.m_peakRabiS);
+            // Ω_eff = (Ωp * Ωs) / (2 * Δ)
+            const real_t EffectiveRabiPeak = (Parameters.m_peakRabiP * Parameters.m_peakRabiS) /
+                (2.0 * std::abs(m_config.m_commonDetuning));
 
-            if (std::abs(m_config.m_commonDetuning) < 1e-10)
-            {
-				// Resonant Raman case: the effective Rabi frequency is approximately the geometric mean of the two peaks.
-                real_t peakOmegaEff = geomPeakRabi * ConstexprMath::sqrt(2.0);
-                Parameters.m_sigma = m_config.m_targetTheta / (peakOmegaEff * ConstexprMath::sqrt(ConstexprMath::Pi / 2.0));
-            }
-            else
-            {
-				// Off-resonant Raman case: the effective Rabi frequency is reduced by the detuning, leading to a longer required pulse duration.
-                real_t peakOmegaEff = (geomPeakRabi * geomPeakRabi) / (2.0 * ConstexprMath::abs(m_config.m_commonDetuning));
-
-				// The pulse width (sigma) is inversely proportional to the effective Rabi frequency, which is reduced in the off-resonant case.
-                Parameters.m_sigma = m_config.m_targetTheta / (peakOmegaEff * ConstexprMath::sqrt(ConstexprMath::Pi / 2.0));
-                // To ensure sufficient adiabaticity in the off-resonant case, we apply an additional safety factor to the pulse width.
-                Parameters.m_sigma *= ConstexprMath::sqrt(2.0);
-            }
+            // theta = Ω_eff_peak * sigma * sqrt(pi / 2) -> sigma = theta / (Ω_eff_peak * sqrt(pi / 2))
+            constexpr real_t SqrtPiOverTwo = 1.25331413732; // std::sqrt(M_PI / 2.0)
+            Parameters.m_sigma = m_config.m_targetTheta / (EffectiveRabiPeak * SqrtPiOverTwo);
 
             Parameters.m_tP = 4.0 * Parameters.m_sigma;
             Parameters.m_tS = 4.0 * Parameters.m_sigma;

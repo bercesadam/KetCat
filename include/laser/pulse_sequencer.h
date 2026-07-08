@@ -79,9 +79,9 @@ namespace KetCat
             }
             else
             {
-                PeakRabiHzP = 50e6;
+                PeakRabiHzP = 150e6;
                 PeakRabiHzS = PeakRabiHzP;
-                CommonDetuningHz = 500e6;
+                CommonDetuningHz = 1500e6;
             }
 
             LaserConfig.m_Level1Energy = m_energies[LaserConfig.m_GroundLevelIndex];
