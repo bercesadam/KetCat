@@ -64,7 +64,7 @@ namespace KetCat
 
         // Export CZ Data
         header << "        // Static corrections for the fixed two-qubit Rydberg CPhase (CZ) gate\n";
-        header << "        static constexpr TwoQubitStaticCalib getCPhaseCalib() noexcept\n";
+        header << "        static constexpr TwoQubitCalibResult getCPhaseCalib() noexcept\n";
         header << "        {\n";
         header << "            return { " << cz.m_controlFramePhaseError << ", " << cz.m_targetFramePhaseError << ", " << cz.m_actualCzPhase << " };\n";
         header << "        }\n";
@@ -151,8 +151,8 @@ namespace KetCat
         for (natural_t BaseState = 0; BaseState < 4; ++BaseState)
         {
             auto Diag = QPUDiagnostics<2, Config>::createQPUWithInitialState("cz_calib_" + std::to_string(BaseState) + ".kwf", BaseState);
-            Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
-            TimeMaster::Clock().reset();
+                Diag.QPU().execute(QuantumCircuit<2>().withGates(QuantumGate<2, GateType::CZ>().toBits(0, 1)));
+                TimeMaster::Clock().reset();
 
             const auto EffectiveStateVector = Diag.getGlobalStateVector();
 
