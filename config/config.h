@@ -20,9 +20,9 @@ namespace KetCat::AtomConfig
         QuantumNumber<6, s>,  /*0*/
         QuantumNumber<6, p>,  /*1*/
         QuantumNumber<7, s>,  /*2*/
-        QuantumNumber<10, p>, /*3*/
-        QuantumNumber<20, s>, /*4*/
-        QuantumNumber<20, p>  /*5*/
+        QuantumNumber<7, p>, /*3*/
+        QuantumNumber<60, s>, /*4*/
+        QuantumNumber<60, p>  /*5*/
         > Cesium_6Level;
 }
 

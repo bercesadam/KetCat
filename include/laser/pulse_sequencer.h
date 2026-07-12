@@ -74,8 +74,8 @@ namespace KetCat
             if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
             {
                 PeakRabiHzP = 500e6;
-                PeakRabiHzS = 600e6;
-                CommonDetuningHz = 5000e6;
+                PeakRabiHzS = PeakRabiHzP;
+                CommonDetuningHz = 10000e6;
             }
             else
             {
@@ -178,13 +178,28 @@ namespace KetCat
         {
 #if defined(CALIBRATED_GATES) && !defined(DISABLE_PHASE_GATE_CORRECTION) 
 
-            if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
-            {
-                static constexpr TwoQubitCalibResult CzError = GateCalibrationTable::getCPhaseCalib();
-                m_RWAFramePhases[instruction.m_targets[0]] += CzError.m_controlFramePhaseError;
-                m_RWAFramePhases[instruction.m_targets[1]] += CzError.m_targetFramePhaseError;
-                std::cout << "Applied RWA frame correction after RydbergExcitation: +" << CzError.m_controlFramePhaseError << " rad" << std::endl;
-            }
+                if (instruction.m_type == PhysicalInstructionType::RydbergExcitation)
+                {
+                    static constexpr TwoQubitCalibResult CzError = GateCalibrationTable::getCPhaseCalib();
+
+					// 1. Apply the local Stark-shift phase errors to the control and target atoms
+                    constexpr real_t deltaCzPhase = CzError.m_actualCzPhase - ConstexprMath::Pi;
+
+					// 2. Distribute the collective phase error symmetrically between the two atoms
+                    constexpr real_t collectiveCorrection = deltaCzPhase / 2.0;
+
+					// Control atom receives its local Stark-shift error AND half of the collective error
+                    m_RWAFramePhases[instruction.m_targets[0]] += (CzError.m_controlFramePhaseError + collectiveCorrection);
+
+					// Target atom receives its local Stark-shift error AND half of the collective error
+                    m_RWAFramePhases[instruction.m_targets[1]] += (CzError.m_targetFramePhaseError + collectiveCorrection);
+
+                    std::cout << "CPHASE RWA frame correction:" << std::endl;
+                    std::cout << "  Measured Pure CZ Phase: " << CzError.m_actualCzPhase << " rad (Error: " << deltaCzPhase << " rad)" << std::endl;
+                    std::cout << "  Applied Symmetric Collective Correction: +" << collectiveCorrection << " rad/atom" << std::endl;
+                    std::cout << "  Total Control Frame Shift: " << (CzError.m_controlFramePhaseError + collectiveCorrection) << " rad" << std::endl;
+                    std::cout << "  Total Target Frame Shift: " << (CzError.m_targetFramePhaseError + collectiveCorrection) << " rad" << std::endl;
+                }
             else if (instruction.m_type == PhysicalInstructionType::RamanRotation)
             {
                 static auto PhaseInterpolator = GateCalibrationTable::getRxCalib();

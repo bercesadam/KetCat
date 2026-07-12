@@ -209,7 +209,9 @@ namespace KetCat
                 const natural_t ctrl = op.m_targets[0];
                 const natural_t trgt = op.m_targets[1];
 
-                constexpr real_t phaseShift = 1.17321; //ConstexprMath::Pi + (ConstexprMath::Pi / 2.23606797749979); // 2.236067... = sqrt(5)
+                // For Levine-Pichler protocols, set this too the desired 
+				// phase shift at the middle of the Rydberg pulse.
+                constexpr real_t phaseShift = 0.0; 
 
                 append(
                     PhysicalInstructionType::RydbergExcitation,
