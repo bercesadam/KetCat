@@ -364,7 +364,7 @@ for i in range(state_dim):
     phase_disks.append(disk_fill)
     phase_hands.append(hand)
 
-current_limits = [25] * num_qubits
+current_limits = [35] * num_qubits
 
 # --- Frame Renderer Pipeline ---
 def update(frame):
@@ -384,7 +384,7 @@ def update(frame):
         max_amp = amplitude_sq.max()
         target_limit = L
         if max_amp > 1e-8:
-            threshold = 0.0000001 * max_amp
+            threshold = 0.0001 * max_amp
             inside_indices = np.argwhere(amplitude_sq >= threshold)
             if len(inside_indices) > 0:
                 y_indices, x_indices = inside_indices[:, 0], inside_indices[:, 1]
@@ -436,8 +436,8 @@ def update(frame):
         dx = r_scale * np.cos(phase)
         dy = r_scale * np.sin(phase)
         
-        # Apply aspect compensation factor (0.15) to correct for Y-axis compression distortions
-        phase_hands[i].set_data([i, i + dx], [disk_y_pos, disk_y_pos + dy * 0.15])
+        # Set phase arrow data
+        phase_hands[i].set_data([i, i + dx], [disk_y_pos, disk_y_pos + dy])
 
     # Update global diagnostic STIRAP history lines
     y1_vals = np.clip(np.max(stirap_data[:frame+1, :, 1], axis=1), 0.1, None)
