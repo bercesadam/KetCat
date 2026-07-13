@@ -35,7 +35,7 @@ namespace KetCat
         const Manifold& m_Manifold;
 
 		/// @brief Helper class to extract logical probabilities from the full global state vector.
-		LogicalProbabilityExtractor<QubitCount, Config> m_ProbabilityExtractor;
+        LogicalStateVectorExtractor<QubitCount, Config> m_AmplitudesExtractor;
 
     public:
         SimulationViewBuilder(const Manifold& manifold)
@@ -81,13 +81,13 @@ namespace KetCat
             Data.m_time = Units::AtomicTimeToSeconds * time;
 
 			// Get logical output probabilties from the full state vector
-			Data.m_outputProbabilities =
-                m_ProbabilityExtractor.extractLogicalProbabilities(psiOp, true);
+			Data.m_outputAmplitudes =
+                m_AmplitudesExtractor.extractLogicalStateVector(psiOp, true);
 
 			std::cout << "Probabilities: ";
-			for (size_t i = 0; i < Data.m_outputProbabilities.size(); ++i)
+			for (size_t i = 0; i < Data.m_outputAmplitudes.size(); ++i)
 			{
-				std::cout << "P(" << std::bitset<QubitCount>(i) << ")=" << Data.m_outputProbabilities[i] * 100.0 << "% ";
+				std::cout << "P(" << std::bitset<QubitCount>(i) << ")=" << Data.m_outputAmplitudes[i].normSquared() * 100.0 << "% ";
 			}
             std::cout << std::endl; 
 

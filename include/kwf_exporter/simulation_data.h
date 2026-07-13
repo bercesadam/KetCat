@@ -42,7 +42,7 @@ namespace KetCat
         real_t m_time;
 
 		/// @brief Global state vector, reduced to the logical subspace of the qubits
-        probability_vector_t<ConstexprMath::pow(natural_t(2), QubitCount)> m_outputProbabilities;
+        std::array<complex_t, ConstexprMath::pow(natural_t(2), QubitCount)> m_outputAmplitudes;
 
 		/// @brief Individual qubit data for each atom
         std::array<QubitData<FullHilbertSpace>, QubitCount> m_qubitDatum;

@@ -1,5 +1,7 @@
 #pragma once
+
 #include <bitset>
+#include <cmath>
 #include "core_types.h"
 #include "hilbert_space/hilbert.h"
 #include "local_space/neutral_atom_config.h"
@@ -7,12 +9,12 @@
 
 namespace KetCat
 {
-    /// @brief  Extracts the measurement probabilities of the logical state vector.
+    /// @brief  Extracts the computational state vector coefficients (amplitudes and phases).
     ///         Optionally renormalizes the results if probability leaked outside the computational subspace.
     /// @tparam QubitCount  Total number of qubits in the system.
     /// @tparam Config      Compile-time physical configuration of the neutral atom.
     template <natural_t QubitCount, NeutralAtomTypeConfig Config>
-    class LogicalProbabilityExtractor
+    class LogicalStateVectorExtractor
     {
         using ConfigType = std::remove_cvref_t<decltype(Config)>;
         using GlobalStateManager = SubspaceHelper<ConfigType::LevelCount, QubitCount>;
@@ -22,11 +24,12 @@ namespace KetCat
         static constexpr natural_t LogicalDimSize = ConstexprMath::pow(natural_t(2), QubitCount);
 
     public:
-        /// @brief Extracts the probabilities of the logical state vector from the full global state vector.
-        static constexpr probability_vector_t<LogicalDimSize>
-            extractLogicalProbabilities(const FullStateVectorType& psi, bool renormalize) noexcept
+        /// @brief Extracts the complex amplitudes of the logical state vector from the full global state vector.
+        ///        This preserves both amplitude and phase information for phase disk visualizations.
+        static constexpr std::array<complex_t, LogicalDimSize>
+            extractLogicalStateVector(const FullStateVectorType& psi, bool renormalize) noexcept
         {
-            probability_vector_t<LogicalDimSize> LogicalProbabilities{};
+            std::array<complex_t, LogicalDimSize> LogicalAmplitudes{};
             real_t TotalLogicalProbability = 0.0;
 
             // Little-Endian mapping: logicalIdx binary representation matches qubit indexing directly
@@ -46,22 +49,28 @@ namespace KetCat
                     Multiplier *= ConfigType::LevelCount;
                 }
 
-                const real_t P = psi[GlobalIndex].normSquared();
-                LogicalProbabilities[logicalIdx] = P;
-                TotalLogicalProbability += P;
+                // Extract the full complex amplitude containing the phase information
+                const complex_t Amp = psi[GlobalIndex];
+                LogicalAmplitudes[logicalIdx] = Amp;
+
+                // Track total probability within the logical subspace for leakage normalization
+                TotalLogicalProbability += Amp.normSquared();
             }
 
-            // Renormalize to fix leakage error if requested and valid
+            // Phase-preserving renormalization to correct for physical leakage errors
             if (renormalize && TotalLogicalProbability > 0.0)
             {
-                const real_t InvTotal = 1.0 / TotalLogicalProbability;
+                // Since total population inside the computational subspace has decreased,
+                // amplitudes must be scaled by the square root of the total remaining probability.
+                // This correctly scales the magnitudes while leaving the complex phases intact.
+                const real_t NormFactor = 1.0 / std::sqrt(TotalLogicalProbability);
                 for (natural_t i = 0; i < LogicalDimSize; ++i)
                 {
-                    LogicalProbabilities[i] *= InvTotal;
+                    LogicalAmplitudes[i] = LogicalAmplitudes[i] * NormFactor;
                 }
             }
 
-            return LogicalProbabilities;
+            return LogicalAmplitudes;
         }
     };
 }
