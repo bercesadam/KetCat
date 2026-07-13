@@ -6,7 +6,7 @@
 #include "core_types.h"
 #include "gate_calibration/phase_corrections.h"
 
-#define CALIBRATED_GATES
+//#define CALIBRATED_GATES
 
 namespace KetCat
 {

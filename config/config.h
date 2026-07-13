@@ -10,8 +10,8 @@ namespace KetCat::AtomConfig
         <
         Element::Cs,
 
-        256, /* Spatial discretization steps count */
-        200.0, /* Spatial extent in a.u. */
+        456, /* Spatial discretization steps count */
+        750.0, /* Spatial extent in a.u. */
 
         0, /* Index of the logical level 0 */
         2, /* Index of the logical level 1*/
@@ -28,5 +28,5 @@ namespace KetCat::AtomConfig
 
 namespace KetCat::SimulationConfig
 {
-    static constexpr natural_t SimuSaveNthFrame = 4E5;
+    static constexpr natural_t SimuSaveNthFrame = 1E6;
 }
