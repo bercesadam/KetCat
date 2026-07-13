@@ -48,11 +48,11 @@ int main()
     /// entangled entangling networks to bound the outcome probabilities evenly.
     auto FairDice = QuantumCircuit<3>().withGates(
         QuantumGate<1, GateType::H>().toBits(0),
-        QuantumGate<1, GateType::RY>().withTheta(Theta_P0_2_3).toBits(2),
+        QuantumGate<1, GateType::RX>().withTheta(Theta_P0_2_3).toBits(2),
         QuantumGate<1, GateType::X>().toBits(2),
         QuantumGate<1, GateType::RY>().withTheta(ConstexprMath::Pi / 4).toBits(1),
         QuantumGate<2, GateType::CX>().toBits(2, 1),
-        QuantumGate<1, GateType::RY>().withTheta(-ConstexprMath::Pi / 4).toBits(1),
+        QuantumGate<1, GateType::RY>().withTheta(7 * ConstexprMath::Pi / 4).toBits(1),
         QuantumGate<2, GateType::CX>().toBits(2, 1),
         QuantumGate<1, GateType::X>().toBits(2)
     );
