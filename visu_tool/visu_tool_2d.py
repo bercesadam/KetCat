@@ -167,7 +167,7 @@ def phase_to_rgb(psi):
     amplitude = np.abs(psi) 
     if amplitude.max() > 0:
         amplitude /= amplitude.max()
-        amplitude = amplitude**0.2
+        amplitude = amplitude*2
 
     r, g, b = np.zeros_like(phase), np.zeros_like(phase), np.zeros_like(phase)
     m1 = (phase < 0.25)
@@ -279,8 +279,6 @@ ref_pos = 0.02
 last_pos = axs[0, -1].get_position()
 total_width = last_pos.x1 - ref_pos
 
-# --- Re-arranged Bottom Row with Logo and Text ---
-
 # 1. Project Logo Panel (Far Left)
 ax_logo = fig.add_axes([ref_pos, 0.11, total_width * 0.14, 0.15])
 ax_logo.set_axis_off()
@@ -291,11 +289,12 @@ if os.path.exists(logo_path):
 else:
     ax_logo.text(0.5, 0.5, "[ Logo Placeholder ]", color="gray", ha="center", va="center")
 
-# Metadata and experiment branding tags
+
 fig.text(ref_pos, 0.1, "KetCat AB INITIO NEUTRAL ATOM\nQUANTUM COMPUTER SIMULATOR v3.0", 
          color="black", fontsize=6, weight="bold", ha="left", va="top")
 
-fig.text(ref_pos, 0.07, "3-Qubit Greenberger–Horne–Zeilinger state demo\n(maximally entangled state)", 
+# Keeping this hardcoded now for simplicity, used for demo videos
+fig.text(ref_pos, 0.07, "'Quantum Fair Dice'\n3-qubit demo circuit",
          color="black", fontsize=7, weight="bold", style="italic", ha="left", va="top")
 
 # 2. Shared Laser Diagnostics Panel (Next to Logo)
@@ -352,7 +351,7 @@ max_disk_radius = 0.3  # Bound radius parameters to bar widths
 
 for i in range(state_dim):
     # Base configuration boundary circle
-    disk_outline = plt.Circle((i, disk_y_pos), max_disk_radius, color='darkgray', fill=False, alpha=0.5, linewidth=0.8)
+    disk_outline = plt.Circle((i, disk_y_pos), max_disk_radius, color='black', fill=False, alpha=0.5, linewidth=0.8)
     # Scalable inner circle tracker tied to amplitude changes
     disk_fill = plt.Circle((i, disk_y_pos), 0.0, color='cyan', alpha=0.6, zorder=4)
     # Polar phase dial needle tracker
@@ -384,7 +383,7 @@ def update(frame):
         max_amp = amplitude_sq.max()
         target_limit = L
         if max_amp > 1e-8:
-            threshold = 0.0001 * max_amp
+            threshold = 0.0003 * max_amp
             inside_indices = np.argwhere(amplitude_sq >= threshold)
             if len(inside_indices) > 0:
                 y_indices, x_indices = inside_indices[:, 0], inside_indices[:, 1]
