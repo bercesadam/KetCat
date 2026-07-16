@@ -167,7 +167,6 @@ def phase_to_rgb(psi):
     amplitude = np.abs(psi) 
     if amplitude.max() > 0:
         amplitude /= amplitude.max()
-        amplitude = amplitude*2
 
     r, g, b = np.zeros_like(phase), np.zeros_like(phase), np.zeros_like(phase)
     m1 = (phase < 0.25)
