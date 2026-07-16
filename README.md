@@ -5,6 +5,10 @@
 Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
 The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
+[![3-qubit Quantum Fair Dice](doc/dice.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/dice.mp4)
+
+My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the first 6 states.  (Please click on the GIF to view/download the video with full time and colour resolution.)
+
 [![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
 
 A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
