@@ -7,7 +7,7 @@ The project combines quantum control, neutral atom physics, compile-time softwar
 
 [![3-qubit Quantum Fair Dice](doc/dice.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/dice.mp4)
 
-My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the first 6 states.  (Please click on the GIF to view/download the video with full time and colour resolution.)
+My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the first 6 states, showcasing the new phase disk visu and precise raman rotations of arbitrary theta angles.  (Please click on the GIF to view/download the video with full time and colour resolution.)
 
 [![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
 
