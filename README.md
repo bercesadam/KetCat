@@ -17,7 +17,7 @@ The first successful test on two qubits, a Grover Search demonstration on Cesium
 
 ### Concept: The "Private Digital Quantum Observatory"
 The project is intended to be a bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
-KetCat is not a mass-market research tool; it is an independent, one-man research and engineering project, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
+KetCat is not a mass-market research tool; it is an independent, one-man research and engineering project, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real physical processes governed by fundamental laws.
 
 The project began as a fully `constexpr` logical circuit simulator. Today, the focus has shifted entirely to the Physical Layer:
 
@@ -30,8 +30,8 @@ The project began as a fully `constexpr` logical circuit simulator. Today, the f
 As I am working as a System and SW Architect in the automotive industry, I've tried to bring my mindset into this project as well:
 
 *   **Type Safety & Compile-Time Verification**: Utilizing C++20 Concepts and Templates to enforce eg. Hilbert space dimensions and operator compatibility at compile time.
-*   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms state vectors into visual aesthetics and "simple" debugging-
-*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more). Te program realizes a clean pipeline which compiles logical gates into physical instructions, then laser pulses, which finally results in a Hamiltonian used for TDSE evolution. (See the architecture section below.)
+*   **Data Visualization**: A custom, phase-encoded wave function renderer that transforms state vectors into visual aesthetics and "simple" debugging.
+*   **Clean Architecture**: Separating the mathematical primitives, linear algebra, atomic physics, laser control and logical quantum circuits (and more). The program realizes a clean pipeline which compiles logical gates into physical instructions, then laser pulses, which finally results in a Hamiltonian used for TDSE evolution. (See the architecture section below.)
 
 ---
 
