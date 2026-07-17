@@ -11,7 +11,7 @@ My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the fir
 
 [![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
 
-The first successful test on tqo qubits, a Grover Search demonstration on Cesium atoms, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
+The first successful test on two qubits, a Grover Search demonstration on Cesium atoms, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
 
 ---
 
