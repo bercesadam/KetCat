@@ -1,13 +1,13 @@
-# Ket Cat
+# KetCat
 
 **Ab Initio Neutral Atom Quantum Computer Emulator**  
 |😾⟩, pronounced as "Ket Cat" is an independent quantum mechanics framework in modern C++ for simulating how neutral atom quantum circuits emerge from real atomic physics.
-Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE).
+Instead of idealized gate algebra alone, the simulator models laser-atom interactions, Hamiltonian dynamics and wavefunction evolution directly through numerical solutions of the Time-Dependent Schrödinger Equation (TDSE), where the logical states of the system is merely a projection of a larger physical Hilbert space, and quantum gates are consequences of the underlying atomic dynamics rather than being imposed as abstract matrix operations.
 The project combines quantum control, neutral atom physics, compile-time software architecture and scientific visualization into a single experimental framework.
 
 [![3-qubit Quantum Fair Dice](doc/dice.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/dice.mp4)
 
-My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the first 6 states, showcasing the new phase disk visu and precise raman rotations of arbitrary theta angles.  (Please click on the GIF to view/download the video with full time and colour resolution.)
+My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the first 6 states, showcasing the new phase disk visu and precise Raman rotations of arbitrary theta angles.  (Please click on the GIF to view/download the video with full time and colour resolution.)
 
 [![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
 
