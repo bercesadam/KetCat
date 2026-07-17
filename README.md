@@ -11,11 +11,11 @@ My 3-qubit Quantum Fair Dice circuit aiming a uniform distribution among the fir
 
 [![2-qubit Grover Search demonstration](doc/grover_preview.gif)](https://raw.githubusercontent.com/bercesadam/KetCat/master/doc/grover.mp4)
 
-A successful test of 2-qubit Grover Search demonstration on Cesium atoms, performed purely by solving the Time-Dependent Schrödinger Equation, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
+The first successful test on tqo qubits, a Grover Search demonstration on Cesium atoms, integrated on a bit more than 600 million timesteps. (Please click on the GIF to view/download the video with full time and colour resolution.)
 
 ---
 
-### Concept: The "Digital Quantum Observatory"
+### Concept: The "Private Digital Quantum Observatory"
 The project is intended to be a bridge between Quantum Circuits and Atomic Physics, built with Software Engineering precision.
 KetCat is not a mass-market research tool; it is an independent, one-man research and engineering project, meant to be a work of technological art, an architectural experiment and a tool for personal learning and explorations in quantum mechanics. While most quantum simulators stop at gate-level matrix multiplications, KetCat digs down to the "silicon" of the universe: it simulates the dynamics of **laser-atom interactions**. Here, quantum gates are not abstract unitary operators but the result of real-time physical processes (e.g., STIRAP protocols) governed by fundamental laws.
 
@@ -75,7 +75,7 @@ The **initialization pipeline** (executed partially at compile time, limited by 
   - All TDSE (Time-Dependent Schrödinger Equation) evolution is performed
 
   KetCat uses a **global full state vector** (similar to Qiskit), but defined over the operation space.  
-  Its size depends on the number of modeled eigenstates; however, at minimum (including logical, Rydberg, and intermediate states), it scales as: 5^QubitCount
+  Its size depends on the number of modeled eigenstates; however, at minimum (including logical, at least two Rydberg states for blockage modeling, and intermediate states), it scales as: 6^QubitCount
   The logical qubit state vector is obtained as a projection from this global state.
 
 - **Physical Parameter Computation**  
@@ -92,6 +92,8 @@ The **main execution flow**, governed by the `QuantumProcessor` class, is struct
 - The TDSE is numerically integrated over a selected subspace of the global state vector
 - The "easy part", the atomic eigenenergies are solved analytically to get the Schrödinger picture for outputs calculation
 - The resulting state is projected into various subspaces (ie. logical probabilities, or density matrices to get single qubit purity and basis state amplitudes for visualization and evaluation
+
+![Main Architecture Diagram](doc/ketcat_arch.png)
 ---
 
 ### Mathematical and Physical Foundations
@@ -125,24 +127,183 @@ u_{n^*l}(r) \propto r^{l+1} \cdot e^{-\frac{r}{n^* a_{\text{eff}}}} \cdot {}_{1}
 
 ---
 
-#### **2. Quantum Control & Laser-Atom Interaction**
-Logical qubit states and quantum gate operations are mapped to coherent population transfers within an $N$-level ladder manifold (typically a 3-level system: $|0\rangle \leftrightarrow |1\rangle \leftrightarrow |2\rangle$).
+##### **2. Quantum Control, Rotating Frames & Interaction Picture**
 
-* **STIRAP Protocol**: Coherent population transfer is driven via **Stimulated Raman Adiabatic Passage** (STIRAP). By applying a counter-intuitive pulse sequence—where the Stokes laser ($\Omega_S$) precedes the Pump laser ($\Omega_P$)—the system is trapped in a time-dependent, radiationless **dark state**:
+Logical qubits in KetCat are represented as selected eigenstates of a multi-level neutral atom manifold rather than as isolated two-level systems. Quantum gate operations therefore emerge from coherent laser-driven population dynamics between physical atomic states. The simulator models these processes directly through Hamiltonian evolution, avoiding the need for idealized gate matrices during the physical propagation stage.
 
-    $$|\text{dark}(t)\rangle = \cos\vartheta(t)|0\rangle - \sin\vartheta(t)|2\rangle \quad \text{where} \quad \tan\vartheta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}$$
+- **Multi-Level Control Manifold**:
 
-    This approach achieves high-fidelity population transfer while bypassing the lossy intermediate state $|1\rangle$.
+  The operation space consists of a finite set of atomic eigenstates
 
-* **RWA Hamiltonian Construction**: The time-dependent drive is modeled in the **Rotating Wave Approximation** (RWA). The `MultiRwaRabiHamiltonian` class constructs the effective tridiagonal Hamiltonian, explicitly incorporating cumulative multi-photon detunings $\Delta_i$ and second-order **AC Stark shifts** ($\Delta E_{\text{Stark}}$) coming from off-resonant channels:
+  $$\{|0\rangle, |1\rangle, |2\rangle, \ldots, |r\rangle\}$$
 
-```math
-\mathbf{H}_{\text{RWA}}(t) = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta_P + 2\Delta E_{\text{Stark}, 1} & \Omega_S(t) \\ 0 & \Omega_S(t) & 2(\Delta_P - \Delta_S) + 2\Delta E_{\text{Stark}, 2} \end{pmatrix}
-```
+  where the logical computational basis is embedded into a larger physical Hilbert space that may contain intermediate and Rydberg states. Laser fields induce coherent dipole transitions between these levels according to dipole matrix elements calculated directly from the underlying wavefunctions.
+
+- **Rotating Wave Approximation (RWA)**:
+
+  Direct simulation of laser-atom interactions in the laboratory frame would require resolving optical carrier oscillations that are many orders of magnitude faster than the dynamics relevant to quantum gates. KetCat therefore transforms the system into a rotating reference frame and applies the Rotating Wave Approximation.
+
+  Terms oscillating as
+
+  $$e^{\pm i(\omega+\omega_0)t}$$
+
+  are neglected, while the slowly varying near-resonant terms
+
+  $$e^{\pm i(\omega-\omega_0)t}$$
+
+  are retained.
+
+  This removes rapidly oscillating contributions and yields a numerically tractable effective Hamiltonian.
+
+- **RWA Hamiltonian Construction**:
+
+  The `MultiRwaRabiHamiltonian` class constructs a sparse tridiagonal Hamiltonian describing the coherently coupled ladder manifold
+
+  
+$$H_{\mathrm{RWA}} =
+\begin{bmatrix}
+\Delta_i & \Omega_i/2 \\
+\Omega_i/2 & \Delta_{i+1}
+\end{bmatrix}$$
+
+
+  where
+
+  - $\Omega_i(t)$ are the applied Rabi frequencies,
+  - $\Delta_i$ are cumulative multi-photon detunings,
+  - additional AC Stark corrections may be incorporated into the diagonal terms.
+
+  The Hamiltonian remains Hermitian by construction while retaining only the physically relevant couplings.
+
+- **Interaction Picture Formulation**:
+
+  Even after applying the Rotating Wave Approximation, the Hamiltonian can naturally be decomposed into a stationary contribution and a perturbation
+
+  $$H(t)=H_0+V(t)$$
+
+  where
+
+  - $H_0$ contains analytically known atomic eigenenergies,
+  - $V(t)$ contains laser-induced dynamics and interaction terms.
+
+  Instead of propagating the full Schrödinger-picture state directly, KetCat transforms the state into the Interaction (Dirac) Picture
+
+  $$|\psi_I(t)\rangle=e^{+\frac{i}{\hbar}H_0t}|\psi_S(t)\rangle$$
+
+  while the inverse transformation is
+
+  $$|\psi_S(t)\rangle=e^{-\frac{i}{\hbar}H_0t}|\psi_I(t)\rangle$$
+
+  yielding the interaction-picture Hamiltonian
+
+  $$H_I(t)=e^{+\frac{i}{\hbar}H_0t}V(t)e^{-\frac{i}{\hbar}H_0t}$$
+
+  In this representation the fast phase evolution generated by the stationary atomic energies is handled analytically, while the numerical solver only propagates the physically interesting perturbations.
+
+- **Picture Management**:
+
+  Numerical integration is performed in the Interaction Picture according to
+
+  $$i\hbar\frac{\partial}{\partial t}|\psi_I(t)\rangle=H_I(t)|\psi_I(t)\rangle$$
+
+  while physical observables are reconstructed in the Schrödinger Picture through
+
+  $$|\psi_S(t)\rangle=e^{-iH_0t/\hbar}|\psi_I(t)\rangle$$
+
+  This significantly reduces accumulated numerical phase error and enables long-duration simulations while preserving exact physical observables, state populations and phase information.
 
 ---
 
-#### **3. Numerical Propagation (Crank–Nicolson Solver)**
+##### **3. Two-Photon Raman Control and Gate Synthesis**
+
+Single-qubit gate operations are implemented through coherent two-photon laser drives described by the `TwoPhotonLaser` abstraction. Rather than directly applying logical rotation matrices to an idealized qubit, KetCat realizes logical operations through physically meaningful Raman transitions inside a multi-level atomic manifold.
+
+- **Effective Two-Photon Coupling**:
+
+  For a ladder-type three-level system
+
+  $$|0\rangle \leftrightarrow |e\rangle \leftrightarrow |1\rangle$$
+
+  driven by Pump and Stokes laser fields, the intermediate state may be adiabatically eliminated under sufficiently large detuning.
+
+  The resulting effective coupling becomes
+
+  $$\Omega_{\mathrm{eff}}\approx\frac{\Omega_P\Omega_S}{2\Delta}$$
+
+  where
+
+  - $\Omega_P$ is the Pump Rabi frequency,
+  - $\Omega_S$ is the Stokes Rabi frequency,
+  - $\Delta$ is the one-photon detuning from the intermediate state.
+
+- **Rotation-Angle Synthesis**:
+
+  The physical rotation angle of the logical qubit is determined by the accumulated pulse area
+
+  $$\theta=\int_0^T\Omega_{\mathrm{eff}}(t)\,dt$$
+
+  For approximately constant pulse amplitudes this simplifies to
+
+  $$\theta\approx\Omega_{\mathrm{eff}}T$$
+
+  where $T$ is the pulse duration.
+
+  Consequently, logical rotations emerge naturally from the underlying physical evolution
+
+  $$R_X(\theta),\qquad R_Y(\theta),\qquad R_Z(\theta)$$
+
+  instead of being directly imposed as matrix operations.
+
+---
+
+##### **4. Rydberg Blockade and Van der Waals Interaction**
+
+Multi-qubit entangling gates are realized through strong interactions between highly excited Rydberg states. KetCat models these dynamics using the `TwoAtomRydbergBlockade` Hamiltonian operating in the tensor-product Hilbert space of two atoms.
+
+- **Van der Waals Interaction**:
+
+  When both atoms are simultaneously excited into Rydberg states, long-range dipole-induced interactions produce an effective van der Waals energy shift
+
+  $$V_{\mathrm{vdW}}=\frac{C_6}{R^6}$$
+
+  where
+
+  - $R$ is the interatomic separation,
+  - $C_6$ is the state-dependent van der Waals coefficient.
+
+- **Rydberg Blockade Mechanism**:
+
+  The doubly excited state
+
+  $$|r,r\rangle$$
+
+  acquires an additional interaction-induced energy offset.
+
+  When
+
+  $$V_{\mathrm{vdW}}\gg\Omega$$
+
+  the doubly excited state is shifted far out of resonance and simultaneous excitation becomes energetically suppressed. This phenomenon is known as the **Rydberg Blockade**.
+
+- **Two-Atom Hamiltonian**:
+
+  The total interacting Hamiltonian is constructed as
+
+  $$H_{\mathrm{tot}}=(H_1\otimes I)+(I\otimes H_2)+V_{\mathrm{vdW}}|r,r\rangle\langle r,r|$$
+
+  where the first two terms describe the independent evolution of each atom, while the final term introduces the blockade interaction.
+
+- **Entangling Gate Generation**:
+
+  Because the doubly excited state is dynamically suppressed, laser pulses accumulate conditional phases only on selected computational basis states. This naturally enables controlled-phase operations of the form
+
+  $$CZ=\mathrm{diag}(1,1,1,-1)$$
+
+  which serve as the primary entangling primitive for neutral-atom quantum computation.
+  
+---
+
+##### **5. Numerical Propagation (Crank–Nicolson Solver)**
 The real-time quantum dynamics driven by the laser pulses are simulated by integrating the Time-Dependent Schrödinger Equation (TDSE):
 
 $$i\hbar \frac{\partial}{\partial t}|\Psi(t)\rangle = \mathbf{H}(t)|\Psi(t)\rangle$$
