@@ -120,7 +120,7 @@ namespace KetCat
 		{
 			const real_t N_star = q.n() - RydbergQuantumDefect::value(element, q);
 			const natural_t l = q.l();
-			const real_t A_eff = Atom<element>::getEffectiveBohrRadius();
+			const real_t A_eff = Atom<element>::getEffectiveBohrRadius(N_star);
 
 			StateVector<HilbertSpace> Psi{ complex_t::zero() };
 

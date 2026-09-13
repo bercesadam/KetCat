@@ -288,13 +288,15 @@ namespace KetCat
             calculateHartreeEnergiesImpl(std::index_sequence<IndexSequence...>) noexcept
         {
             return {
-                calculateHartreeEnergy(
-                    ConfigType::ChemicalElement,
+                calculateHartreeEnergy<
                     std::tuple_element_t<
-                        IndexSequence,
-                        typename ConfigType::QuantumNumbers
-                    >{}
-                )...
+                            IndexSequence,
+                            typename ConfigType::QuantumNumbers
+                    >,
+                    ConfigType::ChemicalElement,
+                    ConfigType::Ionization
+                >
+                ()...
             };
         }
 

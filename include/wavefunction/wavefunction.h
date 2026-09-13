@@ -17,7 +17,7 @@ namespace KetCat
         StateVector<HilbertSpace> m_Psi;
 
         /// @brief  Hartree energy of the wavefunction, computed as ⟨ψ|H|ψ⟩.
-        real_t m_Energy;
+        [[deprecated]] real_t m_Energy;
     };
 
     /// @brief Concept for wavefunction generators that produce `Wavefunction` objects in a specified Hilbert space.

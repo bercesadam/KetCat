@@ -8,7 +8,13 @@
 
 namespace KetCat
 {
-    template<natural_t _LocalQditDim, natural_t _QubitCount>
+	/// @brief Helper class for managing local subspaces within a global multi-qubit Hilbert space.
+	///
+	/// @tparam _LocalQditDim  Local dimension of each qubit (e.g., 2 for qubits, 3 for qutrits).
+	/// @tparam _QubitCount     Total number of qubits in the system.
+	/// @tparam _GlobalDegreesOfFreedom  Optional parameter for additional global degrees of freedom, ie. phonon modes (default is 1).
+	template<natural_t _LocalQditDim, natural_t _QubitCount,
+        natural_t _GlobalDegreesOfFreedom = natural_t(1)>
     class SubspaceHelper
     {
         static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2");
@@ -17,13 +23,20 @@ namespace KetCat
     public:
         static constexpr natural_t LocalDim = _LocalQditDim;
         static constexpr natural_t QubitCount = _QubitCount;
-        static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QubitCount);
+		static constexpr natural_t GlobalDegreesOfFreedom = _GlobalDegreesOfFreedom;
+
+		// Calculate the full Hilbert space dimension: d^C * G,
+        // where d is the local dimension (ie. electronic states), C is the number of qubits,
+		// and G is the global degrees of freedom (ie. number of global phonon levels).
+        static constexpr natural_t FullDim =
+            ConstexprMath::pow(LocalDim, QubitCount) * GlobalDegreesOfFreedom;
 
         using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
         using OneQubitSpace   = FiniteHilbertSpace<LocalDim>;
 
+		/// @brief Type representing the Hilbert space of a subsystem of K target qubits.
         template<natural_t TargetQdits>
-        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits)>;
+        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits) * GlobalDegreesOfFreedom>;
 
     private:
         /// @brief  Number of tiles produced when selecting K target Qubits.
