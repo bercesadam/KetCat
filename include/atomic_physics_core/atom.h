@@ -143,5 +143,17 @@ namespace KetCat
 		{
 			return m_Data.m_OuterShellIndex;
 		}
+
+		/// @brief Estimate the mass number (A) for the atom based on its atomic number (Z).
+		/// @return The estimated mass number A.
+		/// @warning This is a very vague estimate and only used currently to get roughly
+		/// realistic Lamb-Dicke parameters for trapped ion simulations.
+		/// It's based on an empirical formula using a polynome I fitted to the mass numbers
+		/// of supported elements considering their most abundant isotopes:
+		/// A = 0.01 * Z^2 + 0.7 * Z + 2.0
+		static constexpr natural_t getMassNumber() noexcept
+		{
+			return static_cast<natural_t>(0.01 * m_Z * m_Z + 0.7 * m_Z + 2.0);
+		}
 	};	
 }
