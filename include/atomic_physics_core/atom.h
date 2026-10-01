@@ -153,7 +153,8 @@ namespace KetCat
 		/// A = 0.01 * Z^2 + 0.7 * Z + 2.0
 		static constexpr natural_t getMassNumber() noexcept
 		{
-			return static_cast<natural_t>(0.01 * m_Z * m_Z + 0.7 * m_Z + 2.0);
+			static constexpr natural_t Z = m_Data.m_Z;
+			return static_cast<natural_t>(0.01 * Z * Z + 0.7 * Z + 2.0);
 		}
 	};	
 }
