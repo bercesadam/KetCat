@@ -3,7 +3,7 @@
 
 #include "hilbert_space/hilbert.h"
 
-#include "atomic_physics_core/atom.h"
+#include "atomic_physics_core/elements.h"
 #include "atomic_physics_core/quantum_number.h"
 
 
@@ -49,22 +49,22 @@ namespace KetCat
         <
             Element E,
             natural_t Steps, real_t Extent,
-            natural_t Logical0, natural_t Logical1, natural_t _RydbergLevel,
+		    natural_t Logical0, natural_t Logical1, natural_t PhononLevels,
             quantum_number_t... _QuantumNumbers
         >
-    struct NeutralAtomTypeConfig
+    struct TrappedIonTypeConfig
     {
         template<DimensionTag SpatialDimensions>
         using HilbertSpaceStub = InfiniteHilbertSpace<SpatialDimensions, Steps, Extent>;
 
-		static constexpr IonizationState Ionization = IonizationState::Neutral;
+        static constexpr IonizationState Ionization = IonizationState::SinglePositive;
         static constexpr Element ChemicalElement = E;
         static constexpr natural_t WavefunctionDiscretizationSteps = Steps;
         static constexpr real_t WavefunctionPhysicalExtent = Extent;
         
         static constexpr natural_t Logical0Level = Logical0;
         static constexpr natural_t Logical1Level = Logical1;
-        static constexpr natural_t RydbergLevel  = _RydbergLevel;
+        static constexpr natural_t PhononLevelCount = PhononLevels;
 
         static constexpr natural_t LevelCount = sizeof...(_QuantumNumbers);
         using QuantumNumbers = std::tuple<_QuantumNumbers...>;
@@ -73,12 +73,10 @@ namespace KetCat
 		// - Ensure there are enough levels to accommodate logical and Rydberg states
 		// - Validate that logical and Rydberg levels are ordered correctly
         // 
-        static_assert(LevelCount >= 3);
+        static_assert(LevelCount >= 2);
         static_assert(LevelCount - 3 >= Logical0);
         static_assert(LevelCount - 2 >= Logical1);
-        static_assert(LevelCount - 1 >= RydbergLevel);
         static_assert(Logical0 < Logical1);
-        static_assert(Logical1 < RydbergLevel);
     };
 }
 

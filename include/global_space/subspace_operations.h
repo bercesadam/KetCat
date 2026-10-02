@@ -8,22 +8,45 @@
 
 namespace KetCat
 {
-    template<natural_t _LocalQditDim, natural_t _QubitCount>
+    /// @brief Helper class for managing local subspaces within a global multi-qubit Hilbert space.
+    ///
+    /// @tparam _LocalQditDim  Local dimension of each qubit (e.g., 2 for qubits, 3 for qutrits).
+    /// @tparam _QubitCount     Total number of qubits in the system.
+    /// @tparam _GlobalDegreesOfFreedom  Optional parameter for additional global degrees of freedom, ie. phonon modes (default is 1).
+    ///
+    /// @details
+    /// The global degree of freedom is the fastest-varying (least significant) digit
+    /// of the global basis index:
+    ///
+    ///     index = g + G·(q0 + q1·d + q2·d² + ...)
+    ///
+    /// where g in [0, G) is the global level (ie. phonon number).
+    /// It is never a target: every tile always contains all G global levels.
+    template<natural_t _LocalQditDim, natural_t _QubitCount,
+        natural_t _GlobalDegreesOfFreedom = natural_t(1)>
     class SubspaceHelper
     {
         static_assert(_LocalQditDim >= 2, "Local dimension must be >= 2");
         static_assert(_QubitCount >= 1, "Qubit count must be >= 1");
+        static_assert(_GlobalDegreesOfFreedom >= 1, "Global degrees of freedom must be >= 1");
 
     public:
         static constexpr natural_t LocalDim = _LocalQditDim;
         static constexpr natural_t QubitCount = _QubitCount;
-        static constexpr natural_t FullDim = ConstexprMath::pow(LocalDim, QubitCount);
+        static constexpr natural_t GlobalDegreesOfFreedom = _GlobalDegreesOfFreedom;
+
+        // Calculate the full Hilbert space dimension: d^C * G,
+        // where d is the local dimension (ie. electronic states), C is the number of qubits,
+        // and G is the global degrees of freedom (ie. number of global phonon levels).
+        static constexpr natural_t FullDim =
+            ConstexprMath::pow(LocalDim, QubitCount) * GlobalDegreesOfFreedom;
 
         using FullHilbertSpace = FiniteHilbertSpace<FullDim>;
-        using OneQubitSpace   = FiniteHilbertSpace<LocalDim>;
+        using OneQubitSpace = FiniteHilbertSpace<LocalDim>;
 
+        /// @brief Type representing the Hilbert space of a subsystem of K target qubits.
         template<natural_t TargetQdits>
-        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits)>;
+        using OperationSpace = FiniteHilbertSpace<ConstexprMath::pow(LocalDim, TargetQdits)* GlobalDegreesOfFreedom>;
 
     private:
         /// @brief  Number of tiles produced when selecting K target Qubits.
@@ -45,7 +68,8 @@ namespace KetCat
         /// - C is the total number of Qubits
         /// - d is the local dimension of each Qubit.
         ///
-        /// Each tile contains exactly d^K amplitudes.
+        /// Each tile contains exactly d^K · G amplitudes, where G is the
+        /// number of global degrees of freedom (all global levels belong to every tile).
         template <natural_t K>
         static constexpr natural_t blockCount() noexcept
         {
@@ -72,6 +96,8 @@ namespace KetCat
         ///
         /// This validation is primarily intended for compile-time or
         /// initialization checks when defining a subsystem.
+        /// The global degrees of freedom are not addressed by target indices,
+        /// so they do not take part in this check.
         template <natural_t K>
         static constexpr bool isTargetsArrayValid(const qbit_list_t<K> targets) noexcept
         {
@@ -114,6 +140,8 @@ namespace KetCat
         ///
         /// - target Qubits (which vary inside the tile)
         /// - non-target Qubits (which select the tile).
+        ///
+        /// The global degrees of freedom are neither: they always vary inside the tile.
         template <natural_t K>
         static constexpr bool isInTargets(natural_t position, const qbit_list_t<K>& targets) noexcept
         {
@@ -142,6 +170,7 @@ namespace KetCat
         ///
         /// The resulting rank determines which digit of the
         /// `nonTargetBasisIndex` corresponds to this Qubit.
+        /// (The global degrees of freedom are not part of `nonTargetBasisIndex`.)
         ///
         /// Example:
         ///
@@ -180,7 +209,8 @@ namespace KetCat
         ///
         /// @details
         /// The nonTargetBasisIndex encodes the basis state of
-        /// the non-target Qubits using base-d digits.
+        /// the non-target Qubits using base-d digits
+        /// (it does not contain the global degrees of freedom).
         ///
         /// This function determines which digit of that number corresponds
         /// to the given global Qubit position.
@@ -195,37 +225,41 @@ namespace KetCat
         /// 2. Extracting the corresponding base-d digit from the index.
         template <natural_t K>
         static constexpr natural_t
-        digitAtPosFromBlockId(natural_t nonTargetBasisIndex, natural_t position,
-                              const qbit_list_t<K>& targets) noexcept
+            digitAtPosFromBlockId(natural_t nonTargetBasisIndex, natural_t position,
+                const qbit_list_t<K>& targets) noexcept
         {
             const natural_t Rank = nonTargetRank(position, targets);
             return (nonTargetBasisIndex / ConstexprMath::pow(LocalDim, Rank)) % LocalDim;
         }
 
-        /// @brief  Encode target-Qubit digits into a local tile index.
+        /// @brief  Encode target-Qubit digits and a global level into a local tile index.
         ///
         /// @tparam K        Number of target Qubits.
         /// @param  tdigits  Base-d digits representing the states of the
         ///                  target Qubits in the order specified by `targets`.
+        /// @param  globalLevel  Level of the global degree of freedom (ie. phonon number), in [0, G).
         ///
         /// @return Linear index inside the tile.
         ///
         /// @details
         /// The digits are interpreted in little-endian order with respect
-        /// to the provided target ordering:
+        /// to the provided target ordering, with the global level as the
+        /// fastest-varying digit:
         ///
-        ///     index = t0 + t1·d + t2·d² + ...
+        ///     index = g + G·(t0 + t1·d + t2·d² + ...)
         ///
         /// where:
         ///
         /// - ti is the state of the i-th target Qubit
-        /// - d is the local Qubit dimension.
+        /// - d is the local Qubit dimension
+        /// - g is the global level and G the number of global levels.
         ///
         /// This mapping converts the K-dimensional target subsystem
-        /// into a contiguous one-dimensional tile index.
+        /// (together with the global degrees of freedom)
+        /// into a contiguous one-dimensional tile index of size d^K · G.
         template <natural_t K>
         static constexpr natural_t
-        localTileIndex(const qbit_list_t<K>& targetDigits) noexcept
+            localTileIndex(const qbit_list_t<K>& targetDigits, natural_t globalLevel = 0) noexcept
         {
             // little-endian
             natural_t Index = 0;
@@ -235,7 +269,8 @@ namespace KetCat
                 Index += targetDigits[i] * Multiplier;
                 Multiplier *= LocalDim;
             }
-            return Index;
+            // the global level is the least significant digit
+            return Index * GlobalDegreesOfFreedom + globalLevel;
         }
 
         /// @brief  Decode a local tile index into base-d digits.
@@ -246,12 +281,14 @@ namespace KetCat
         /// @return Array containing the base-d digits for each target Qubit.
         ///
         /// @details
-        /// This is the inverse operation of `localTileIndex`.
+        /// This is the inverse operation of `localTileIndex`
+        /// (see `globalLevelFromLocalTileIndex` for the global level part).
         ///
-        /// The function decomposes the linear tile index into K base-d digits
+        /// The function first strips the global level, then decomposes
+        /// the remaining index into K base-d digits
         /// representing the states of the target Qubits:
         ///
-        ///     local = t0 + t1·d + t2·d² + ...
+        ///     local / G = t0 + t1·d + t2·d² + ...
         ///
         /// The digits are returned in little-endian order matching the
         /// ordering of the `targets` array.
@@ -259,12 +296,30 @@ namespace KetCat
         static constexpr qbit_list_t<K> decodeLocalTileIndex(natural_t local) noexcept
         {
             std::array<natural_t, K> Digits{};
+            local /= GlobalDegreesOfFreedom;
             for (natural_t i = 0; i < K; ++i)
             {
                 Digits[i] = local % LocalDim;
                 local /= LocalDim;
             }
             return Digits;
+        }
+
+        /// @brief  Extract the global level from a local tile index.
+        ///
+        /// @param  local Linear index within the tile.
+        ///
+        /// @return Level of the global degree of freedom (ie. phonon number), in [0, G).
+        ///
+        /// @details
+        /// The global level is the least significant digit of the tile index:
+        ///
+        ///     g = local % G
+        ///
+        /// This is the counterpart of `decodeLocalTileIndex`, which returns the Qubit digits.
+        static constexpr natural_t globalLevelFromLocalTileIndex(natural_t local) noexcept
+        {
+            return local % GlobalDegreesOfFreedom;
         }
 
         /// @brief  Compute the base global index of a tile.
@@ -283,23 +338,29 @@ namespace KetCat
         ///
         /// Target Qubit positions are left as zeros because their values
         /// will be added later when iterating inside the tile.
+        /// The global level is also left as zero and added later.
         ///
         /// Conceptually this function constructs:
         ///
-        ///     | q(C−1) ... q0 >
+        ///     | q(C−1) ... q0 > ⊗ | g = 0 >
         ///
         /// where:
         ///
         /// - target Qubits are set to 0
-        /// - non-target Qubits are taken from `nonTargetBasisIndex`.
+        /// - non-target Qubits are taken from `nonTargetBasisIndex`
+        /// - the global level (least significant digit) is set to 0.
+        ///
+        /// Since the global level is the fastest-varying digit, the strides of
+        /// all Qubit positions are scaled by G.
         ///
         /// The result is the starting index of the tile in the global state vector.
         template <natural_t K>
         static constexpr natural_t
-        baseOffsetFromNonTargetIndex(natural_t nonTargetBasisIndex, const qbit_list_t<K>& targets) noexcept
+            baseOffsetFromNonTargetIndex(natural_t nonTargetBasisIndex, const qbit_list_t<K>& targets) noexcept
         {
             natural_t Offset = 0;
-            natural_t Multiplier = 1;
+            // the global degrees of freedom occupy the lowest digit
+            natural_t Multiplier = GlobalDegreesOfFreedom;
             natural_t rem = nonTargetBasisIndex;
             for (int pos = 0; pos < QubitCount; ++pos)
             {
@@ -333,7 +394,8 @@ namespace KetCat
         ///
         /// 1. Computes the base global offset of the tile using
         ///    `nonTargetBasisIndex`.
-        /// 2. Iterates over all d^K basis states of the target Qubits.
+        /// 2. Iterates over all d^K · G basis states of the target Qubits
+        ///    and the global degrees of freedom.
         /// 3. Constructs the corresponding global index.
         /// 4. Calls the provided operation with:
         ///
@@ -357,18 +419,19 @@ namespace KetCat
             }
 
             // Compute the linear strides associated with a Qubit position.
-            // The global basis index of a multi-Qubit state is represented as a base-d number:
-            // index = q0 + q1·d + q2·d² + ... + q(C−1)·d^(C−1)
+            // The global basis index of a multi-Qubit state is represented as a base-d number,
+            // where the global degree of freedom is the least significant digit:
+            // index = g + G·(q0 + q1·d + q2·d² + ... + q(C−1)·d^(C−1))
             // This value represents how much the global linear index changes when the state of Qubit `i` is increased by one.
             qbit_list_t<K> TileStrides{};
             for (natural_t i = 0; i < K; ++i)
             {
 
-                TileStrides[i] = ConstexprMath::pow(LocalDim, targetQdits[i]);
+                TileStrides[i] = ConstexprMath::pow(LocalDim, targetQdits[i]) * GlobalDegreesOfFreedom;
             }
 
-            //  Size of a local tile corresponding to K target Qubits.
-            const natural_t TileSize = ConstexprMath::pow(LocalDim, K);
+            //  Size of a local tile corresponding to K target Qubits (including all global levels).
+            const natural_t TileSize = ConstexprMath::pow(LocalDim, K) * GlobalDegreesOfFreedom;
             // Base global index of the tile, determined by the configuration of non-target Qubits.
             const natural_t BaseOffset = baseOffsetFromNonTargetIndex(nonTargetBasisIndex, targetQdits);
 
@@ -377,7 +440,8 @@ namespace KetCat
             for (natural_t LocalIndex = 0; LocalIndex < TileSize; ++LocalIndex)
             {
                 const auto TileDigits = decodeLocalTileIndex<K>(LocalIndex);
-                natural_t GlobalIndex = BaseOffset;
+                // The global level is added directly since it has stride 1.
+                natural_t GlobalIndex = BaseOffset + globalLevelFromLocalTileIndex(LocalIndex);
                 for (natural_t i = 0; i < K; ++i)
                 {
                     GlobalIndex += TileDigits[i] * TileStrides[i];
@@ -393,27 +457,27 @@ namespace KetCat
         /// @param  fullSpace     Global state vector.
         /// @param  targetQdits  Target Qubit indices.
         /// @param  nonTargetBasisIndex Index selecting the tile.
-        /// @param  out      Output tile of size d^K.
+        /// @param  out      Output tile of size d^K · G.
         ///
         /// @details
         /// This function extracts the amplitudes corresponding to the
-        /// selected target Qubits while the remaining Qubits are fixed
-        /// according to `block_id`.
+        /// selected target Qubits (and all global levels) while the remaining
+        /// Qubits are fixed according to `block_id`.
         ///
-        /// The result is a contiguous tile containing all d^K amplitudes
+        /// The result is a contiguous tile containing all d^K · G amplitudes
         /// of the target subsystem.
         template <natural_t K, QuantumPicture P>
         static constexpr void
-        gatherTile(const StateVector<FullHilbertSpace, P>& fullSpace,
+            gatherTile(const StateVector<FullHilbertSpace, P>& fullSpace,
                 const qbit_list_t<K>& targetQdits,
                 natural_t nonTargetBasisIndex,
-                StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>, P>& out) noexcept
+                StateVector<OperationSpace<K>, P>& out) noexcept
         {
             tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
                 [&](natural_t LocalIndex, natural_t GlobalIndex)
-                {
-                    out[LocalIndex] = fullSpace[GlobalIndex];
-                });
+            {
+                out[LocalIndex] = fullSpace[GlobalIndex];
+            });
         }
 
         /// @brief  Scatter a tile of amplitudes back into the global state vector.
@@ -422,7 +486,7 @@ namespace KetCat
         /// @param  fullSpace     Global state vector.
         /// @param  targetQdits  Target Qubit indices.
         /// @param  nonTargetBasisIndex Index selecting the tile.
-        /// @param  in       Tile containing d^K amplitudes.
+        /// @param  in       Tile containing d^K · G amplitudes.
         ///
         /// @details
         /// This function performs the inverse operation of `gatherTile`.
@@ -433,28 +497,30 @@ namespace KetCat
         /// global basis index.
         template <natural_t K, QuantumPicture P>
         static constexpr void
-        scatterTile(StateVector<FullHilbertSpace, P>& fullSpace,
-                    const qbit_list_t<K>& targetQdits,
-                    natural_t nonTargetBasisIndex,
-                    const StateVector<FiniteHilbertSpace<ConstexprMath::pow(LocalDim, K)>, P>& in) noexcept
+            scatterTile(StateVector<FullHilbertSpace, P>& fullSpace,
+                const qbit_list_t<K>& targetQdits,
+                natural_t nonTargetBasisIndex,
+                const StateVector<OperationSpace<K>, P>& in) noexcept
         {
             tileOperationsCore<K>(targetQdits, nonTargetBasisIndex,
                 [&](natural_t LocalIndex, natural_t GlobalIndex)
-                {
-                    fullSpace[GlobalIndex] = in[LocalIndex];
-                });
+            {
+                fullSpace[GlobalIndex] = in[LocalIndex];
+            });
         }
 
     public:
-		/// @brief Initialize the global state vector to a specific computational basis state defined by a bitstring.
-		/// @param bitstring   The bitstring representing the desired basis state, where each bit corresponds to a Qubit (0 or 1).
-		/// @param logical0    Physical level corresponding to the logical '0' state
+        /// @brief Initialize the global state vector to a specific computational basis state defined by a bitstring.
+        /// @param bitstring   The bitstring representing the desired basis state, where each bit corresponds to a Qubit (0 or 1).
+        /// @param logical0    Physical level corresponding to the logical '0' state
         /// @param logical1    Physical level corresponding to the logical '1' state
-		/// @return            A state vector of size d^C with amplitude 1 at the index corresponding
-        ///                    to the specified bitstring and 0 elsewhere.
+        /// @param globalLevel Level of the global degree of freedom (ie. phonon number) to populate (default is 0).
+        /// @return            A state vector of size d^C · G with amplitude 1 at the index corresponding
+        ///                    to the specified bitstring and global level, and 0 elsewhere.
         static constexpr StateVector<FullHilbertSpace, QuantumPicture::Dirac>
             basisStateFromBitstring(std::bitset<QubitCount> bitstring,
-                natural_t logical0, natural_t logical1) noexcept
+                natural_t logical0, natural_t logical1,
+                natural_t globalLevel = 0) noexcept
         {
             StateVector<FullHilbertSpace, QuantumPicture::Dirac> Result{};
 
@@ -468,9 +534,12 @@ namespace KetCat
 
                 GlobalIndex += PhysicalLevel * Multiplier;
                 Multiplier *= LocalDim;
-            }   
+            }
 
-			// Fill the global state vector with zeros except for the specified basis state which is set to amplitude 1.
+            // Embed the global level as the least significant digit.
+            GlobalIndex = GlobalIndex * GlobalDegreesOfFreedom + globalLevel;
+
+            // Fill the global state vector with zeros except for the specified basis state which is set to amplitude 1.
             Result[GlobalIndex] = complex_t::fromReal(1.0);
 
             return Result;
@@ -488,13 +557,15 @@ namespace KetCat
         /// This function performs the following steps:
         /// 1. Iterates over all tiles corresponding to the selected target qubits.
         /// 2. For each tile:
-        ///    a. Gathers the relevant amplitudes from the global state vector into a local tile vector.
+        ///    a. Gathers the relevant amplitudes (d^K · G, including all global levels)
+        ///       from the global state vector into a local tile vector.
         ///    b. Applies the Crank–Nicolson time evolution using the provided Hamiltonian.
+        ///       The solver therefore acts on the tile space of dimension d^K · G.
         ///    c. Scatters the updated tile amplitudes back into the global state vector.
         template <natural_t K, LinearSolverBackend L, QuantumPicture P>
         static constexpr void performTimeEvolution(CrankNicolsonSolver<LocalDim, L>& solver,
-                                            StateVector<FullHilbertSpace, P>& psi,
-                                            qbit_list_t<K> targetQdits) noexcept
+            StateVector<FullHilbertSpace, P>& psi,
+            qbit_list_t<K> targetQdits) noexcept
         {
             const natural_t BlockCount = blockCount<K>();
 
@@ -502,7 +573,7 @@ namespace KetCat
 
             for (int b = 0; b < BlockCount; ++b)
             {
-                StateVector<OperationSpace<K>> local{};
+                StateVector<OperationSpace<K>, P> local{};
                 gatherTile<K, P>(psi, targetQdits, b, local);
                 auto updatedLocal = solver(local);
                 scatterTile<K, P>(psiUpdated, targetQdits, b, updatedLocal);
@@ -511,4 +582,4 @@ namespace KetCat
             psi = psiUpdated;
         }
     };
-} 
+}

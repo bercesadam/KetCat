@@ -6,15 +6,23 @@
 
 namespace KetCat
 {
-	///@brief Enumeration to represent and identify alkali atoms
+	///@brief Enumeration to represent the chemical element
     enum class Element : natural_t
     {
+		// Alkali metals + Hydrogen
         H,
         Li,
         Na,
         K,
         Rb,
         Cs,
+
+		// Alkaline earth metals
+        Be,
+        Mg,
+		Ca,
+		Sr,
+        Ba
     };
 
     /// @brief Tag struct to associate each Element with its corresponding atomic number Z.
@@ -30,6 +38,12 @@ namespace KetCat
     template<> struct AtomicNumber<Element::K>  : std::integral_constant<natural_t, 19> {};
     template<> struct AtomicNumber<Element::Rb> : std::integral_constant<natural_t, 37> {};
     template<> struct AtomicNumber<Element::Cs> : std::integral_constant<natural_t, 55> {};
+
+	template<> struct AtomicNumber<Element::Be> : std::integral_constant<natural_t, 4> {};
+	template<> struct AtomicNumber<Element::Mg> : std::integral_constant<natural_t, 12> {};
+	template<> struct AtomicNumber<Element::Ca> : std::integral_constant<natural_t, 20> {};
+	template<> struct AtomicNumber<Element::Sr> : std::integral_constant<natural_t, 38> {};
+	template<> struct AtomicNumber<Element::Ba> : std::integral_constant<natural_t, 56> {};
     /// }
 
     
@@ -57,6 +71,12 @@ namespace KetCat
             case Element::K: return "K";
             case Element::Rb: return "Rb";
             case Element::Cs: return "Cs";
+
+			case Element::Be: return "Be";
+			case Element::Mg: return "Mg";
+			case Element::Ca: return "Ca";
+			case Element::Sr: return "Sr";
+			case Element::Ba: return "Ba";
             default: return "Unk";
         }
     }

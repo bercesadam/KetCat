@@ -19,9 +19,16 @@ namespace KetCat
 	// Type alias for the electron configuration array, which holds the electron counts for each shell/subshell.
 	using electron_config_t = std::array<ElectronShell, MAX_SHELLS>;
 
+	enum class IonizationState : natural_t
+	{
+		Neutral = 0,
+		SinglePositive = 1
+	};
+
 	/// @brief Atom class template to store basic atomic information and electron configuration for seed wavefunction generation.
 	/// @tparam E Element type (e.g. Element::Li, Element::Na)
-	template <Element E>
+	/// @tparam I Ionization state
+	template <Element Elm, IonizationState Ionization = IonizationState::Neutral>
 	class Atom
 	{
 		// @brief Internal struct to hold the electron configuration and outer shell index for the atom.
@@ -29,9 +36,6 @@ namespace KetCat
 		{
 			// Atomic number (total number of electrons in a neutral atom)
 			natural_t m_Z;
-			
-			// Effective Bohr radius
-			real_t m_Aeff;
 
 			// Electron configuration array, where each entry corresponds to a subshell defined by (n, l)
 			//and the number of electrons in that subshell.
@@ -40,6 +44,8 @@ namespace KetCat
 			// Index of the outermost occupied shell/subshell in the electron configuration.
 			// (Index of the last used element in the static array.)
 			natural_t m_OuterShellIndex;
+
+			real_t m_EffectiveCharge;
 		};
 
 		///@brief Calculate the electron configuration for a given element based on its atomic number Z.
@@ -48,13 +54,10 @@ namespace KetCat
 			AtomData Data{};
 
 			// Store the atomic number in the data struct
-			Data.m_Z = AtomicNumber<E>::value;
+			Data.m_Z = AtomicNumber<Elm>::value;
 
-			// Calculate effective Bohr radius
-			// WARNING! Defining it as equal to the Bohr radius as currently this is used only
-			// for the calculation of Hydrogenic like radial orbitals in Rydberg states,
-			// where the effective Bohr radius is close to the actual Bohr radius.
-			Data.m_Aeff = 1.0;
+			const natural_t IonizationValue = static_cast<natural_t>(Ionization);
+			Data.m_EffectiveCharge = IonizationValue + 1;
 
 			// Temporary struct to represent a subshell with its quantum numbers (n, l).
 			struct SubshellStub { natural_t n, l; };
@@ -77,7 +80,8 @@ namespace KetCat
 
 			// The atomic number Z corresponds to the total number of electrons in a neutral atom,
 			// which is equal to the underlying value of the Element enum.
-			natural_t Remaining = Data.m_Z;
+			// If the ionization state is not neutral, we subtract the number of electrons corresponding to the ionization state.
+			natural_t Remaining = Data.m_Z - IonizationValue;
 
 			for (natural_t i = 0; i < std::size(Aufbau); ++i)
 			{
@@ -110,12 +114,20 @@ namespace KetCat
 		{
 			return m_Data.m_Z;
 		}
+		
+		/// @brief Get the effective nuclear charge for this atom, which can be used in hydrogenic orbital calculations.
+		/// @return The effective nuclear charge Z_eff.
+		static constexpr real_t getEffectiveCharge() noexcept
+		{
+			return m_Data.m_EffectiveCharge;
+		}
 
 		/// @brief Get the effective Bohr radius for this atom, which can be used in hydrogenic orbital calculations.
 		/// @return The effective Bohr radius (currently set equal to the actual Bohr radius for simplicity).
-		static constexpr real_t getEffectiveBohrRadius() noexcept
+		static constexpr real_t getEffectiveBohrRadius(real_t N_star) noexcept
 		{
-			return m_Data.m_Aeff;
+			// a_0 * (n*) ^ 2 / Z_eff
+			return (N_star * N_star) / m_Data.m_EffectiveCharge;
 		}
 
 		/// @brief Get the electron configuration for this atom.
@@ -130,6 +142,19 @@ namespace KetCat
 		static constexpr natural_t getOuterShellIndex() noexcept
 		{
 			return m_Data.m_OuterShellIndex;
+		}
+
+		/// @brief Estimate the mass number (A) for the atom based on its atomic number (Z).
+		/// @return The estimated mass number A.
+		/// @warning This is a very vague estimate and only used currently to get roughly
+		/// realistic Lamb-Dicke parameters for trapped ion simulations.
+		/// It's based on an empirical formula using a polynome I fitted to the mass numbers
+		/// of supported elements considering their most abundant isotopes:
+		/// A = 0.01 * Z^2 + 0.7 * Z + 2.0
+		static constexpr natural_t getMassNumber() noexcept
+		{
+			static constexpr natural_t Z = m_Data.m_Z;
+			return static_cast<natural_t>(0.01 * Z * Z + 0.7 * Z + 2.0);
 		}
 	};	
 }

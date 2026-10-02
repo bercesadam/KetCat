@@ -71,7 +71,8 @@ namespace KetCat
 				Psi = SlaterOrbitalRadial<HilbertSpace, element>{}(q);
 			}
 
-			constexpr real_t HartreeEnergy = calculateHartreeEnergy(element, q);
+			// Storing Hartree energy in the Wavefunction struct is deprecated
+			constexpr real_t HartreeEnergy = 0.0; // calculateHartreeEnergy(element, q);
 			return { Psi, HartreeEnergy };
 		}
 	};

@@ -1,5 +1,6 @@
 #pragma once
 #include "atomic_physics_core/elements.h"
+#include "atomic_physics_core/atom.h"
 #include "atomic_physics_core/quantum_number.h"
 #include "atomic_physics_core/rydberg_quantum_defect.h"
 
@@ -28,20 +29,23 @@ namespace KetCat
     /// @return 
     ///   The energy eigenvalue in Hartree units. Returns 0.0 if the effective 
     ///   principal quantum number is non-physical.
-    template <quantum_number_t QuantumNumberType>
-    constexpr real_t calculateHartreeEnergy(Element e, QuantumNumberType q) noexcept
-    {
-        // Use non-constexpr locals because these values depend on function parameters
-        const real_t QuantumDefect = RydbergQuantumDefect::value(e, q);
-        const real_t N_star = static_cast<real_t>(q.n()) - QuantumDefect;
+	template <quantum_number_t QuantumNumberType, Element e, IonizationState s = IonizationState::Neutral>
+	constexpr real_t calculateHartreeEnergy() noexcept
+	{
+		// Create a value instance of the quantum number type to query its members
+		QuantumNumberType q{};
 
-        if (N_star <= 0.0)
-        {
-            return 0.0;
-        }
+		// Use non-constexpr locals because these values depend on the quantum-number type
+		const real_t QuantumDefect = RydbergQuantumDefect::value(e, q);
+		const real_t N_star = static_cast<real_t>(QuantumNumberType::n()) - QuantumDefect;
+
+		if (N_star <= 0.0)
+		{
+			return 0.0;
+		}
 
 		// For alkali metals, the effective nuclear charge Z_eff is approximately 1 due to screening by inner electrons.
-        const real_t Z_eff = 1.0;
-        return -(Z_eff * Z_eff) / (2.0 * N_star * N_star);
-    }
+		const real_t Z_eff = Atom<e, s>::getEffectiveCharge();
+		return -(Z_eff * Z_eff) / (2.0 * N_star * N_star);
+	}
 }
