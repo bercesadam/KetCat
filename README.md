@@ -1,4 +1,4 @@
-*NEWS:* Currently a trapped ion simulation is developed as an extension of the framework, see the TrappedIonQC branch for updates.
+*NEWS:* Currently trapped ion quantum computer simulation is developed as an extension of the framework, so KetCat will support multiple "physical" architectures from now on and the same logical algorithms can be tested on both physical qubit realizations. New challenges include the introduction of global degrees of freedom (phonon modes) in the Hilbert space representation and the modeling of Mølmer–Sørensen gate, which will be a new two-qubit entangling physical operation supported, which is used in  trapped ion architectures.
 
 # KetCat
 
