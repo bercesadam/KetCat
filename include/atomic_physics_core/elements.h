@@ -72,11 +72,11 @@ namespace KetCat
             case Element::Rb: return "Rb";
             case Element::Cs: return "Cs";
 
-			case Element::Be: return "Be";
-			case Element::Mg: return "Mg";
-			case Element::Ca: return "Ca";
-			case Element::Sr: return "Sr";
-			case Element::Ba: return "Ba";
+			case Element::Be: return "Be+";
+			case Element::Mg: return "Mg+";
+			case Element::Ca: return "Ca+";
+			case Element::Sr: return "Sr+";
+			case Element::Ba: return "Ba+";
             default: return "Unk";
         }
     }
