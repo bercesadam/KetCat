@@ -8,6 +8,8 @@ namespace KetCat
 	/// @brief Enumeration of physical instruction types for neutral atom control.
     enum class PhysicalInstructionType
     {
+        // NEUTRAL ATOM INSTRUCTIONS //////////////////////////////////////////////////////////////////////////////////
+        
 		// @brief Single-qubit Raman rotation between logical states |0⟩ and |1⟩ via an intermediate state.
         RamanRotation,
 
@@ -16,15 +18,18 @@ namespace KetCat
 
 		// @brief Two-qubit Rydberg blockade interaction, which applies a conditional phase shift
         // based on the presence of a Rydberg excitation.
-        // @warning When executing this physical instruction, as laser control module which is designed
-        // to perform single excitation sequences of arbitrary thetas the compiler layer shall
-		// ensure that the theta parameter is set to π, and that two subsequent RydbergExcitation instructions
-        // are  generated for the same pair of qubits to achieve the deexciation part as well.
-        // (The internal control logic will automaticall switch to inverted STIRAP protocol for the second pulse.)
         RydbergExcitation,
 
 		// @brief Free evolution under the influence of the atomic Hamiltonian.
-        FreeEvolution
+        FreeEvolution,
+
+		// TRAPPED ION INSTRUCTIONS ///////////////////////////////////////////////////////////////////////////////////
+
+		// @brief Single-qubit rotation in trapped ion systems
+        CarrierRotation,
+
+		// @brief Two-qubit entangling gate in trapped ion systems
+        MoelmerSoerensen,
     };
 
 

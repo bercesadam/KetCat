@@ -19,7 +19,6 @@ namespace KetCat
     class RydbergQuantumDefect
     {
         // Quantum defect primary Ritz parameters (delta_0) for zero-field/low-l states.
-        // Dimensions expanded to 11 to fit all 11 entries in the Element enum.
 		// BIG WARNING: The quantum defects for alkali earth metals are for singly ionized states (X+), not neutral atoms,
         // added to support trapped ion simulations as well.
         static constexpr std::array<std::array<real_t, 4>, 11> m_QuantumDefects =
