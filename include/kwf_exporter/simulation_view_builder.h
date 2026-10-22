@@ -37,6 +37,10 @@ namespace KetCat
 		/// @brief Helper class to extract logical probabilities from the full global state vector.
         LogicalStateVectorExtractor<QubitCount, Config> m_AmplitudesExtractor;
 
+        /// @brief Previous coherent state per qubit, used to keep the global phase gauge continuous.
+        std::array<StateVector<OperationSpace, QuantumPicture::Schrodinger>, QubitCount> m_PrevLocal;
+        std::array<bool, QubitCount> m_HasPrev{};
+
     public:
         SimulationViewBuilder(const Manifold& manifold)
         : m_Manifold(manifold)
@@ -66,7 +70,35 @@ namespace KetCat
 
 			return Title.str();
         }
-        
+
+        /// @brief Rotates the global phase of psi so that ⟨prev|psi⟩ is real and positive.
+        /// @details The reduced state is only defined up to a global phase. Pivot-based gauge fixing
+        ///          jumps when two levels have equal population, this one does not.
+        void fixGauge(natural_t q, StateVector<OperationSpace, QuantumPicture::Schrodinger>& psi)
+        {
+            if (m_HasPrev[q])
+            {
+                complex_t Overlap = complex_t::zero();
+                for (natural_t k = 0; k < ConfigType::LevelCount; ++k)
+                {
+                    Overlap = Overlap + m_PrevLocal[q][k].conj() * psi[k];
+                }
+
+                const real_t Mag = ConstexprMath::sqrt(Overlap.normSquared());
+                if (Mag > 1e-12)
+                {
+                    const complex_t Phase = Overlap.conj() * (1.0 / Mag); // e^{-i arg(overlap)}
+                    for (natural_t k = 0; k < ConfigType::LevelCount; ++k)
+                    {
+                        psi[k] = psi[k] * Phase;
+                    }
+                }
+            }
+
+            m_PrevLocal[q] = psi;
+            m_HasPrev[q] = true;
+        }
+
         SimulationView<FullHilbertSpace, QubitCount> build(
             const std::string simulationStepName,
             const real_t time,
@@ -102,6 +134,7 @@ namespace KetCat
 
 				// Convert the reduced density matrix to a state vector in the local operation space for visualization
 				StateVector<OperationSpace, QuantumPicture::Schrodinger> psiLocal = m_Manifold.getReducedStateFromDensityMatrix(Rho);
+                fixGauge(i, psiLocal);
 
 				// Extract the logical amplitudes (|0⟩ and |1⟩) for the qubit from the local state vector
                 Qubit.m_alpha = psiLocal[ConfigType::Logical0Level];
